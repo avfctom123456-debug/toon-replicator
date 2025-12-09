@@ -147,7 +147,7 @@ export const ClassicLoadingScreen = ({
   const color2 = mainColors[1] || "RED";
 
   return (
-    <div className="min-h-screen bg-[hsl(212,69%,16%)] flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[hsl(212,69%,16%)] flex flex-col items-center justify-center p-4" style={{ minWidth: "1024px" }}>
       <div className="flex items-center justify-center gap-8 flex-wrap">
         {/* Player Card */}
         <ClassicCardDisplay card={playerCard} playerName={playerName} />
