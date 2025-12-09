@@ -478,6 +478,17 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "xN if opposite card is [color/type]" - Coco, Eduardo
+      match = effect.match(/x(\d)\s+if\s+opposite\s+card\s+is\s+(.+)/);
+      if (match && oppositeCard && !oppositeCard.cancelled) {
+        const multiplier = parseInt(match[1]);
+        const target = match[2].trim();
+        if (hasColor(oppositeCard.card, target) || matchesTarget(oppositeCard.card, target)) {
+          slot.modifiedPoints *= multiplier;
+        }
+        continue;
+      }
+      
       // "+X for each [type] in play" or "+X for each [target]"
       match = effect.match(/\+(\d+)\s+for\s+each\s+(?:opponent\s+)?(.+?)(?:\s+in\s+play)?$/);
       if (match && !effect.includes("neighboring")) {
