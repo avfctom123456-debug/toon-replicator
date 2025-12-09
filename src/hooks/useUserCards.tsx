@@ -7,6 +7,7 @@ interface UserCard {
   card_id: number;
   quantity: number;
   acquired_at: string;
+  copy_number: number | null;
 }
 
 export function useUserCards() {

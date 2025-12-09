@@ -492,6 +492,7 @@ export type Database = {
         Row: {
           acquired_at: string
           card_id: number
+          copy_number: number | null
           id: string
           quantity: number
           user_id: string
@@ -499,6 +500,7 @@ export type Database = {
         Insert: {
           acquired_at?: string
           card_id: number
+          copy_number?: number | null
           id?: string
           quantity?: number
           user_id: string
@@ -506,6 +508,7 @@ export type Database = {
         Update: {
           acquired_at?: string
           card_id?: number
+          copy_number?: number | null
           id?: string
           quantity?: number
           user_id?: string
@@ -544,6 +547,7 @@ export type Database = {
       }
       end_auction: { Args: { p_auction_id: string }; Returns: Json }
       end_season_and_distribute_rewards: { Args: never; Returns: string }
+      get_next_copy_number: { Args: { p_card_id: number }; Returns: number }
       get_reward_for_rank: {
         Args: { p_rank: number }
         Returns: {
