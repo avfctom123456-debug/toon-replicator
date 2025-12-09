@@ -45,6 +45,21 @@ export const ClassicDeckSelect = ({
 }: ClassicDeckSelectProps) => {
   const [selectedDeckIndex, setSelectedDeckIndex] = useState<number | null>(null);
   const [hoveredDeck, setHoveredDeck] = useState<number | null>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (window.innerWidth < 1024) {
+        setScale(window.innerWidth / 1024);
+      } else {
+        setScale(1);
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
   const displayedDeck = hoveredDeck ?? selectedDeckIndex;
   const deckCards =
@@ -68,7 +83,18 @@ export const ClassicDeckSelect = ({
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(212,69%,16%)] flex flex-col items-center justify-center p-4" style={{ minWidth: "1024px" }}>
+    <div 
+      className="min-h-screen bg-[hsl(212,69%,16%)] overflow-hidden"
+      style={{ height: scale < 1 ? `${100 / scale}vh` : 'auto' }}
+    >
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center p-4"
+        style={{ 
+          width: "1024px",
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
       {/* Header Pill */}
       <div className="mb-8">
         <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,30%,75%)] rounded-full px-8 py-3 shadow-lg border-2 border-[hsl(200,40%,90%)]">
@@ -193,6 +219,7 @@ export const ClassicDeckSelect = ({
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
