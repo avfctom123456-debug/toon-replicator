@@ -462,6 +462,18 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "x2 if [A] or [B] is in play" - Sam
+      match = effect.match(/x(\d)\s+if\s+(.+?)\s+or\s+(.+?)\s+is\s+in\s+play/);
+      if (match) {
+        const multiplier = parseInt(match[1]);
+        const target1 = match[2].trim();
+        const target2 = match[3].trim();
+        if (allActiveCards.some(c => matchesTarget(c.card, target1) || matchesTarget(c.card, target2))) {
+          slot.modifiedPoints *= multiplier;
+        }
+        continue;
+      }
+      
       // "+X if [A] and [B] are both in play" - The Infraggable Krunk
       match = effect.match(/\+(\d+)\s+if\s+(.+?)\s+and\s+(.+?)\s+are\s+both\s+in\s+play/);
       if (match) {
@@ -705,6 +717,51 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "All [type] get +X for each [target] in play" - Planet Killer
+      match = effect.match(/all\s+(.+?)\s+get\s+\+(\d+)\s+for\s+each\s+(.+?)(?:\s+in\s+play)?$/);
+      if (match) {
+        const targetType = match[1];
+        const bonusPer = parseInt(match[2]);
+        const countTarget = match[3];
+        const allCards = [...ownBoard, ...enemyBoard].filter((s): s is PlacedCard => s !== null && !s.cancelled);
+        const count = allCards.filter(c => matchesTarget(c.card, countTarget)).length;
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, targetType)) {
+            slot.modifiedPoints += bonusPer * count;
+          }
+        });
+        continue;
+      }
+      
+      // "+X to [character] for each [target] in play" - Stuart (+2 to Gru for each minion)
+      match = effect.match(/\+(\d+)\s+to\s+(.+?)\s+for\s+each\s+(.+?)(?:\s+in\s+play)?$/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const targetChar = match[2];
+        const countTarget = match[3];
+        const allCards = [...ownBoard, ...enemyBoard].filter((s): s is PlacedCard => s !== null && !s.cancelled);
+        const count = allCards.filter(c => matchesTarget(c.card, countTarget)).length;
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, targetChar)) {
+            slot.modifiedPoints += bonus * count;
+          }
+        });
+        continue;
+      }
+      
+      // "+X to each adjacent card" - Raj
+      match = effect.match(/\+(\d+)\s+to\s+each\s+adjacent\s+card/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        neighbors.forEach(idx => {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled) {
+            neighbor.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
       // "+X to all [type1]; +X to all [type2]" - Vector's Dad style compound buffs
       match = effect.match(/\+(\d+)\s+to\s+all\s+(.+)/);
       if (match && !effect.includes("cards")) {
@@ -887,6 +944,70 @@ export function applyPowers(state: GameState): GameState {
         ownBoard.forEach(slot => {
           if (slot && !slot.cancelled && slot.card.basePoints === targetPoints) {
             slot.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
+      // "+X to all [color] [number]s" (e.g., "+7 to all Yellow 7s", "+5 to all Green 7s")
+      match = effect.match(/\+(\d+)\s+to\s+all\s+(\w+)\s+(\d+)s/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const targetColor = match[2].toUpperCase();
+        const targetPoints = parseInt(match[3]);
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.basePoints === targetPoints && hasColor(slot.card, targetColor)) {
+            slot.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
+      // "-X to all [color] [number]s" (e.g., "-4 to all Yellow 10s")
+      match = effect.match(/-(\d+)\s+to\s+all\s+(\w+)\s+(\d+)s/);
+      if (match) {
+        const penalty = parseInt(match[1]);
+        const targetColor = match[2].toUpperCase();
+        const targetPoints = parseInt(match[3]);
+        [...ownBoard, ...enemyBoard].forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.basePoints === targetPoints && hasColor(slot.card, targetColor)) {
+            slot.modifiedPoints -= penalty;
+          }
+        });
+        continue;
+      }
+      
+      // "All [group] get +X for each [color1] card and -X for each [color2] card in play" (Frankie)
+      match = effect.match(/all\s+(.+?)\s+get\s+\+(\d+)\s+for\s+each\s+(\w+)\s+card\s+and\s+-(\d+)\s+for\s+each\s+(\w+)\s+card/);
+      if (match) {
+        const targetGroup = match[1];
+        const bonusPerColor1 = parseInt(match[2]);
+        const color1 = match[3].toUpperCase();
+        const penaltyPerColor2 = parseInt(match[4]);
+        const color2 = match[5].toUpperCase();
+        const allCards = [...ownBoard, ...enemyBoard].filter((s): s is PlacedCard => s !== null && !s.cancelled);
+        const color1Count = allCards.filter(c => hasColor(c.card, color1)).length;
+        const color2Count = allCards.filter(c => hasColor(c.card, color2)).length;
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, targetGroup)) {
+            slot.modifiedPoints += bonusPerColor1 * color1Count;
+            slot.modifiedPoints -= penaltyPerColor2 * color2Count;
+          }
+        });
+        continue;
+      }
+      
+      // "Adjacent cards get -X for each [color] card in play" (Flea)
+      match = effect.match(/adjacent\s+cards\s+get\s+-(\d+)\s+for\s+each\s+(\w+)\s+card/);
+      if (match) {
+        const penaltyPer = parseInt(match[1]);
+        const color = match[2].toUpperCase();
+        const allCards = [...ownBoard, ...enemyBoard].filter((s): s is PlacedCard => s !== null && !s.cancelled);
+        const colorCount = allCards.filter(c => hasColor(c.card, color)).length;
+        neighbors.forEach(idx => {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled) {
+            neighbor.modifiedPoints -= penaltyPer * colorCount;
           }
         });
         continue;
