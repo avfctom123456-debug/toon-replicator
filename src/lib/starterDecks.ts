@@ -11,78 +11,78 @@ export interface StarterDeck {
 export const starterDecks: StarterDeck[] = [
   {
     slot: "A",
-    name: "Justice League",
-    description: "Heroes that buff each other with Justice League synergies",
+    name: "Clone Wars",
+    description: "Jedi and Clone synergies from the Clone Wars series",
     cardIds: [
-      27,  // Batman (GREEN) - Justice League, -5 to opposite if not Hero
-      28,  // Batman Running (BLUE) - Justice League, 10 pts
-      14,  // Aquaman (PURPLE) - +3 to all Green cards
-      11,  // Amazo (SILVER) - +2 for each Justice League member
-      167, // Green Lantern (GREEN) - Justice League
-      168, // Green Lantern Flying (GREEN) - 10 pts
-      356, // Superman (BLUE) - Justice League, 10 pts
-      357, // Superman Unchained (PURPLE) - +10 if any Brainiac
-      47,  // Brainiac (YELLOW) - +4 if next to Lex Luthor, +4 if Superman in play
-      26,  // Batgirl (BLACK) - 10 pts Hero
-      29,  // Batmobile (BLACK) - 9 pts Vehicle
-      13,  // Aqualad (BLACK) - 10 pts Hero
+      405, // General Kenobi (GREEN) - 8 pts Jedi
+      406, // Kenobi Civilized (YELLOW) - +2 to each Clone
+      415, // The High Ground (YELLOW) - +10 to Kenobi if adjacent
+      407, // Captain Rex (YELLOW) - 7 pts Clone
+      409, // Clone Trooper (ORANGE) - -1 to Sith, can stack
+      409, // Clone Trooper (ORANGE) - duplicate allowed
+      412, // Droideka (YELLOW) - 10 pts Droid
+      410, // Battle Droid (PURPLE) - -1 to Jedi
+      413, // Count Dooku (RED) - +2 to each Droid
+      414, // Ventress (BLACK) - +10 to Dooku if adjacent
+      404, // Darth Anakin (RED) - +3 per Clone or Droid
+      408, // Senator Amidala (PINK) - -5 to Anakin/Vader
     ],
   },
   {
-    slot: "B", 
-    name: "Powerpuff Power",
-    description: "Powerpuff Girls with villain debuffs and color synergies",
+    slot: "B",
+    name: "Kung Fu Masters",
+    description: "Kung Fu Panda heroes with Po and Master synergies",
     cardIds: [
-      41,  // Blossom Fighting (BLUE) - Powerpuff, 10 pts
-      43,  // Blossom with Bunny (ORANGE) - +5 if any Bugs Bunny
-      48,  // Bubbles Flying (YELLOW) - 8 pts
-      49,  // Bubbles Laughing (ORANGE) - +6 to any other Powerpuff member
-      50,  // Bubbles with Flowers (ORANGE) - +2 to Buttercup, Blossom, etc
-      59,  // Buttercup Fighting (BLUE) - +1 for each Villain in play
-      61,  // Buttercup with Snowball (BLUE) - 10 pts
-      67,  // Chemical X (SILVER) - +1 for each Female
-      53,  // Bugs Grinnin' (ORANGE) - 10 pts for Blossom synergy
-      6,   // Aku (GREEN) - Villain 10 pts
-      38,  // Bizarro (YELLOW) - Villain
-      35,  // Billy (BLACK) - 9 pts
+      480, // Po Eating (SILVER) - +2 to all Black Cards
+      481, // Po the Dragon Warrior (PURPLE) - 10 pts Hero
+      488, // Master Oogway (GREEN) - x2 to neighboring Po
+      482, // Master Shifu (RED) - +3 to each Silver gtoon
+      483, // Master Tigress (ORANGE) - 9 pts Hero
+      484, // Master Viper (YELLOW) - 6 pts Hero
+      485, // Master Monkey (BLUE) - 5 pts Hero
+      486, // Master Mantis (GREEN) - 5 pts Hero
+      487, // Master Crane (PURPLE) - +5 if played in 2nd round
+      490, // Tai Lung (RED) - -5 to Po, -2 to round 1 Animals
+      491, // The Chameleon (PINK) - Cancel opposite gtoon
+      489, // Spirit Oogway (PINK) - -4 to all elementals
     ],
   },
   {
     slot: "C",
-    name: "Looney Tunes",
-    description: "Classic cartoon characters with neighbor synergies", 
+    name: "Despicable Minions",
+    description: "Gru and Minion synergies with villain debuffs",
     cardIds: [
-      53,  // Bugs Grinnin' (ORANGE) - 10 pts
-      55,  // Bugs Singin' (YELLOW) - +5 if next to any Daffy Duck
-      94,  // Daffy Duck (BLUE) - 7 pts
-      18,  // Baby Daffy (PURPLE) - -5 to opposing if not Animal
-      20,  // Baby Sylvester (PURPLE) - +3 to all other Purple cards
-      25,  // Barney Rubble (PURPLE) - +10 if next to Fred Flintstone
-      70,  // Chicken (PURPLE) - 8 pts Animal
-      88,  // Courage Screaming (PURPLE) - 7 pts
-      120, // Earl (PURPLE) - 10 pts
-      77,  // Clover (ORANGE) - 10 pts
-      82,  // Coop (ORANGE) - 10 pts, x2 to Megas
-      62,  // Captain Dodgers (ORANGE) - 10 pts
+      467, // Gru (ORANGE) - -5 to 2nd round villains
+      468, // Kid Gru (YELLOW) - 5 pts Villain
+      472, // Stuart (GREEN) - +2 to Gru per minion
+      473, // Bob (BLUE) - 8 pts Minion
+      474, // Dave (PURPLE) - 10 pts Minion
+      475, // Jerry (PINK) - 6 pts Minion
+      479, // Evil Minion (SILVER) - +2 to Purple Cards
+      471, // Agnes (SILVER) - +2 to each Pink Card
+      470, // Edith (PINK) - 6 pts
+      469, // Margo (PURPLE) - -1 per opponent Male
+      476, // Vector (ORANGE) - -3 to other Orange
+      477, // The Moon (BLUE) - -5 to Vector, +2 to Saiyans
     ],
   },
   {
     slot: "D",
-    name: "Teen Titans",
-    description: "Teen Titans with group synergies and debuffs",
+    name: "Dragon Ball Z",
+    description: "Saiyans, Namekians, and powerful energy attacks",
     cardIds: [
-      30,  // Beast Boy (GREEN) - +3 if Robin in play
-      32,  // Beast Boy Kitten (SILVER) - +8 if next to Thunder
-      92,  // Cyborg (BLACK) - Teen Titans, 9 pts
-      312, // Robin (GREEN) - Teen Titans, +10 if next to Starfire
-      313, // Robin Kicking (YELLOW) - 10 pts
-      40,  // Bloo (GREEN) - 10 pts Imaginary Friend
-      9,   // Alex (GREEN) - 8 pts Hero
-      90,  // Cow (GREEN) - 9 pts
-      96,  // Daphne Celebrating (GREEN) - 10 pts
-      103, // Dexter (BLUE) - 10 pts
-      98,  // Dee Dee (PURPLE) - +5 if next to Dexter
-      100, // Dee Dee Monster (YELLOW) - 10 pts
+      454, // Spirit Goku (YELLOW) - 10 pts Saiyan Spirit
+      455, // Super Saiyan Goku (ORANGE) - 5 pts Saiyan Hero
+      465, // Prince Vegeta (ORANGE) - -3 to Politicians
+      457, // Angry Bulma (PINK) - x2 to Vegeta
+      456, // Piccolo (ORANGE) - 9 pts Namekian Hero
+      463, // Dende (SILVER) - Makes negative points positive
+      466, // Training Gohan (RED) - +5 if Moon in play
+      477, // The Moon (BLUE) - +2 to all Saiyans
+      460, // Trunks from Future (SILVER) - -2 per Droid
+      461, // Trunks the Child (PURPLE) - 8 pts Prince Saiyan
+      464, // Senzu Bean (PINK) - +2 to all DBZ Toons
+      459, // Chi Chi (YELLOW) - -10 to any Goku
     ],
   },
 ];
