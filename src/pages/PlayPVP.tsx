@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useProfile } from "@/hooks/useProfile";
 import { useMatchmaking } from "@/hooks/useMatchmaking";
+import { usePlayerStats } from "@/hooks/usePlayerStats";
 import { CardInfoModal } from "@/components/game/CardInfoModal";
 import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
 import { ClassicGameScreen } from "@/components/game/ClassicGameScreen";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   GameState,
   PlacedCard,
@@ -30,7 +32,8 @@ const PlayPVP = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { getDecksWithSlots, loading: decksLoading } = useDecks();
-  const { profile } = useProfile();
+  const { profile, updateCoins, refetchProfile } = useProfile();
+  const { updatePvpStats } = usePlayerStats();
   const { 
     status: matchmakingStatus, 
     match, 
@@ -58,6 +61,9 @@ const PlayPVP = () => {
   const [opponentProfile, setOpponentProfile] = useState<{ username: string } | null>(null);
   const [loadingGameState, setLoadingGameState] = useState<GameState | null>(null);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const [rewardsProcessed, setRewardsProcessed] = useState(false);
+
+  const PVP_WIN_COINS = 25;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -190,12 +196,28 @@ const PlayPVP = () => {
                 setGame({ ...newState, phase: "game-over" });
                 setRevealPhase("revealed");
                 setShowResultModal(true);
-                if (newState.winner === "player") {
-                  setMessage(`You win by ${newState.winMethod}!`);
-                } else if (newState.winner === "opponent") {
-                  setMessage(`Opponent wins by ${newState.winMethod}!`);
-                } else {
-                  setMessage("It's a tie!");
+                
+                // Process rewards and stats
+                if (match && user && !rewardsProcessed) {
+                  setRewardsProcessed(true);
+                  const opponentId = isPlayer1 ? match.player2_id : match.player1_id;
+                  
+                  if (newState.winner === "player") {
+                    // Winner gets coins and stats update
+                    updatePvpStats(user.id, opponentId, false);
+                    const newCoins = (profile?.coins || 0) + PVP_WIN_COINS;
+                    updateCoins(newCoins);
+                    toast.success(`+${PVP_WIN_COINS} coins for winning!`);
+                    setMessage(`You win by ${newState.winMethod}! +${PVP_WIN_COINS} coins`);
+                  } else if (newState.winner === "opponent") {
+                    // Loser updates stats only
+                    updatePvpStats(opponentId, user.id, false);
+                    setMessage(`Opponent wins by ${newState.winMethod}!`);
+                  } else {
+                    // Draw
+                    updatePvpStats(user.id, opponentId, true);
+                    setMessage("It's a tie!");
+                  }
                 }
               }
             }, 800);
@@ -442,7 +464,9 @@ const PlayPVP = () => {
     setWaitingForOpponent(false);
     setOpponentProfile(null);
     setLoadingGameState(null);
-  }, [leaveQueue]);
+    setRewardsProcessed(false);
+    refetchProfile();
+  }, [leaveQueue, refetchProfile]);
 
   if (authLoading || decksLoading) {
     return (

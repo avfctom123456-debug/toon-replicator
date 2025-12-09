@@ -18,6 +18,7 @@ import AdminPanel from "./pages/AdminPanel";
 import CardCollection from "./pages/CardCollection";
 import CardEditor from "./pages/CardEditor";
 import CardCreator from "./pages/CardCreator";
+import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/card-editor" element={<CardEditor />} />
             <Route path="/card-creator" element={<CardCreator />} />
             <Route path="/collection" element={<CardCollection />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
