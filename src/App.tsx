@@ -16,6 +16,7 @@ import TradeBoard from "./pages/TradeBoard";
 import AdminPanel from "./pages/AdminPanel";
 import CardCollection from "./pages/CardCollection";
 import CardEditor from "./pages/CardEditor";
+import CardCreator from "./pages/CardCreator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/trade-board" element={<TradeBoard />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/card-editor" element={<CardEditor />} />
+            <Route path="/card-creator" element={<CardCreator />} />
             <Route path="/collection" element={<CardCollection />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
