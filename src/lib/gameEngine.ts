@@ -555,7 +555,7 @@ export function applyPowers(state: GameState): GameState {
       
       // "+X to each [type]" (buffs each matching card)
       match = effect.match(/\+(\d+)\s+to\s+each\s+(.+)/);
-      if (match && !effect.includes("neighboring")) {
+      if (match && !effect.includes("neighboring") && !effect.includes("vehicle in play")) {
         const bonus = parseInt(match[1]);
         const target = match[2];
         ownBoard.forEach(slot => {
@@ -563,6 +563,81 @@ export function applyPowers(state: GameState): GameState {
             if (matchesTarget(slot.card, target)) {
               slot.modifiedPoints += bonus;
             }
+          }
+        });
+        continue;
+      }
+      
+      // "+X to each vehicle in play" - Jeremy Clarkson
+      match = effect.match(/\+(\d+)\s+to\s+each\s+vehicle\s+in\s+play/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        [...ownBoard, ...enemyBoard].forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, "vehicle")) {
+            slot.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
+      // "-X to each opposing [type]" - Miss Fritter
+      match = effect.match(/-(\d+)\s+to\s+each\s+opposing\s+(.+)/);
+      if (match) {
+        const penalty = parseInt(match[1]);
+        const target = match[2];
+        enemyBoard.forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
+            slot.modifiedPoints -= penalty;
+          }
+        });
+        continue;
+      }
+      
+      // "-X to each [type]" - Mr. Phillips Luzinsky
+      match = effect.match(/-(\d+)\s+to\s+each\s+(.+)/);
+      if (match && !effect.includes("opposing")) {
+        const penalty = parseInt(match[1]);
+        const target = match[2];
+        [...ownBoard, ...enemyBoard].forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id && matchesTarget(slot.card, target)) {
+            slot.modifiedPoints -= penalty;
+          }
+        });
+        continue;
+      }
+      
+      // "-X to each opposing card with a higher base value" - Monsieur Hood
+      match = effect.match(/-(\d+)\s+to\s+each\s+opposing\s+card\s+with\s+(?:a\s+)?higher\s+base\s+value/);
+      if (match) {
+        const penalty = parseInt(match[1]);
+        enemyBoard.forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.basePoints > sourceSlot.card.basePoints) {
+            slot.modifiedPoints -= penalty;
+          }
+        });
+        continue;
+      }
+      
+      // "+X to each own card with lower base value" - Monsieur Hood
+      match = effect.match(/\+(\d+)\s+to\s+each\s+own\s+card\s+with\s+lower\s+base\s+value/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id && slot.card.basePoints < sourceSlot.card.basePoints) {
+            slot.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
+      // "+X to all [type1]; +X to all [type2]" - Vector's Dad style compound buffs
+      match = effect.match(/\+(\d+)\s+to\s+all\s+(.+)/);
+      if (match && !effect.includes("cards")) {
+        const bonus = parseInt(match[1]);
+        const target = match[2];
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id && matchesTarget(slot.card, target)) {
+            slot.modifiedPoints += bonus;
           }
         });
         continue;
@@ -583,9 +658,39 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "+X to neighboring [target]" - James May style
+      match = effect.match(/\+(\d+)\s+to\s+neighboring\s+(.+)/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const target = match[2];
+        neighbors.forEach(idx => {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled && matchesTarget(neighbor.card, target)) {
+            neighbor.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
+      // "+X to any [target1] and any [target2]" or "+X to [target1] and [target2]" - Townsville
+      match = effect.match(/\+(\d+)\s+to\s+(?:any\s+)?(.+?)\s+and\s+(?:any\s+)?(.+)/);
+      if (match && !effect.includes("neighboring")) {
+        const bonus = parseInt(match[1]);
+        const target1 = match[2].trim();
+        const target2 = match[3].trim();
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id) {
+            if (matchesTarget(slot.card, target1) || matchesTarget(slot.card, target2)) {
+              slot.modifiedPoints += bonus;
+            }
+          }
+        });
+        continue;
+      }
+      
       // "+X to any [character/type]" or "+X to [character]"
       match = effect.match(/\+(\d+)\s+to\s+(?:any\s+)?(.+?)(?:;|$)/);
-      if (match && !effect.includes("all") && !effect.includes("each") && !effect.includes("adjacent") && !effect.includes("neighboring")) {
+      if (match && !effect.includes("all") && !effect.includes("each") && !effect.includes("adjacent") && !effect.includes("neighboring") && !effect.includes(" and ")) {
         const bonus = parseInt(match[1]);
         const target = match[2];
         ownBoard.forEach(slot => {
@@ -780,8 +885,15 @@ export function applyPowers(state: GameState): GameState {
       }
     }
     
+    // "Cancel out opposite gtoon" - The Chameleon
+    if (desc.includes("cancel out opposite") || desc.includes("cancel opposite")) {
+      if (oppositeCard && !oppositeCard.cancelled) {
+        oppositeCard.cancelled = true;
+      }
+    }
+    
     // "-X to opponents [type]" or "-X to opponent's [type]"
-    match = desc.match(/-(\d+)\s+to\s+opponents?\s+(.+)/);
+    match = desc.match(/-(\d+)\s+to\s+opponents?'?\s+(.+)/);
     if (match) {
       const penalty = parseInt(match[1]);
       const target = match[2];
@@ -790,6 +902,34 @@ export function applyPowers(state: GameState): GameState {
           slot.modifiedPoints -= penalty;
         }
       });
+    }
+    
+    // "-X to any [target1], [target2], or [target3] in play" - Sarah the Elderly
+    match = desc.match(/-(\d+)\s+to\s+any\s+(.+?)\s+in\s+play/i);
+    if (match) {
+      const penalty = parseInt(match[1]);
+      const targetStr = match[2];
+      // Parse "Ed, Edd, or Eddy" style targets
+      const targets = targetStr.split(/,\s*|\s+or\s+/).map(t => t.trim()).filter(t => t);
+      [...ownBoard, ...enemyBoard].forEach(slot => {
+        if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id) {
+          if (targets.some(t => matchesTarget(slot.card, t))) {
+            slot.modifiedPoints -= penalty;
+          }
+        }
+      });
+    }
+    
+    // Darth Anakin: "If countClones > countDroids, Anakin (+3 for each Clone); else Vader (+3 for each Droid)"
+    if (desc.includes("countclones") && desc.includes("countdroids")) {
+      const allCards = [...ownBoard, ...enemyBoard].filter((s): s is PlacedCard => s !== null && !s.cancelled);
+      const cloneCount = allCards.filter(c => matchesTarget(c.card, "clone")).length;
+      const droidCount = allCards.filter(c => matchesTarget(c.card, "droid")).length;
+      if (cloneCount > droidCount) {
+        sourceSlot.modifiedPoints += 3 * cloneCount;
+      } else {
+        sourceSlot.modifiedPoints += 3 * droidCount;
+      }
     }
   };
   
@@ -827,6 +967,17 @@ export function applyPowers(state: GameState): GameState {
       });
     }
     
+    // "-X to all [type] played in the first round" - Tai Lung
+    match = desc.match(/-(\d+)\s+to\s+all\s+(.+?)\s+played\s+in\s+(?:the\s+)?first\s+round/);
+    if (match) {
+      const penalty = parseInt(match[1]);
+      const target = match[2];
+      [...ownBoard, ...enemyBoard].forEach(slot => {
+        if (slot && !slot.cancelled && !isRound2Position(slot.position) && matchesTarget(slot.card, target)) {
+          slot.modifiedPoints -= penalty;
+        }
+      });
+    }
     // "+X to each own [type] played in round 1" (when played in round 1)
     match = desc.match(/if\s+played\s+in\s+round\s+1[,;]?\s*\+(\d+)\s+to\s+each\s+own\s+(.+?)\s+played\s+in\s+round\s+1/);
     if (match && !isRound2Position(sourceSlot.position)) {
