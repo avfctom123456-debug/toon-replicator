@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { CardListItem, CardDisplay, FullCard } from "@/components/CardDisplay";
 import { useDecks } from "@/hooks/useDecks";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserCards } from "@/hooks/useUserCards";
+import { starterDecks } from "@/lib/starterDecks";
 import cardsData from "@/data/cards.json";
 
 interface CardData {
@@ -27,6 +29,7 @@ const DeckEdit = () => {
   const initialCardIds = location.state?.cardIds || [];
   
   const { user, loading: authLoading } = useAuth();
+  const { getOwnedCardIds, loading: cardsLoading } = useUserCards();
   
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,12 +43,36 @@ const DeckEdit = () => {
   const [viewCard, setViewCard] = useState<CardData | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Get all starter deck card IDs (always available)
+  const starterCardIds = useMemo(() => {
+    const ids = new Set<number>();
+    starterDecks.forEach(deck => {
+      deck.cardIds.forEach(id => ids.add(id));
+    });
+    return ids;
+  }, []);
+
+  // Get owned card IDs
+  const ownedCardIds = useMemo(() => {
+    return new Set(getOwnedCardIds());
+  }, [getOwnedCardIds]);
+
+  // Available cards = owned cards + all starter deck cards
+  const availableCardIds = useMemo(() => {
+    const available = new Set<number>();
+    starterCardIds.forEach(id => available.add(id));
+    ownedCardIds.forEach(id => available.add(id));
+    return available;
+  }, [starterCardIds, ownedCardIds]);
+
   const filteredCards = useMemo(() => {
-    return (cardsData as CardData[]).filter((c) => 
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.character.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [search]);
+    return (cardsData as CardData[])
+      .filter((c) => availableCardIds.has(c.id))
+      .filter((c) => 
+        c.title.toLowerCase().includes(search.toLowerCase()) ||
+        c.character.toLowerCase().includes(search.toLowerCase())
+      );
+  }, [search, availableCardIds]);
 
   const toggleCard = (id: number) => {
     if (selectedCards.includes(id)) {
@@ -74,7 +101,7 @@ const DeckEdit = () => {
     }
   };
   
-  if (authLoading) {
+  if (authLoading || cardsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
@@ -84,11 +111,16 @@ const DeckEdit = () => {
 
   if (!user) return null;
 
+  const totalAvailable = availableCardIds.size;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <h1 className="text-xl font-bold text-foreground mb-2">Edit Deck {deckSlot}</h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-xl font-bold text-foreground">Edit Deck {deckSlot}</h1>
+          <span className="text-sm text-muted-foreground">{totalAvailable} cards available</span>
+        </div>
         <Input
           type="text"
           placeholder="Search characters..."
