@@ -4,21 +4,6 @@ import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
 import { useDecks } from "@/hooks/useDecks";
 import { useAuth } from "@/hooks/useAuth";
-import { CardDisplay } from "@/components/CardDisplay";
-import cardsData from "@/data/cards.json";
-
-interface CardData {
-  id: number;
-  title: string;
-  character: string;
-  basePoints: number;
-  points: number;
-  colors: string[];
-  description: string;
-  rarity: string;
-  groups: string[];
-  types: string[];
-}
 
 const DeckBuilder = () => {
   const navigate = useNavigate();
@@ -32,7 +17,6 @@ const DeckBuilder = () => {
   }, [user, authLoading, navigate]);
 
   const decks = getDecksWithSlots();
-  const allCards = cardsData as CardData[];
 
   if (authLoading) {
     return (
@@ -92,16 +76,6 @@ const DeckBuilder = () => {
             </div>
           ))
         )}
-      </div>
-
-      {/* All Cards Section */}
-      <div className="w-full max-w-4xl">
-        <h2 className="text-xl font-bold text-foreground mb-4">All Cards ({allCards.length})</h2>
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-          {allCards.map((card) => (
-            <CardDisplay key={card.id} card={card} size="small" />
-          ))}
-        </div>
       </div>
 
       {/* Home Button */}
