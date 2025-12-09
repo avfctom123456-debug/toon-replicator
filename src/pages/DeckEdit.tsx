@@ -1,39 +1,38 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import cardsData from "@/data/cards.json";
 
-const characters = [
-  { id: 1, name: "Absolution", power: "+5 if any TOM is in play", points: 2, gender: null, type: "vehicle", color: "blue" },
-  { id: 2, name: "Agent Honeydew", power: "No power", points: 8, gender: "female", type: "human", color: "blue" },
-  { id: 3, name: "Aku Beast", power: "No power", points: 6, gender: "male", type: "creature", color: "green" },
-  { id: 4, name: "Amoeba Boys", power: "-5 to neighboring and opposite Villains", points: 7, gender: "male", type: "creature", color: "purple" },
-  { id: 5, name: "Aquaman", power: "+3 to all Green cards", points: 2, gender: "male", type: "human", color: "teal" },
-  { id: 6, name: "Bamm-Bamm Baby", power: "No power", points: 6, gender: "male", type: null, color: "orange" },
-  { id: 7, name: "Barney Rubble", power: "+10 if next to any Fred Flintstone", points: 3, gender: "male", type: null, color: "brown" },
-];
+const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal";
 
 const colorMap: Record<string, string> = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  purple: "bg-purple-500",
-  teal: "bg-teal-500",
-  orange: "bg-orange-500",
-  brown: "bg-amber-700",
+  SILVER: "bg-gray-400",
+  BLUE: "bg-blue-500",
+  BLACK: "bg-gray-800",
+  GREEN: "bg-green-500",
+  PURPLE: "bg-purple-500",
+  RED: "bg-red-500",
+  ORANGE: "bg-orange-500",
+  YELLOW: "bg-yellow-500",
+  PINK: "bg-pink-500",
+  WHITE: "bg-white",
 };
 
 const DeckEdit = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const username = location.state?.username || "Player";
-  const deckId = location.state?.deckId || "A";
   
   const [search, setSearch] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
 
-  const filteredCharacters = characters.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredCards = useMemo(() => {
+    return cardsData.filter((c: any) => 
+      c.title.toLowerCase().includes(search.toLowerCase()) ||
+      c.character.toLowerCase().includes(search.toLowerCase())
+    ).slice(0, 50); // Limit for performance
+  }, [search]);
 
   const toggleCard = (id: number) => {
     if (selectedCards.includes(id)) {
@@ -42,6 +41,9 @@ const DeckEdit = () => {
       setSelectedCards([...selectedCards, id]);
     }
   };
+
+  const getImageUrl = (id: number) => `${IMAGE_BASE_URL}/${id}.png`;
+  const getColor = (colors: string[]) => colorMap[colors?.[0]] || "bg-gray-500";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -58,37 +60,44 @@ const DeckEdit = () => {
 
       {/* Character List */}
       <div className="flex-1 overflow-y-auto px-4 space-y-2">
-        {filteredCharacters.map((char) => (
+        {filteredCards.map((card: any) => (
           <div 
-            key={char.id}
-            onClick={() => toggleCard(char.id)}
+            key={card.id}
+            onClick={() => toggleCard(card.id)}
             className={`bg-card rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-all ${
-              selectedCards.includes(char.id) ? "ring-2 ring-accent" : ""
+              selectedCards.includes(card.id) ? "ring-2 ring-accent" : ""
             }`}
           >
             {/* Avatar */}
-            <div className="relative">
-              <div className={`w-14 h-14 rounded-full ${colorMap[char.color] || "bg-gray-500"} flex items-center justify-center overflow-hidden border-2 border-muted`}>
-                <span className="text-xl font-bold text-white">{char.name[0]}</span>
+            <div className="relative flex-shrink-0">
+              <div className={`w-14 h-14 rounded-full ${getColor(card.colors)} flex items-center justify-center overflow-hidden border-2 border-muted`}>
+                <img 
+                  src={getImageUrl(card.id)} 
+                  alt={card.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
               </div>
-              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${colorMap[char.color] || "bg-gray-500"} flex items-center justify-center text-xs font-bold text-white border-2 border-card`}>
-                {char.points}
+              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${getColor(card.colors)} flex items-center justify-center text-xs font-bold text-white border-2 border-card`}>
+                {card.basePoints}
               </div>
             </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-foreground">{char.name}</h3>
-              <p className="text-sm text-muted-foreground truncate">{char.power}</p>
+              <h3 className="font-bold text-foreground">{card.title}</h3>
+              <p className="text-sm text-muted-foreground truncate">{card.description}</p>
             </div>
 
             {/* Icons */}
-            <div className="flex items-center gap-1 text-muted-foreground">
-              {char.gender === "male" && <span className="text-lg">♂</span>}
-              {char.gender === "female" && <span className="text-lg">♀</span>}
-              {char.type === "human" && <span className="text-lg">🏃</span>}
-              {char.type === "vehicle" && <span className="text-lg">🚗</span>}
-              {char.type === "creature" && <span className="text-lg">😊</span>}
+            <div className="flex items-center gap-1 text-muted-foreground text-sm">
+              {card.types?.includes("MALE") && <span>♂</span>}
+              {card.types?.includes("FEMALE") && <span>♀</span>}
+              {card.types?.includes("HERO") && <span>🦸</span>}
+              {card.types?.includes("VILLAIN") && <span>😈</span>}
+              {card.types?.includes("VEHICLE") && <span>🚗</span>}
             </div>
           </div>
         ))}
@@ -110,7 +119,6 @@ const DeckEdit = () => {
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex justify-center gap-8">
           <Button 
             variant="link" 
@@ -129,7 +137,6 @@ const DeckEdit = () => {
         </div>
       </div>
 
-      {/* Version */}
       <div className="fixed bottom-20 left-4 text-muted-foreground text-xs">
         v0.0.36
       </div>
