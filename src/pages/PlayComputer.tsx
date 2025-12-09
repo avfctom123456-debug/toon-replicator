@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { CardDisplay } from "@/components/CardDisplay";
+import { GameBoard } from "@/components/game/GameBoard";
+import { PlayerSidebar } from "@/components/game/PlayerSidebar";
+import { CardHand } from "@/components/game/CardHand";
+import { SelectedCardPreview } from "@/components/game/SelectedCardPreview";
 import {
   GameState,
   PlacedCard,
@@ -27,12 +31,30 @@ const PlayComputer = () => {
   const [game, setGame] = useState<GameState | null>(null);
   const [selectedHandCard, setSelectedHandCard] = useState<GameCard | null>(null);
   const [message, setMessage] = useState("");
+  const [timeLeft, setTimeLeft] = useState(60);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
+  // Timer effect
+  useEffect(() => {
+    if (!game || game.phase === "game-over") return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          confirmPlacement();
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [game?.phase]);
 
   const decks = getDecksWithSlots();
 
@@ -42,11 +64,11 @@ const PlayComputer = () => {
       return;
     }
     const initialState = initializeGame(deckCardIds);
-    // AI places 4 cards for round 1
     const withAI = aiPlaceCards(initialState, 4, 0);
     setGame(withAI);
     setSelectedDeck(deckCardIds);
     setMessage("Round 1: Place 4 cards on the board");
+    setTimeLeft(60);
   };
 
   const placeCard = (slotIndex: number) => {
@@ -59,7 +81,6 @@ const PlayComputer = () => {
     if (slotIndex < minSlot || slotIndex >= maxSlot) return;
     if (game.player.board[slotIndex] !== null) return;
     
-    // Check for duplicate characters
     const existingCharacters = game.player.board
       .filter((s): s is PlacedCard => s !== null)
       .map(s => s.card.character);
@@ -101,17 +122,16 @@ const PlayComputer = () => {
       return;
     }
     
-    // Reveal phase
     let newState = checkCancellations(game);
     newState = applyPowers(newState);
     newState = calculateScores(newState);
     
     if (game.phase === "round1-place") {
       newState = refillHand(newState);
-      // AI places for round 2
       newState = aiPlaceCards(newState, 3, 4);
       setGame({ ...newState, phase: "round2-place" });
       setMessage("Round 2: Place 3 more cards");
+      setTimeLeft(60);
     } else {
       newState = determineWinner(newState);
       setGame({ ...newState, phase: "game-over" });
@@ -130,6 +150,7 @@ const PlayComputer = () => {
     setSelectedDeck(null);
     setSelectedHandCard(null);
     setMessage("");
+    setTimeLeft(60);
   };
 
   if (authLoading || decksLoading) {
@@ -164,7 +185,7 @@ const PlayComputer = () => {
               onClick={() => startGame(deck.cardIds)}
               disabled={deck.filled < 12}
             >
-              Deck {deck.slot} ({deck.filled}/12 cards)
+              {deck.name} ({deck.filled}/12 cards)
             </Button>
           ))}
         </div>
@@ -173,140 +194,73 @@ const PlayComputer = () => {
           Back to Home
         </Button>
         
-        <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">v0.0.39</div>
+        <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">v0.0.40</div>
       </div>
     );
   }
 
-  // Game screen
-  const getColorClass = (color: string) => {
-    const colorMap: Record<string, string> = {
-      RED: "bg-red-500",
-      BLUE: "bg-blue-500",
-      GREEN: "bg-green-500",
-      YELLOW: "bg-yellow-500",
-      ORANGE: "bg-orange-500",
-      PURPLE: "bg-purple-500",
-      PINK: "bg-pink-500",
-      BLACK: "bg-gray-800",
-      SILVER: "bg-gray-400",
-    };
-    return colorMap[color] || "bg-gray-500";
-  };
+  const requiredCards = game.phase === "round1-place" ? 4 : 3;
+  const placedCount = game.player.board.filter((s, i) => {
+    if (game.phase === "round1-place") return i < 4 && s !== null;
+    return i >= 4 && s !== null;
+  }).length;
 
+  // Game screen with new layout
   return (
-    <div className="min-h-screen bg-background flex flex-col p-2">
-      {/* Header with main colors */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex gap-1">
-          {game.mainColors.map(color => (
-            <div key={color} className={`w-6 h-6 rounded ${getColorClass(color)}`} title={color} />
-          ))}
-        </div>
-        <span className="text-sm text-foreground font-bold">{message}</span>
-        <Button variant="ghost" size="sm" onClick={resetGame}>Quit</Button>
-      </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Left Sidebar - Player Stats */}
+      <PlayerSidebar
+        playerLabel="Computer"
+        playerPoints={game.opponent.totalPoints}
+        playerColorCounts={game.opponent.colorCounts}
+        mainColors={game.mainColors}
+        isOpponent
+        opponentLabel="You"
+        opponentPoints={game.player.totalPoints}
+        opponentColorCounts={game.player.colorCounts}
+        onQuit={resetGame}
+      />
 
-      {/* Scoreboard */}
-      <div className="flex justify-between mb-2 px-2 text-sm">
-        <div className="text-foreground">
-          <span className="font-bold">You:</span> {game.player.totalPoints}pts
-          {game.mainColors.map(c => (
-            <span key={c} className="ml-2">{c[0]}: {game.player.colorCounts[c] || 0}</span>
-          ))}
-        </div>
-        <div className="text-muted-foreground">
-          <span className="font-bold">AI:</span> {game.opponent.totalPoints}pts
-          {game.mainColors.map(c => (
-            <span key={c} className="ml-2">{c[0]}: {game.opponent.colorCounts[c] || 0}</span>
-          ))}
-        </div>
-      </div>
+      {/* Center Game Area */}
+      <div className="flex-1 flex flex-col p-2">
+        <GameBoard
+          opponentBoard={game.opponent.board}
+          playerBoard={game.player.board}
+          phase={game.phase}
+          selectedHandCard={selectedHandCard}
+          onPlaceCard={placeCard}
+          message={message}
+          timeLeft={timeLeft}
+          requiredCards={requiredCards}
+        />
 
-      {/* Opponent board */}
-      <div className="mb-2">
-        <p className="text-xs text-muted-foreground mb-1">Opponent</p>
-        <div className="grid grid-cols-7 gap-1">
-          {game.opponent.board.map((slot, i) => (
-            <div key={i} className="aspect-square">
-              {slot ? (
-                <div className={`relative ${slot.cancelled ? "opacity-40" : ""}`}>
-                  <CardDisplay card={slot.card} size="small" />
-                  <span className="absolute bottom-0 right-0 bg-background/80 text-xs px-1 rounded">
-                    {slot.modifiedPoints}
-                  </span>
-                </div>
-              ) : (
-                <div className="w-full h-full rounded bg-muted/30 border border-dashed border-muted-foreground/30" />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Player board */}
-      <div className="mb-2">
-        <p className="text-xs text-muted-foreground mb-1">Your Board</p>
-        <div className="grid grid-cols-7 gap-1">
-          {game.player.board.map((slot, i) => {
-            const isActive = 
-              (game.phase === "round1-place" && i < 4) ||
-              (game.phase === "round2-place" && i >= 4);
-            
-            return (
-              <div
-                key={i}
-                className={`aspect-square ${isActive && selectedHandCard ? "cursor-pointer" : ""}`}
-                onClick={() => isActive && placeCard(i)}
-              >
-                {slot ? (
-                  <div className={`relative ${slot.cancelled ? "opacity-40" : ""}`}>
-                    <CardDisplay card={slot.card} size="small" />
-                    <span className="absolute bottom-0 right-0 bg-background/80 text-xs px-1 rounded">
-                      {slot.modifiedPoints}
-                    </span>
-                  </div>
-                ) : (
-                  <div className={`w-full h-full rounded border border-dashed ${
-                    isActive ? "border-primary bg-primary/10" : "border-muted-foreground/30 bg-muted/30"
-                  }`} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Hand */}
-      <div className="flex-1">
-        <p className="text-xs text-muted-foreground mb-1">Your Hand</p>
-        <div className="flex gap-1 overflow-x-auto pb-2">
-          {game.player.hand.map(card => (
-            <div
-              key={card.id}
-              className={`flex-shrink-0 cursor-pointer transition-transform ${
-                selectedHandCard?.id === card.id ? "ring-2 ring-primary scale-105" : ""
-              }`}
-              onClick={() => setSelectedHandCard(card)}
+        {/* Action Button */}
+        <div className="flex justify-center mt-2">
+          {game.phase === "game-over" ? (
+            <Button variant="menu" onClick={resetGame}>Play Again</Button>
+          ) : (
+            <Button 
+              variant="menu" 
+              onClick={confirmPlacement}
+              disabled={placedCount < requiredCards}
             >
-              <CardDisplay card={card} size="small" />
-            </div>
-          ))}
+              Ready ({placedCount}/{requiredCards})
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex justify-center gap-4 py-2">
-        {game.phase === "game-over" ? (
-          <Button variant="menu" onClick={resetGame}>Play Again</Button>
-        ) : (
-          <Button variant="menu" onClick={confirmPlacement}>
-            Ready
-          </Button>
-        )}
+      {/* Right Sidebar - Card Hand & Preview */}
+      <div className="w-48 bg-card/50 border-l border-border flex flex-col">
+        <SelectedCardPreview card={selectedHandCard} />
+        <CardHand
+          cards={game.player.hand}
+          selectedCard={selectedHandCard}
+          onSelectCard={setSelectedHandCard}
+        />
       </div>
 
-      <div className="fixed bottom-2 left-2 text-muted-foreground text-xs">v0.0.39</div>
+      <div className="fixed bottom-2 left-2 text-muted-foreground text-xs">v0.0.40</div>
     </div>
   );
 };
