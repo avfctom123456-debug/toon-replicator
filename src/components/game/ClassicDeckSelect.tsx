@@ -68,7 +68,7 @@ export const ClassicDeckSelect = ({
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(212,69%,16%)] flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[hsl(212,69%,16%)] flex flex-col items-center justify-center p-4" style={{ minWidth: "1024px" }}>
       {/* Header Pill */}
       <div className="mb-8">
         <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,30%,75%)] rounded-full px-8 py-3 shadow-lg border-2 border-[hsl(200,40%,90%)]">

@@ -1,18 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import cardsData from "@/data/cards.json";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useProfile } from "@/hooks/useProfile";
-import { GameBoard } from "@/components/game/GameBoard";
-import { PlayerSidebar } from "@/components/game/PlayerSidebar";
-import { CardHand } from "@/components/game/CardHand";
-import { SelectedCardPreview } from "@/components/game/SelectedCardPreview";
-import { MobileGameHeader } from "@/components/game/MobileGameHeader";
 import { CardInfoModal } from "@/components/game/CardInfoModal";
 import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
+import { ClassicGameScreen } from "@/components/game/ClassicGameScreen";
 import {
   GameState,
   PlacedCard,
@@ -317,100 +312,29 @@ const PlayComputer = () => {
 
   if (!game) return null;
 
-  const isRound1 = game.phase === "round1-place";
-  const requiredCards = isRound1 ? 4 : 3;
-  const placedCount = game.player.board.filter((s, i) => {
-    if (isRound1) return i < 4 && s !== null;
-    return i >= 4 && s !== null;
-  }).length;
-
-  // Game screen with responsive layout
+  // Classic Game Screen (forced desktop view)
   return (
-    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
-      {/* Mobile Header */}
-      <MobileGameHeader
+    <>
+      <ClassicGameScreen
         game={game}
+        selectedHandCard={selectedHandCard}
+        onSelectCard={setSelectedHandCard}
+        onPlaceCard={placeCard}
+        onViewCard={setViewingCard}
+        onConfirm={confirmPlacement}
+        onQuit={resetGame}
         message={message}
         timeLeft={timeLeft}
         revealPhase={revealPhase}
-        onQuit={resetGame}
+        revealedSlots={revealedSlots}
+        permanentRevealedSlots={permanentRevealedSlots}
+        effectAnimations={effectAnimations}
+        playerName={profile?.username || "Player"}
       />
-
-      {/* Desktop Left Sidebar */}
-      <div className="hidden lg:block">
-        <PlayerSidebar
-          playerLabel="Computer"
-          playerPoints={game.opponent.totalPoints}
-          playerColorCounts={game.opponent.colorCounts}
-          mainColors={game.mainColors}
-          isOpponent
-          opponentLabel="You"
-          opponentPoints={game.player.totalPoints}
-          opponentColorCounts={game.player.colorCounts}
-          onQuit={resetGame}
-        />
-      </div>
-
-      {/* Center Game Area */}
-      <div className="flex-1 flex flex-col p-2 min-h-0">
-        <GameBoard
-          opponentBoard={game.opponent.board}
-          playerBoard={game.player.board}
-          phase={game.phase}
-          selectedHandCard={selectedHandCard}
-          onPlaceCard={placeCard}
-          onViewCard={setViewingCard}
-          message={message}
-          timeLeft={timeLeft}
-          requiredCards={requiredCards}
-          revealPhase={revealPhase}
-          revealedSlots={revealedSlots}
-          permanentRevealedSlots={permanentRevealedSlots}
-          effectAnimations={effectAnimations}
-        />
-
-        {/* Mobile Hand (horizontal scroll) */}
-        <div className="lg:hidden">
-          <CardHand
-            cards={game.player.hand}
-            selectedCard={selectedHandCard}
-            onSelectCard={setSelectedHandCard}
-            layout="horizontal"
-          />
-        </div>
-
-        {/* Action Button */}
-        <div className="flex justify-center py-2">
-          {game.phase === "game-over" ? (
-            <Button variant="menu" onClick={resetGame}>Play Again</Button>
-          ) : (
-            <Button 
-              variant="menu" 
-              onClick={confirmPlacement}
-              disabled={placedCount < requiredCards || revealPhase !== "placing"}
-            >
-              {revealPhase === "revealing" ? "Revealing..." : `Ready (${placedCount}/${requiredCards})`}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop Right Sidebar */}
-      <div className="hidden lg:flex w-48 bg-card/50 border-l border-border flex-col">
-        <SelectedCardPreview card={selectedHandCard} />
-        <CardHand
-          cards={game.player.hand}
-          selectedCard={selectedHandCard}
-          onSelectCard={setSelectedHandCard}
-          layout="grid"
-        />
-      </div>
 
       {/* Card Info Modal */}
       <CardInfoModal placedCard={viewingCard} onClose={() => setViewingCard(null)} />
-
-      <div className="fixed bottom-2 left-2 text-muted-foreground text-xs">v0.0.42</div>
-    </div>
+    </>
   );
 };
 
