@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      auction_bids: {
+        Row: {
+          auction_id: string
+          bid_amount: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          auction_id: string
+          bid_amount: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          auction_id?: string
+          bid_amount?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auctions: {
+        Row: {
+          card_id: number
+          created_at: string
+          current_bid: number
+          ends_at: string
+          highest_bidder_id: string | null
+          id: string
+          min_increment: number
+          starting_bid: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: number
+          created_at?: string
+          current_bid?: number
+          ends_at: string
+          highest_bidder_id?: string | null
+          id?: string
+          min_increment?: number
+          starting_bid?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: number
+          created_at?: string
+          current_bid?: number
+          ends_at?: string
+          highest_bidder_id?: string | null
+          id?: string
+          min_increment?: number
+          starting_bid?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       card_overrides: {
         Row: {
           card_id: number
@@ -468,6 +542,7 @@ export type Database = {
         Args: { k_factor?: number; loser_elo: number; winner_elo: number }
         Returns: number
       }
+      end_auction: { Args: { p_auction_id: string }; Returns: Json }
       end_season_and_distribute_rewards: { Args: never; Returns: string }
       get_reward_for_rank: {
         Args: { p_rank: number }
@@ -482,6 +557,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      place_bid: {
+        Args: { p_auction_id: string; p_bid_amount: number }
+        Returns: Json
       }
       update_cpu_win: { Args: { p_user_id: string }; Returns: undefined }
       update_pvp_stats: {
