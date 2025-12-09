@@ -74,6 +74,7 @@ const PlayComputer = () => {
       card: selectedHandCard,
       cancelled: false,
       modifiedPoints: selectedHandCard.points,
+      position: slotIndex,
     };
     
     const newHand = game.player.hand.filter(c => c.id !== selectedHandCard.id);
