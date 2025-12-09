@@ -508,13 +508,25 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
-      // "-X for each [type]"
-      match = effect.match(/-(\d+)\s+for\s+each\s+(.+)/);
+      // "-X for each [type]" or "-X for each opponent [type]"
+      match = effect.match(/-(\d+)\s+for\s+each\s+(?:opponent\s+)?(.+)/);
       if (match) {
         const penalty = parseInt(match[1]);
         const target = match[2];
-        const count = allActiveCards.filter(c => matchesTarget(c.card, target)).length;
+        const isOpponentOnly = effect.includes("opponent");
+        const searchCards = isOpponentOnly ? allOpponentCards : allActiveCards;
+        const count = searchCards.filter(c => matchesTarget(c.card, target) || hasColor(c.card, target)).length;
         slot.modifiedPoints -= penalty * count;
+        continue;
+      }
+      
+      // "+X for each [type] opponent" - La Flamencita (type before "opponent")
+      match = effect.match(/\+(\d+)\s+for\s+each\s+(.+?)\s+opponent/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const target = match[2];
+        const count = allOpponentCards.filter(c => matchesTarget(c.card, target)).length;
+        slot.modifiedPoints += bonus * count;
         continue;
       }
       
