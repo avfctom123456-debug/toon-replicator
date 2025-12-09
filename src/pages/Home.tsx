@@ -1,25 +1,43 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
+import { Coins } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, signOut } = useAuth();
-  const username = location.state?.username || "Player";
+  const { user, signOut, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
     toast.success("Signed out successfully");
-    navigate("/");
+    navigate("/auth");
   };
+
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center px-4 py-8">
       {/* Logo */}
-      <div className="mb-8">
+      <div className="mb-4">
         <img 
           src={gtoonsLogo} 
           alt="gTOONS Remastered" 
@@ -27,50 +45,44 @@ const Home = () => {
         />
       </div>
 
+      {/* Currency Display */}
+      <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-full mb-6">
+        <Coins className="h-5 w-5 text-yellow-500" />
+        <span className="text-foreground font-bold">{profile?.coins ?? 0}</span>
+      </div>
+
       {/* Welcome Message */}
       <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">
-        Welcome {username}!
+        Welcome {profile?.username || "Player"}!
       </h1>
 
       {/* Menu Buttons */}
       <div className="flex flex-col gap-3 w-full max-w-md">
         <Button 
           variant="menu" 
-          onClick={() => navigate("/lobby", { state: { username } })}
+          onClick={() => navigate("/lobby")}
         >
           Multiplayer Lobby
         </Button>
         <Button 
           variant="menu"
-          onClick={() => navigate("/play", { state: { username } })}
+          onClick={() => navigate("/play")}
         >
           Play Computer
         </Button>
         <Button 
           variant="menu"
-          onClick={() => navigate("/deck-builder", { state: { username } })}
+          onClick={() => navigate("/deck-builder")}
         >
           Deck Builder
         </Button>
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/", { state: { username } })}
-        >
-          Change Username
-        </Button>
       </div>
 
-      {/* Auth Button */}
+      {/* Sign Out */}
       <div className="mt-6">
-        {user ? (
-          <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
-            Sign Out
-          </Button>
-        ) : (
-          <Button variant="menu" onClick={() => navigate("/auth")}>
-            Sign In / Sign Up
-          </Button>
-        )}
+        <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
+          Sign Out
+        </Button>
       </div>
 
       {/* Discord Button */}
@@ -88,7 +100,7 @@ const Home = () => {
 
       {/* Version */}
       <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">
-        v0.0.36
+        v0.0.38
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,11 +23,16 @@ interface CardData {
 const DeckEdit = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const username = location.state?.username || "Player";
   const deckSlot = location.state?.deckSlot || "A";
   const initialCardIds = location.state?.cardIds || [];
   
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
   const { saveDeck } = useDecks();
   
   const [search, setSearch] = useState("");
@@ -56,7 +61,7 @@ const DeckEdit = () => {
 
   const handleSave = async () => {
     if (!user) {
-      navigate("/deck-builder", { state: { username } });
+      navigate("/auth");
       return;
     }
     
@@ -65,9 +70,19 @@ const DeckEdit = () => {
     setSaving(false);
     
     if (success) {
-      navigate("/deck-builder", { state: { username } });
+      navigate("/deck-builder");
     }
   };
+  
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -138,7 +153,7 @@ const DeckEdit = () => {
           <Button 
             variant="link"
             className="text-foreground underline"
-            onClick={() => navigate("/deck-builder", { state: { username } })}
+            onClick={() => navigate("/deck-builder")}
           >
             Cancel
           </Button>
