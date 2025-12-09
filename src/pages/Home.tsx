@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
-import { Coins, Package, ArrowRightLeft, Settings } from "lucide-react";
+import { Coins, Package, ArrowRightLeft, Settings, Library } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -77,6 +77,14 @@ const Home = () => {
           onClick={() => navigate("/deck-builder")}
         >
           Deck Builder
+        </Button>
+        <Button 
+          variant="menu"
+          onClick={() => navigate("/collection")}
+          className="flex items-center gap-2"
+        >
+          <Library className="h-5 w-5" />
+          Card Collection
         </Button>
         <Button 
           variant="menu"
