@@ -9,6 +9,7 @@ import { PlayerSidebar } from "@/components/game/PlayerSidebar";
 import { CardHand } from "@/components/game/CardHand";
 import { SelectedCardPreview } from "@/components/game/SelectedCardPreview";
 import { MobileGameHeader } from "@/components/game/MobileGameHeader";
+import { CardInfoModal } from "@/components/game/CardInfoModal";
 import {
   GameState,
   PlacedCard,
@@ -36,7 +37,9 @@ const PlayComputer = () => {
   const [timeLeft, setTimeLeft] = useState(60);
   const [revealPhase, setRevealPhase] = useState<RevealPhase>("placing");
   const [revealedSlots, setRevealedSlots] = useState<number[]>([]);
+  const [permanentRevealedSlots, setPermanentRevealedSlots] = useState<number[]>([]);
   const [effectAnimations, setEffectAnimations] = useState<number[]>([]);
+  const [viewingCard, setViewingCard] = useState<PlacedCard | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -75,6 +78,8 @@ const PlayComputer = () => {
             
             setTimeout(() => {
               setEffectAnimations([]);
+              // Mark these slots as permanently revealed
+              setPermanentRevealedSlots(prev => [...prev, ...slotsToReveal]);
               
               if (isRound1) {
                 newState = refillHand(newState);
@@ -134,6 +139,7 @@ const PlayComputer = () => {
     setTimeLeft(60);
     setRevealPhase("placing");
     setRevealedSlots([]);
+    setPermanentRevealedSlots([]);
   };
 
   const placeCard = (slotIndex: number) => {
@@ -201,7 +207,9 @@ const PlayComputer = () => {
     setTimeLeft(60);
     setRevealPhase("placing");
     setRevealedSlots([]);
+    setPermanentRevealedSlots([]);
     setEffectAnimations([]);
+    setViewingCard(null);
   };
 
   if (authLoading || decksLoading) {
@@ -292,11 +300,13 @@ const PlayComputer = () => {
           phase={game.phase}
           selectedHandCard={selectedHandCard}
           onPlaceCard={placeCard}
+          onViewCard={setViewingCard}
           message={message}
           timeLeft={timeLeft}
           requiredCards={requiredCards}
           revealPhase={revealPhase}
           revealedSlots={revealedSlots}
+          permanentRevealedSlots={permanentRevealedSlots}
           effectAnimations={effectAnimations}
         />
 
@@ -337,7 +347,10 @@ const PlayComputer = () => {
         />
       </div>
 
-      <div className="fixed bottom-2 left-2 text-muted-foreground text-xs">v0.0.41</div>
+      {/* Card Info Modal */}
+      <CardInfoModal placedCard={viewingCard} onClose={() => setViewingCard(null)} />
+
+      <div className="fixed bottom-2 left-2 text-muted-foreground text-xs">v0.0.42</div>
     </div>
   );
 };

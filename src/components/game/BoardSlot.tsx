@@ -20,6 +20,7 @@ interface BoardSlotProps {
   isActive: boolean;
   isClickable: boolean;
   onClick?: () => void;
+  onViewCard?: () => void;
   isHidden?: boolean;
   isRevealing?: boolean;
   hasEffect?: boolean;
@@ -30,6 +31,7 @@ export const BoardSlot = ({
   isActive,
   isClickable,
   onClick,
+  onViewCard,
   isHidden = false,
   isRevealing = false,
   hasEffect = false,
@@ -56,11 +58,12 @@ export const BoardSlot = ({
       <div 
         className={`${sizeClasses} relative ${slot.cancelled ? "opacity-40" : ""} ${
           isRevealing ? "animate-flip-in" : ""
-        } ${hasEffect ? "animate-pulse-glow" : ""}`}
+        } ${hasEffect ? "animate-pulse-glow" : ""} ${onViewCard ? "cursor-pointer" : ""}`}
+        onClick={onViewCard}
       >
         <div className={`w-full h-full rounded-full ${bgColor} overflow-hidden border-2 border-muted shadow-lg transition-transform ${
           hasEffect ? "scale-110" : ""
-        }`}>
+        } ${onViewCard ? "hover:ring-2 hover:ring-accent" : ""}`}>
           <img
             src={imageUrl}
             alt={slot.card.title}

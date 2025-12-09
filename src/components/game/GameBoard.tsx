@@ -9,11 +9,13 @@ interface GameBoardProps {
   phase: string;
   selectedHandCard: GameCard | null;
   onPlaceCard: (slotIndex: number) => void;
+  onViewCard: (card: PlacedCard | null) => void;
   message: string;
   timeLeft: number;
   requiredCards: number;
   revealPhase: RevealPhase;
   revealedSlots: number[];
+  permanentRevealedSlots: number[];
   effectAnimations: number[];
 }
 
@@ -23,16 +25,25 @@ export const GameBoard = ({
   phase,
   selectedHandCard,
   onPlaceCard,
+  onViewCard,
   message,
   timeLeft,
   requiredCards,
   revealPhase,
   revealedSlots,
+  permanentRevealedSlots,
   effectAnimations,
 }: GameBoardProps) => {
   const isRound1 = phase === "round1-place";
   const isRound2 = phase === "round2-place";
   const isPlacing = (isRound1 || isRound2) && revealPhase === "placing";
+  const isGameOver = phase === "game-over";
+
+  const isSlotRevealed = (slotIndex: number) => {
+    return permanentRevealedSlots.includes(slotIndex) || 
+           revealedSlots.includes(slotIndex) ||
+           isGameOver;
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -46,9 +57,10 @@ export const GameBoard = ({
               slot={opponentBoard[i]}
               isActive={false}
               isClickable={false}
-              isHidden={revealPhase === "placing" || (revealPhase === "revealing" && !revealedSlots.includes(i))}
+              isHidden={!isSlotRevealed(i)}
               isRevealing={revealPhase === "revealing" && revealedSlots.includes(i)}
               hasEffect={effectAnimations.includes(i + 100)}
+              onViewCard={isSlotRevealed(i) && opponentBoard[i] ? () => onViewCard(opponentBoard[i]) : undefined}
             />
           ))}
         </div>
@@ -61,9 +73,10 @@ export const GameBoard = ({
               slot={opponentBoard[i]}
               isActive={false}
               isClickable={false}
-              isHidden={revealPhase === "placing" || (revealPhase === "revealing" && !revealedSlots.includes(i))}
+              isHidden={!isSlotRevealed(i)}
               isRevealing={revealPhase === "revealing" && revealedSlots.includes(i)}
               hasEffect={effectAnimations.includes(i + 100)}
+              onViewCard={isSlotRevealed(i) && opponentBoard[i] ? () => onViewCard(opponentBoard[i]) : undefined}
             />
           ))}
           <div className="w-6 sm:w-12" />
@@ -94,6 +107,7 @@ export const GameBoard = ({
                 isClickable={isActive && selectedHandCard !== null}
                 onClick={() => onPlaceCard(i)}
                 hasEffect={effectAnimations.includes(i)}
+                onViewCard={playerBoard[i] ? () => onViewCard(playerBoard[i]) : undefined}
               />
             );
           })}
@@ -111,6 +125,7 @@ export const GameBoard = ({
                 isClickable={isActive && selectedHandCard !== null}
                 onClick={() => onPlaceCard(i)}
                 hasEffect={effectAnimations.includes(i)}
+                onViewCard={playerBoard[i] ? () => onViewCard(playerBoard[i]) : undefined}
               />
             );
           })}
