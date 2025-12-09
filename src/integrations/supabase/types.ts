@@ -295,6 +295,86 @@ export type Database = {
         }
         Relationships: []
       }
+      season_player_stats: {
+        Row: {
+          created_at: string
+          final_elo: number
+          final_rank: number
+          id: string
+          pvp_draws: number
+          pvp_losses: number
+          pvp_wins: number
+          reward_coins: number
+          reward_tier: string
+          season_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          final_elo: number
+          final_rank: number
+          id?: string
+          pvp_draws?: number
+          pvp_losses?: number
+          pvp_wins?: number
+          reward_coins?: number
+          reward_tier: string
+          season_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          final_elo?: number
+          final_rank?: number
+          id?: string
+          pvp_draws?: number
+          pvp_losses?: number
+          pvp_wins?: number
+          reward_coins?: number
+          reward_tier?: string
+          season_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_player_stats_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          name: string
+          season_number: number
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          season_number: number
+          start_date?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          season_number?: number
+          start_date?: string
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           completed_by: string | null
@@ -388,6 +468,14 @@ export type Database = {
         Args: { k_factor?: number; loser_elo: number; winner_elo: number }
         Returns: number
       }
+      end_season_and_distribute_rewards: { Args: never; Returns: string }
+      get_reward_for_rank: {
+        Args: { p_rank: number }
+        Returns: {
+          coins: number
+          tier: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -403,6 +491,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      reward_tier:
+        | "champion"
+        | "diamond"
+        | "gold"
+        | "silver"
+        | "bronze"
+        | "participant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -531,6 +626,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      reward_tier: [
+        "champion",
+        "diamond",
+        "gold",
+        "silver",
+        "bronze",
+        "participant",
+      ],
     },
   },
 } as const
