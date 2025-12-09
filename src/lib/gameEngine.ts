@@ -241,31 +241,81 @@ function getOppositeIndex(position: number): number {
 }
 
 function matchesTarget(card: GameCard, target: string): boolean {
-  const lowerTarget = target.toLowerCase();
+  const lowerTarget = target.toLowerCase().trim();
   
   // Check character name
   if (card.character.toLowerCase().includes(lowerTarget)) return true;
   
-  // Check types
+  // Check title
+  if (card.title.toLowerCase().includes(lowerTarget)) return true;
+  
+  // Check types (uppercase in data)
+  const upperTarget = target.toUpperCase().trim();
+  if (card.types.includes(upperTarget)) return true;
   if (card.types.some(t => t.toLowerCase() === lowerTarget)) return true;
   
   // Check groups
   if (card.groups.some(g => g.toLowerCase().includes(lowerTarget))) return true;
   
-  // Special checks
-  if (lowerTarget === "hero" && card.types.includes("HERO")) return true;
-  if (lowerTarget === "villain" && card.types.includes("VILLAIN")) return true;
-  if (lowerTarget === "animal" && card.types.includes("ANIMAL")) return true;
-  if (lowerTarget === "female" && card.types.includes("FEMALE")) return true;
-  if (lowerTarget === "male" && card.types.includes("MALE")) return true;
-  if (lowerTarget === "monster" && card.types.includes("MONSTER")) return true;
-  if (lowerTarget === "prop" && card.types.includes("PROP")) return true;
-  if (lowerTarget === "vehicle" && card.types.includes("VEHICLE")) return true;
+  // Common type aliases
+  const typeMap: Record<string, string> = {
+    "hero": "HERO",
+    "villain": "VILLAIN", 
+    "animal": "ANIMAL",
+    "female": "FEMALE",
+    "male": "MALE",
+    "monster": "MONSTER",
+    "prop": "PROP",
+    "vehicle": "VEHICLE",
+    "princess": "PRINCESS",
+    "prince": "PRINCE",
+    "king": "KING",
+    "queen": "QUEEN",
+    "noble": "NOBLE",
+    "elemental": "ELEMENTAL",
+    "spirit": "SPIRIT",
+    "jedi": "JEDI",
+    "sith": "SITH",
+    "clone": "CLONE",
+    "droid": "DROID",
+    "saiyan": "SAIYAN",
+    "namekian": "NAMEKIAN",
+    "minion": "MINION",
+    "criminal": "CRIMINAL",
+    "politician": "POLITICIAN",
+    "lawyer": "LAWYER",
+    "consort": "CONSORT",
+    "glitch": "GLITCH",
+    "cameo": "CAMEO",
+    "place": "PLACE",
+    "fairy tale character": "FAIRY TALE CHARACTER",
+    "avatar": "AVATAR",
+    "gaang": "GAANG",
+  };
+  
+  if (typeMap[lowerTarget] && card.types.includes(typeMap[lowerTarget])) return true;
   
   // Check for group membership
-  if (lowerTarget.includes("justice league") && card.groups.includes("JUSTICE LEAGUE")) return true;
-  if (lowerTarget.includes("teen titan") && card.groups.includes("TEEN TITANS")) return true;
-  if (lowerTarget.includes("powerpuff") && card.groups.includes("POWERPUFF GIRLS")) return true;
+  const groupMap: Record<string, string> = {
+    "justice league": "JUSTICE LEAGUE",
+    "teen titan": "TEEN TITANS",
+    "powerpuff": "POWERPUFF GIRLS",
+    "clone wars": "CLONE WARS",
+    "dragon ball": "DRAGON BALL Z",
+    "dbz": "DRAGON BALL Z",
+    "kung fu panda": "KUNG FU PANDA",
+    "despicable me": "DESPICABLE ME",
+    "frozen": "FROZEN",
+    "avatar": "AVATAR",
+    "spongebob": "SPONGEBOB",
+    "shrek": "SHREK",
+    "cars": "CARS",
+    "phineas": "PHINEAS FERB",
+  };
+  
+  for (const [key, group] of Object.entries(groupMap)) {
+    if (lowerTarget.includes(key) && card.groups.includes(group)) return true;
+  }
   
   return false;
 }
@@ -281,6 +331,9 @@ export function applyPowers(state: GameState): GameState {
   const allPlayerCards = playerBoard.filter((s): s is PlacedCard => s !== null && !s.cancelled);
   const allOpponentCards = opponentBoard.filter((s): s is PlacedCard => s !== null && !s.cancelled);
   const allActiveCards = [...allPlayerCards, ...allOpponentCards];
+  
+  // Check if a position is in round 2 (slots 4, 5, 6)
+  const isRound2Position = (pos: number) => pos >= 4 && pos <= 6;
   
   // Process each card's powers
   const processCardPower = (
@@ -300,19 +353,28 @@ export function applyPowers(state: GameState): GameState {
     const effects = desc.split(';').map(e => e.trim());
     
     for (const effect of effects) {
-      // "+X if any [character] is in play"
-      let match = effect.match(/\+(\d+)\s+if\s+(?:any\s+)?(.+?)\s+is\s+in\s+play/);
+      // "+X if played in the 2nd round" or "+X if played in 2nd round"
+      let match = effect.match(/\+(\d+)\s+if\s+played\s+in\s+(?:the\s+)?2nd\s+round/);
       if (match) {
         const bonus = parseInt(match[1]);
-        const target = match[2];
-        if (allActiveCards.some(c => matchesTarget(c.card, target))) {
+        if (isRound2Position(slot.position)) {
           slot.modifiedPoints += bonus;
         }
         continue;
       }
       
-      // "+X if [character] is in play" (without "any")
-      match = effect.match(/\+(\d+)\s+if\s+(.+?)\s+is\s+in\s+play/);
+      // "+X if played first in the first round"
+      match = effect.match(/\+(\d+)\s+if\s+played\s+first\s+in\s+(?:the\s+)?first\s+round/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        if (slot.position === 0) {
+          slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
+      // "+X if any [character] is in play"
+      match = effect.match(/\+(\d+)\s+if\s+(?:any\s+)?(.+?)\s+is\s+in\s+play/);
       if (match) {
         const bonus = parseInt(match[1]);
         const target = match[2];
@@ -324,6 +386,21 @@ export function applyPowers(state: GameState): GameState {
       
       // "+X if next to any [target]"
       match = effect.match(/\+(\d+)\s+if\s+next\s+to\s+(?:any\s+)?(.+)/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const target = match[2];
+        const hasNeighbor = neighbors.some(idx => {
+          const neighbor = ownBoard[idx];
+          return neighbor && !neighbor.cancelled && matchesTarget(neighbor.card, target);
+        });
+        if (hasNeighbor) {
+          slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
+      // "+X if adjacent to a [target]" or "+X if adjacent to [target]"
+      match = effect.match(/\+(\d+)\s+if\s+adjacent\s+to\s+(?:a\s+)?(.+)/);
       if (match) {
         const bonus = parseInt(match[1]);
         const target = match[2];
@@ -361,15 +438,43 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
-      // "+X for each [type] in play"
+      // "+X for each [type] in play" or "+X for each [target]"
       match = effect.match(/\+(\d+)\s+for\s+each\s+(?:opponent\s+)?(.+?)(?:\s+in\s+play)?$/);
-      if (match) {
+      if (match && !effect.includes("neighboring")) {
         const bonus = parseInt(match[1]);
         const target = match[2];
         const isOpponentOnly = effect.includes("opponent");
         const searchCards = isOpponentOnly ? allOpponentCards : allActiveCards;
         const count = searchCards.filter(c => matchesTarget(c.card, target) || hasColor(c.card, target)).length;
         slot.modifiedPoints += bonus * count;
+        continue;
+      }
+      
+      // "+X for each neighboring [target]" or "+X for each neighboring [target1] and [target2]"
+      match = effect.match(/\+(\d+)\s+for\s+each\s+neighboring\s+(.+)/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const targetStr = match[2];
+        // Handle "X and Y" targets
+        const targets = targetStr.split(/\s+and\s+/).map(t => t.trim());
+        neighbors.forEach(idx => {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled) {
+            if (targets.some(t => matchesTarget(neighbor.card, t))) {
+              slot.modifiedPoints += bonus;
+            }
+          }
+        });
+        continue;
+      }
+      
+      // "-X for each [type]"
+      match = effect.match(/-(\d+)\s+for\s+each\s+(.+)/);
+      if (match) {
+        const penalty = parseInt(match[1]);
+        const target = match[2];
+        const count = allActiveCards.filter(c => matchesTarget(c.card, target)).length;
+        slot.modifiedPoints -= penalty * count;
         continue;
       }
       
@@ -398,8 +503,73 @@ export function applyPowers(state: GameState): GameState {
     const oppositeIdx = getOppositeIndex(sourceSlot.position);
     
     for (const effect of effects) {
+      // "x2 to each neighboring [type]"
+      let match = effect.match(/x2\s+to\s+each\s+neighboring\s+(.+)/);
+      if (match) {
+        const target = match[1];
+        neighbors.forEach(idx => {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled && matchesTarget(neighbor.card, target)) {
+            neighbor.modifiedPoints *= 2;
+          }
+        });
+        continue;
+      }
+      
+      // "x2 to any neighboring [target]" or "x2 to neighboring [target]"
+      match = effect.match(/x2\s+to\s+(?:any\s+)?neighboring\s+(.+)/);
+      if (match) {
+        const target = match[1];
+        neighbors.forEach(idx => {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled && matchesTarget(neighbor.card, target)) {
+            neighbor.modifiedPoints *= 2;
+          }
+        });
+        continue;
+      }
+      
+      // "+X to [character] if adjacent to [character]"
+      match = effect.match(/\+(\d+)\s+to\s+(.+?)\s+if\s+adjacent\s+to\s+(.+)/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const targetChar = match[2];
+        const adjacentTo = match[3];
+        
+        // Check if this card is adjacent to the required character
+        const isAdjacent = neighbors.some(idx => {
+          const neighbor = ownBoard[idx];
+          return neighbor && !neighbor.cancelled && matchesTarget(neighbor.card, adjacentTo);
+        });
+        
+        if (isAdjacent) {
+          // Apply bonus to all matching target characters on the board
+          ownBoard.forEach(slot => {
+            if (slot && !slot.cancelled && matchesTarget(slot.card, targetChar)) {
+              slot.modifiedPoints += bonus;
+            }
+          });
+        }
+        continue;
+      }
+      
+      // "+X to each [type]" (buffs each matching card)
+      match = effect.match(/\+(\d+)\s+to\s+each\s+(.+)/);
+      if (match && !effect.includes("neighboring")) {
+        const bonus = parseInt(match[1]);
+        const target = match[2];
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id) {
+            if (matchesTarget(slot.card, target)) {
+              slot.modifiedPoints += bonus;
+            }
+          }
+        });
+        continue;
+      }
+      
       // "+X to all [color] cards"
-      let match = effect.match(/\+(\d+)\s+to\s+all\s+(?:other\s+)?(.+?)\s+cards?/);
+      match = effect.match(/\+(\d+)\s+to\s+all\s+(?:other\s+)?(.+?)\s+cards?/);
       if (match) {
         const bonus = parseInt(match[1]);
         const colorOrType = match[2].toUpperCase();
@@ -415,13 +585,28 @@ export function applyPowers(state: GameState): GameState {
       
       // "+X to any [character/type]" or "+X to [character]"
       match = effect.match(/\+(\d+)\s+to\s+(?:any\s+)?(.+?)(?:;|$)/);
-      if (match && !effect.includes("all")) {
+      if (match && !effect.includes("all") && !effect.includes("each") && !effect.includes("adjacent") && !effect.includes("neighboring")) {
         const bonus = parseInt(match[1]);
         const target = match[2];
         ownBoard.forEach(slot => {
           if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id) {
             if (matchesTarget(slot.card, target)) {
               slot.modifiedPoints += bonus;
+            }
+          }
+        });
+        continue;
+      }
+      
+      // "-X to all other [color] cards"
+      match = effect.match(/-(\d+)\s+to\s+all\s+other\s+(.+?)\s+cards?/);
+      if (match) {
+        const penalty = parseInt(match[1]);
+        const colorOrType = match[2].toUpperCase();
+        [...ownBoard, ...enemyBoard].forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id) {
+            if (hasColor(slot.card, colorOrType) || matchesTarget(slot.card, colorOrType)) {
+              slot.modifiedPoints -= penalty;
             }
           }
         });
@@ -444,6 +629,19 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "-X to any [target]" (specific target debuff)
+      match = effect.match(/-(\d+)\s+to\s+(?:any\s+)?(.+?)(?:;|$)/);
+      if (match && !effect.includes("all") && !effect.includes("opposing") && !effect.includes("opposite")) {
+        const penalty = parseInt(match[1]);
+        const target = match[2];
+        [...ownBoard, ...enemyBoard].forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
+            slot.modifiedPoints -= penalty;
+          }
+        });
+        continue;
+      }
+      
       // "-X to neighboring and opposite [type]"
       match = effect.match(/-(\d+)\s+to\s+neighboring\s+and\s+opposite\s+(.+)/);
       if (match) {
@@ -461,6 +659,19 @@ export function applyPowers(state: GameState): GameState {
         if (opposite && !opposite.cancelled && matchesTarget(opposite.card, target)) {
           opposite.modifiedPoints -= penalty;
         }
+        continue;
+      }
+      
+      // "-X to each opposing [type]"
+      match = effect.match(/-(\d+)\s+to\s+each\s+opposing\s+(.+)/);
+      if (match) {
+        const penalty = parseInt(match[1]);
+        const target = match[2];
+        enemyBoard.forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
+            slot.modifiedPoints -= penalty;
+          }
+        });
         continue;
       }
       
@@ -496,6 +707,18 @@ export function applyPowers(state: GameState): GameState {
         ownBoard.forEach(slot => {
           if (slot && !slot.cancelled && slot.card.basePoints === targetPoints) {
             slot.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
+      // "x2 to [target]" (simple double)
+      match = effect.match(/x2\s+to\s+(.+?)(?:;|$)/);
+      if (match && !effect.includes("neighboring") && !effect.includes("if")) {
+        const target = match[1];
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
+            slot.modifiedPoints *= 2;
           }
         });
         continue;
