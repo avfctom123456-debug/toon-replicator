@@ -50,7 +50,15 @@ export function PackOpeningModal({ open, onClose, cardIds }: PackOpeningModalPro
     setAllRevealed(true);
   };
 
-  const getRarityColor = (rarity: string) => {
+  // Slam rarity card IDs - mega rare pulls
+  const SLAM_CARD_IDS = [82, 171, 175, 229, 238, 249, 302, 323, 354, 404, 438, 455];
+
+  const isSlam = (cardId: number) => SLAM_CARD_IDS.includes(cardId);
+
+  const getRarityColor = (rarity: string, cardId: number) => {
+    if (isSlam(cardId)) {
+      return "from-pink-500 via-red-500 to-orange-500";
+    }
     switch (rarity?.toUpperCase()) {
       case "VERY RARE":
         return "from-yellow-400 via-amber-500 to-orange-500";
@@ -63,7 +71,10 @@ export function PackOpeningModal({ open, onClose, cardIds }: PackOpeningModalPro
     }
   };
 
-  const getRarityGlow = (rarity: string) => {
+  const getRarityGlow = (rarity: string, cardId: number) => {
+    if (isSlam(cardId)) {
+      return "shadow-[0_0_40px_rgba(255,0,128,0.9)] animate-pulse";
+    }
     switch (rarity?.toUpperCase()) {
       case "VERY RARE":
         return "shadow-[0_0_30px_rgba(251,191,36,0.6)]";
@@ -74,6 +85,11 @@ export function PackOpeningModal({ open, onClose, cardIds }: PackOpeningModalPro
       default:
         return "shadow-lg";
     }
+  };
+
+  const getRarityLabel = (rarity: string, cardId: number) => {
+    if (isSlam(cardId)) return "SLAM";
+    return rarity || "Common";
   };
 
   return (
@@ -160,7 +176,7 @@ export function PackOpeningModal({ open, onClose, cardIds }: PackOpeningModalPro
                       <div
                         className={cn(
                           "absolute inset-0 backface-hidden rotate-y-180 rounded-lg overflow-hidden",
-                          isRevealed && getRarityGlow(card?.rarity || "")
+                          isRevealed && getRarityGlow(card?.rarity || "", cardId)
                         )}
                       >
                         {card && (
@@ -173,19 +189,18 @@ export function PackOpeningModal({ open, onClose, cardIds }: PackOpeningModalPro
                                 e.currentTarget.src = "/placeholder.svg";
                               }}
                             />
-                            {/* Rarity banner */}
                             <div
                               className={cn(
                                 "absolute bottom-0 left-0 right-0 py-1 px-2 text-center",
                                 "bg-gradient-to-r",
-                                getRarityColor(card.rarity)
+                                getRarityColor(card.rarity, cardId)
                               )}
                             >
                               <p className="text-xs font-bold text-white truncate">
                                 {card.title}
                               </p>
                               <p className="text-[10px] text-white/80">
-                                {card.rarity}
+                                {getRarityLabel(card.rarity, cardId)}
                               </p>
                             </div>
                           </>
