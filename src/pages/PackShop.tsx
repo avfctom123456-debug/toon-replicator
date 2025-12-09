@@ -7,14 +7,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { usePacks } from "@/hooks/usePacks";
 import { useStarterDeck } from "@/hooks/useStarterDeck";
 import { starterDecks } from "@/lib/starterDecks";
-import { getCardById } from "@/lib/gameEngine";
 import { ArrowLeft, Package, Coins, Gift } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { PackOpeningModal } from "@/components/pack/PackOpeningModal";
 
 export default function PackShop() {
   const navigate = useNavigate();
@@ -151,36 +145,12 @@ export default function PackShop() {
         </div>
       </div>
 
-      {/* Pack Opening Results Dialog */}
-      <Dialog open={showResults} onOpenChange={setShowResults}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>You Got:</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
-            {openedCards.map((cardId, index) => {
-              const card = getCardById(cardId);
-              return card ? (
-                <div key={index} className="text-center">
-                  <img
-                    src={`/cards/${card.id}.jpg`}
-                    alt={card.title}
-                    className="w-full rounded-lg shadow-lg mb-2"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg";
-                    }}
-                  />
-                  <p className="text-sm font-medium text-foreground">{card.title}</p>
-                  <p className="text-xs text-muted-foreground">{card.rarity}</p>
-                </div>
-              ) : null;
-            })}
-          </div>
-          <Button onClick={() => setShowResults(false)} className="w-full">
-            Awesome!
-          </Button>
-        </DialogContent>
-      </Dialog>
+      {/* Pack Opening Modal */}
+      <PackOpeningModal
+        open={showResults}
+        onClose={() => setShowResults(false)}
+        cardIds={openedCards}
+      />
     </div>
   );
 }
