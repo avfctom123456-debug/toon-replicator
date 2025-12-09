@@ -240,7 +240,14 @@ function getOppositeIndex(position: number): number {
   return position; // Same index on opponent's board
 }
 
-function matchesTarget(card: GameCard, target: string): boolean {
+// Parse multi-target strings like "Dexter, Dee Dee, Dexter's Mom, or Dexter's Dad"
+function parseMultiTargets(targetStr: string): string[] {
+  // Split by comma or "or" and clean up
+  const parts = targetStr.split(/,\s*|\s+or\s+/).map(t => t.trim()).filter(t => t && t !== 'and');
+  return parts.length > 0 ? parts : [targetStr];
+}
+
+function matchesSingleTarget(card: GameCard, target: string): boolean {
   let lowerTarget = target.toLowerCase().trim();
   
   // Remove "gtoon", "gtoons", "toon", "toons" suffixes as they're generic terms for any card
@@ -330,6 +337,15 @@ function matchesTarget(card: GameCard, target: string): boolean {
   }
   
   return false;
+}
+
+function matchesTarget(card: GameCard, target: string): boolean {
+  // Check if target contains multiple targets separated by comma or "or"
+  if (target.includes(',') || target.toLowerCase().includes(' or ')) {
+    const targets = parseMultiTargets(target);
+    return targets.some(t => matchesSingleTarget(card, t));
+  }
+  return matchesSingleTarget(card, target);
 }
 
 function hasColor(card: GameCard, color: string): boolean {
@@ -1371,17 +1387,107 @@ export function applyPowers(state: GameState): GameState {
 }
 
 export function calculateScores(state: GameState): GameState {
-  const calcForPlayer = (board: (PlacedCard | null)[], mainColors: string[]) => {
+  // First, build color overrides based on "Treats as [Color]" effects
+  const buildColorOverrides = (
+    ownBoard: (PlacedCard | null)[],
+    enemyBoard: (PlacedCard | null)[]
+  ): Map<number, string[]> => {
+    const overrides = new Map<number, string[]>(); // position -> colors to add
+    
+    ownBoard.forEach((slot, pos) => {
+      if (!slot || slot.cancelled) return;
+      const desc = slot.card.description.toLowerCase();
+      
+      // "Treats opposing card as [Color]" - treat opposite card as a color
+      let match = desc.match(/treats?\s+oppos(?:ing|ite)\s+card\s+as\s+(\w+)/);
+      if (match) {
+        const color = match[1].toUpperCase();
+        const oppositeSlot = enemyBoard[pos];
+        if (oppositeSlot && !oppositeSlot.cancelled) {
+          // Mark the opposite card to be counted as this color for enemy's scoring
+          const existing = overrides.get(pos) || [];
+          existing.push(color);
+          overrides.set(pos, existing);
+        }
+      }
+      
+      // "Treats neighboring cards as [Color]" - Green Lantern effect
+      match = desc.match(/treats?\s+neighboring\s+cards?\s+as\s+(\w+)/);
+      if (match) {
+        const color = match[1].toUpperCase();
+        const neighbors = getNeighborIndices(pos);
+        neighbors.forEach(nIdx => {
+          const neighbor = ownBoard[nIdx];
+          if (neighbor && !neighbor.cancelled) {
+            const existing = overrides.get(nIdx) || [];
+            existing.push(color);
+            overrides.set(nIdx, existing);
+          }
+        });
+      }
+    });
+    
+    return overrides;
+  };
+  
+  const playerColorOverrides = buildColorOverrides(state.player.board, state.opponent.board);
+  const opponentColorOverrides = buildColorOverrides(state.opponent.board, state.player.board);
+  // Note: "Treats opposing card as X" makes the ENEMY card count as X for the ENEMY's color count
+  // This needs special handling - the player's effect affects opponent's scoring
+  const playerToOpponentOverrides = new Map<number, string[]>();
+  const opponentToPlayerOverrides = new Map<number, string[]>();
+  
+  state.player.board.forEach((slot, pos) => {
+    if (!slot || slot.cancelled) return;
+    const desc = slot.card.description.toLowerCase();
+    const match = desc.match(/treats?\s+oppos(?:ing|ite)\s+card\s+as\s+(\w+)/);
+    if (match) {
+      const color = match[1].toUpperCase();
+      const existing = playerToOpponentOverrides.get(pos) || [];
+      existing.push(color);
+      playerToOpponentOverrides.set(pos, existing);
+    }
+  });
+  
+  state.opponent.board.forEach((slot, pos) => {
+    if (!slot || slot.cancelled) return;
+    const desc = slot.card.description.toLowerCase();
+    const match = desc.match(/treats?\s+oppos(?:ing|ite)\s+card\s+as\s+(\w+)/);
+    if (match) {
+      const color = match[1].toUpperCase();
+      const existing = opponentToPlayerOverrides.get(pos) || [];
+      existing.push(color);
+      opponentToPlayerOverrides.set(pos, existing);
+    }
+  });
+  
+  const calcForPlayer = (
+    board: (PlacedCard | null)[], 
+    mainColors: string[],
+    neighborOverrides: Map<number, string[]>,
+    enemyOverrides: Map<number, string[]>
+  ) => {
     let totalPoints = 0;
     const colorCounts: Record<string, number> = {};
     
     mainColors.forEach(c => colorCounts[c] = 0);
     
-    board.forEach(slot => {
+    board.forEach((slot, pos) => {
       if (!slot || slot.cancelled) return;
       totalPoints += slot.modifiedPoints;
       
-      slot.card.colors.forEach(color => {
+      // Get base colors
+      const colors = new Set(slot.card.colors);
+      
+      // Add colors from neighbor effects (like Green Lantern)
+      const neighborAddedColors = neighborOverrides.get(pos) || [];
+      neighborAddedColors.forEach(c => colors.add(c));
+      
+      // Add colors from enemy "Treats opposing as" effects
+      const enemyAddedColors = enemyOverrides.get(pos) || [];
+      enemyAddedColors.forEach(c => colors.add(c));
+      
+      colors.forEach(color => {
         if (mainColors.includes(color)) {
           colorCounts[color] = (colorCounts[color] || 0) + 1;
         }
@@ -1391,8 +1497,18 @@ export function calculateScores(state: GameState): GameState {
     return { totalPoints, colorCounts };
   };
   
-  const playerScores = calcForPlayer(state.player.board, state.mainColors);
-  const opponentScores = calcForPlayer(state.opponent.board, state.mainColors);
+  const playerScores = calcForPlayer(
+    state.player.board, 
+    state.mainColors,
+    playerColorOverrides,
+    opponentToPlayerOverrides
+  );
+  const opponentScores = calcForPlayer(
+    state.opponent.board, 
+    state.mainColors,
+    opponentColorOverrides,
+    playerToOpponentOverrides
+  );
   
   return {
     ...state,
