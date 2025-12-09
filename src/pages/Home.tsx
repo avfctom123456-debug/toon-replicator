@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
-import { Coins, Package, ArrowRightLeft, Settings, Library } from "lucide-react";
+import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -101,6 +101,14 @@ const Home = () => {
         >
           <ArrowRightLeft className="h-5 w-5" />
           Trade Board
+        </Button>
+        <Button 
+          variant="menu"
+          onClick={() => navigate("/leaderboard")}
+          className="flex items-center gap-2"
+        >
+          <Trophy className="h-5 w-5" />
+          Leaderboard
         </Button>
         {isAdmin && (
           <Button 
