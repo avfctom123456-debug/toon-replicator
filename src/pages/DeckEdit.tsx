@@ -44,7 +44,7 @@ const DeckEdit = () => {
     return (cardsData as CardData[]).filter((c) => 
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       c.character.toLowerCase().includes(search.toLowerCase())
-    ).slice(0, 50);
+    );
   }, [search]);
 
   const toggleCard = (id: number) => {
