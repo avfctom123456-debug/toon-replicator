@@ -19,9 +19,48 @@ interface CardHandProps {
   cards: GameCard[];
   selectedCard: GameCard | null;
   onSelectCard: (card: GameCard) => void;
+  layout?: "grid" | "horizontal";
 }
 
-export const CardHand = ({ cards, selectedCard, onSelectCard }: CardHandProps) => {
+export const CardHand = ({ cards, selectedCard, onSelectCard, layout = "grid" }: CardHandProps) => {
+  if (layout === "horizontal") {
+    return (
+      <div className="py-2 overflow-x-auto">
+        <div className="flex gap-2 px-2 min-w-max">
+          {cards.map((card) => {
+            const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
+            const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+            const isSelected = selectedCard?.id === card.id;
+
+            return (
+              <div
+                key={card.id}
+                className={`relative flex-shrink-0 cursor-pointer transition-all ${
+                  isSelected ? "ring-2 ring-accent scale-110 -translate-y-1" : "hover:scale-105"
+                }`}
+                onClick={() => onSelectCard(card)}
+              >
+                <div className={`w-12 h-12 rounded-full ${bgColor} overflow-hidden border-2 ${isSelected ? "border-accent" : "border-muted"} shadow-lg`}>
+                  <img
+                    src={imageUrl}
+                    alt={card.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 ${bgColor} w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-card`}>
+                  {card.basePoints}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 p-2 overflow-y-auto">
       <div className="grid grid-cols-2 gap-2">

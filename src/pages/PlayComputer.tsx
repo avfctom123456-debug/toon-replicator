@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
-import { CardDisplay } from "@/components/CardDisplay";
 import { GameBoard } from "@/components/game/GameBoard";
 import { PlayerSidebar } from "@/components/game/PlayerSidebar";
 import { CardHand } from "@/components/game/CardHand";
 import { SelectedCardPreview } from "@/components/game/SelectedCardPreview";
+import { MobileGameHeader } from "@/components/game/MobileGameHeader";
 import {
   GameState,
   PlacedCard,
@@ -22,6 +22,8 @@ import {
   GameCard,
 } from "@/lib/gameEngine";
 
+type RevealPhase = "placing" | "revealing" | "revealed";
+
 const PlayComputer = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -32,6 +34,9 @@ const PlayComputer = () => {
   const [selectedHandCard, setSelectedHandCard] = useState<GameCard | null>(null);
   const [message, setMessage] = useState("");
   const [timeLeft, setTimeLeft] = useState(60);
+  const [revealPhase, setRevealPhase] = useState<RevealPhase>("placing");
+  const [revealedSlots, setRevealedSlots] = useState<number[]>([]);
+  const [effectAnimations, setEffectAnimations] = useState<number[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -39,14 +44,72 @@ const PlayComputer = () => {
     }
   }, [user, authLoading, navigate]);
 
+  const performReveal = useCallback((gameState: GameState, isRound1: boolean) => {
+    setRevealPhase("revealing");
+    setRevealedSlots([]);
+    
+    const slotsToReveal = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
+    
+    // Reveal cards one by one
+    slotsToReveal.forEach((slot, index) => {
+      setTimeout(() => {
+        setRevealedSlots(prev => [...prev, slot]);
+        
+        // After all cards revealed, apply effects
+        if (index === slotsToReveal.length - 1) {
+          setTimeout(() => {
+            let newState = checkCancellations(gameState);
+            newState = applyPowers(newState);
+            newState = calculateScores(newState);
+            
+            // Animate effect changes
+            const affectedSlots = newState.player.board
+              .map((slot, i) => slot && slot.modifiedPoints !== slot.card.basePoints ? i : -1)
+              .filter(i => i !== -1);
+            
+            const oppAffectedSlots = newState.opponent.board
+              .map((slot, i) => slot && slot.modifiedPoints !== slot.card.basePoints ? i + 100 : -1)
+              .filter(i => i !== -1);
+            
+            setEffectAnimations([...affectedSlots, ...oppAffectedSlots]);
+            
+            setTimeout(() => {
+              setEffectAnimations([]);
+              
+              if (isRound1) {
+                newState = refillHand(newState);
+                newState = aiPlaceCards(newState, 3, 4);
+                setGame({ ...newState, phase: "round2-place" });
+                setMessage("Round 2: Place 3 more cards");
+                setRevealPhase("placing");
+                setRevealedSlots([]);
+                setTimeLeft(60);
+              } else {
+                newState = determineWinner(newState);
+                setGame({ ...newState, phase: "game-over" });
+                setRevealPhase("revealed");
+                if (newState.winner === "player") {
+                  setMessage(`You win by ${newState.winMethod}!`);
+                } else if (newState.winner === "opponent") {
+                  setMessage(`AI wins by ${newState.winMethod}!`);
+                } else {
+                  setMessage("It's a tie!");
+                }
+              }
+            }, 1000);
+          }, 500);
+        }
+      }, index * 400);
+    });
+  }, []);
+
   // Timer effect
   useEffect(() => {
-    if (!game || game.phase === "game-over") return;
+    if (!game || game.phase === "game-over" || revealPhase !== "placing") return;
     
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          confirmPlacement();
           return 60;
         }
         return prev - 1;
@@ -54,7 +117,7 @@ const PlayComputer = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [game?.phase]);
+  }, [game?.phase, revealPhase]);
 
   const decks = getDecksWithSlots();
 
@@ -67,13 +130,16 @@ const PlayComputer = () => {
     const withAI = aiPlaceCards(initialState, 4, 0);
     setGame(withAI);
     setSelectedDeck(deckCardIds);
-    setMessage("Round 1: Place 4 cards on the board");
+    setMessage("Round 1: Place 4 cards");
     setTimeLeft(60);
+    setRevealPhase("placing");
+    setRevealedSlots([]);
   };
 
   const placeCard = (slotIndex: number) => {
     if (!game || !selectedHandCard) return;
     if (game.phase !== "round1-place" && game.phase !== "round2-place") return;
+    if (revealPhase !== "placing") return;
     
     const maxSlot = game.phase === "round1-place" ? 4 : 7;
     const minSlot = game.phase === "round1-place" ? 0 : 4;
@@ -108,41 +174,23 @@ const PlayComputer = () => {
   };
 
   const confirmPlacement = () => {
-    if (!game) return;
+    if (!game || revealPhase !== "placing") return;
     
+    const isRound1 = game.phase === "round1-place";
     const placedCount = game.player.board.filter((s, i) => {
-      if (game.phase === "round1-place") return i < 4 && s !== null;
+      if (isRound1) return i < 4 && s !== null;
       return i >= 4 && s !== null;
     }).length;
     
-    const requiredCount = game.phase === "round1-place" ? 4 : 3;
+    const requiredCount = isRound1 ? 4 : 3;
     
     if (placedCount < requiredCount) {
       setMessage(`Place ${requiredCount} cards!`);
       return;
     }
     
-    let newState = checkCancellations(game);
-    newState = applyPowers(newState);
-    newState = calculateScores(newState);
-    
-    if (game.phase === "round1-place") {
-      newState = refillHand(newState);
-      newState = aiPlaceCards(newState, 3, 4);
-      setGame({ ...newState, phase: "round2-place" });
-      setMessage("Round 2: Place 3 more cards");
-      setTimeLeft(60);
-    } else {
-      newState = determineWinner(newState);
-      setGame({ ...newState, phase: "game-over" });
-      if (newState.winner === "player") {
-        setMessage(`You win by ${newState.winMethod}!`);
-      } else if (newState.winner === "opponent") {
-        setMessage(`AI wins by ${newState.winMethod}!`);
-      } else {
-        setMessage("It's a tie!");
-      }
-    }
+    setMessage("Revealing cards...");
+    performReveal(game, isRound1);
   };
 
   const resetGame = () => {
@@ -151,6 +199,9 @@ const PlayComputer = () => {
     setSelectedHandCard(null);
     setMessage("");
     setTimeLeft(60);
+    setRevealPhase("placing");
+    setRevealedSlots([]);
+    setEffectAnimations([]);
   };
 
   if (authLoading || decksLoading) {
@@ -194,35 +245,47 @@ const PlayComputer = () => {
           Back to Home
         </Button>
         
-        <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">v0.0.40</div>
+        <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">v0.0.41</div>
       </div>
     );
   }
 
-  const requiredCards = game.phase === "round1-place" ? 4 : 3;
+  const isRound1 = game.phase === "round1-place";
+  const requiredCards = isRound1 ? 4 : 3;
   const placedCount = game.player.board.filter((s, i) => {
-    if (game.phase === "round1-place") return i < 4 && s !== null;
+    if (isRound1) return i < 4 && s !== null;
     return i >= 4 && s !== null;
   }).length;
 
-  // Game screen with new layout
+  // Game screen with responsive layout
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Left Sidebar - Player Stats */}
-      <PlayerSidebar
-        playerLabel="Computer"
-        playerPoints={game.opponent.totalPoints}
-        playerColorCounts={game.opponent.colorCounts}
-        mainColors={game.mainColors}
-        isOpponent
-        opponentLabel="You"
-        opponentPoints={game.player.totalPoints}
-        opponentColorCounts={game.player.colorCounts}
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+      {/* Mobile Header */}
+      <MobileGameHeader
+        game={game}
+        message={message}
+        timeLeft={timeLeft}
+        revealPhase={revealPhase}
         onQuit={resetGame}
       />
 
+      {/* Desktop Left Sidebar */}
+      <div className="hidden lg:block">
+        <PlayerSidebar
+          playerLabel="Computer"
+          playerPoints={game.opponent.totalPoints}
+          playerColorCounts={game.opponent.colorCounts}
+          mainColors={game.mainColors}
+          isOpponent
+          opponentLabel="You"
+          opponentPoints={game.player.totalPoints}
+          opponentColorCounts={game.player.colorCounts}
+          onQuit={resetGame}
+        />
+      </div>
+
       {/* Center Game Area */}
-      <div className="flex-1 flex flex-col p-2">
+      <div className="flex-1 flex flex-col p-2 min-h-0">
         <GameBoard
           opponentBoard={game.opponent.board}
           playerBoard={game.player.board}
@@ -232,35 +295,49 @@ const PlayComputer = () => {
           message={message}
           timeLeft={timeLeft}
           requiredCards={requiredCards}
+          revealPhase={revealPhase}
+          revealedSlots={revealedSlots}
+          effectAnimations={effectAnimations}
         />
 
+        {/* Mobile Hand (horizontal scroll) */}
+        <div className="lg:hidden">
+          <CardHand
+            cards={game.player.hand}
+            selectedCard={selectedHandCard}
+            onSelectCard={setSelectedHandCard}
+            layout="horizontal"
+          />
+        </div>
+
         {/* Action Button */}
-        <div className="flex justify-center mt-2">
+        <div className="flex justify-center py-2">
           {game.phase === "game-over" ? (
             <Button variant="menu" onClick={resetGame}>Play Again</Button>
           ) : (
             <Button 
               variant="menu" 
               onClick={confirmPlacement}
-              disabled={placedCount < requiredCards}
+              disabled={placedCount < requiredCards || revealPhase !== "placing"}
             >
-              Ready ({placedCount}/{requiredCards})
+              {revealPhase === "revealing" ? "Revealing..." : `Ready (${placedCount}/${requiredCards})`}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Right Sidebar - Card Hand & Preview */}
-      <div className="w-48 bg-card/50 border-l border-border flex flex-col">
+      {/* Desktop Right Sidebar */}
+      <div className="hidden lg:flex w-48 bg-card/50 border-l border-border flex-col">
         <SelectedCardPreview card={selectedHandCard} />
         <CardHand
           cards={game.player.hand}
           selectedCard={selectedHandCard}
           onSelectCard={setSelectedHandCard}
+          layout="grid"
         />
       </div>
 
-      <div className="fixed bottom-2 left-2 text-muted-foreground text-xs">v0.0.40</div>
+      <div className="fixed bottom-2 left-2 text-muted-foreground text-xs">v0.0.41</div>
     </div>
   );
 };
