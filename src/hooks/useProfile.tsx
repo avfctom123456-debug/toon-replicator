@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-interface Profile {
+export interface Profile {
   id: string;
   user_id: string;
   username: string;
   coins: number;
   created_at: string;
   updated_at: string;
+  starter_deck_claimed: string | null;
 }
 
 export const useProfile = () => {

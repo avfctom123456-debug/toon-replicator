@@ -11,6 +11,9 @@ import DeckBuilder from "./pages/DeckBuilder";
 import DeckEdit from "./pages/DeckEdit";
 import Lobby from "./pages/Lobby";
 import PlayComputer from "./pages/PlayComputer";
+import PackShop from "./pages/PackShop";
+import TradeBoard from "./pages/TradeBoard";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,7 +33,9 @@ const App = () => (
             <Route path="/deck-edit" element={<DeckEdit />} />
             <Route path="/lobby" element={<Lobby />} />
             <Route path="/play" element={<PlayComputer />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/pack-shop" element={<PackShop />} />
+            <Route path="/trade-board" element={<TradeBoard />} />
+            <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
