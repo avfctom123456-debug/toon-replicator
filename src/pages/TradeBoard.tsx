@@ -55,7 +55,15 @@ export default function TradeBoard() {
   }
 
   const ownedCardIds = getOwnedCardIds();
-  const allCards = cardsData as { id: number; title: string }[];
+  const allCards = (cardsData as { id: number; title: string }[]).sort((a, b) => 
+    a.title.localeCompare(b.title)
+  );
+  
+  // Get owned cards with details, sorted A-Z
+  const ownedCardsWithDetails = ownedCardIds
+    .map((id) => getCardById(id))
+    .filter((card): card is NonNullable<typeof card> => card !== null)
+    .sort((a, b) => a.title.localeCompare(b.title));
 
   const handleCreateTrade = async () => {
     const success = await createTrade(offerCardIds, offerCoins, wantCardIds, wantCoins);
@@ -125,14 +133,11 @@ export default function TradeBoard() {
                             <SelectValue placeholder="Select a card you own" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ownedCardIds.map((cardId) => {
-                              const card = getCardById(cardId);
-                              return card ? (
-                                <SelectItem key={cardId} value={cardId.toString()}>
-                                  {card.title}
-                                </SelectItem>
-                              ) : null;
-                            })}
+                            {ownedCardsWithDetails.map((card) => (
+                              <SelectItem key={card.id} value={card.id.toString()}>
+                                {card.title}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <Button onClick={addOfferCard} size="icon">
