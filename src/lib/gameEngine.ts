@@ -439,12 +439,41 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
-      // "x2 if [character] is in play"
-      match = effect.match(/x2\s+if\s+(?:the\s+)?(.+?)\s+is\s+in\s+play/);
+      // "x2 if [character] is in play" or "x3 if [character] is in play"
+      match = effect.match(/x(\d)\s+if\s+(?:the\s+)?(.+?)\s+is\s+in\s+play/);
+      if (match) {
+        const multiplier = parseInt(match[1]);
+        const target = match[2];
+        if (allActiveCards.some(c => matchesTarget(c.card, target))) {
+          slot.modifiedPoints *= multiplier;
+        }
+        continue;
+      }
+      
+      // "+X if [A] and [B] are both in play" - The Infraggable Krunk
+      match = effect.match(/\+(\d+)\s+if\s+(.+?)\s+and\s+(.+?)\s+are\s+both\s+in\s+play/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const target1 = match[2].trim();
+        const target2 = match[3].trim();
+        const hasTarget1 = allActiveCards.some(c => matchesTarget(c.card, target1));
+        const hasTarget2 = allActiveCards.some(c => matchesTarget(c.card, target2));
+        if (hasTarget1 && hasTarget2) {
+          slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
+      // "x3 if next to any [target]" or "x3 if next to [target]"
+      match = effect.match(/x3\s+if\s+next\s+to\s+(?:any\s+|another\s+)?(.+)/);
       if (match) {
         const target = match[1];
-        if (allActiveCards.some(c => matchesTarget(c.card, target))) {
-          slot.modifiedPoints *= 2;
+        const hasNeighbor = neighbors.some(idx => {
+          const neighbor = ownBoard[idx];
+          return neighbor && !neighbor.cancelled && matchesTarget(neighbor.card, target);
+        });
+        if (hasNeighbor) {
+          slot.modifiedPoints *= 3;
         }
         continue;
       }
@@ -828,30 +857,45 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
-      // "x2 to [target]" (simple double)
-      match = effect.match(/x2\s+to\s+(.+?)(?:;|$)/);
+      // "x2 to [target]" or "x3 to [target]" (simple multiplier)
+      match = effect.match(/x(\d)\s+to\s+(?:any\s+)?(.+?)(?:;|$)/);
       if (match && !effect.includes("neighboring") && !effect.includes("if")) {
-        const target = match[1];
+        const multiplier = parseInt(match[1]);
+        const target = match[2];
         ownBoard.forEach(slot => {
           if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
-            slot.modifiedPoints *= 2;
+            slot.modifiedPoints *= multiplier;
           }
         });
         continue;
       }
       
-      // "x2 to [target] if [condition] is in play"
-      match = effect.match(/x2\s+to\s+(.+?)\s+if\s+(?:the\s+)?(.+?)\s+is\s+in\s+play/);
+      // "x2 to [target] if [condition] is in play" or "x3 to [target] if [condition] is in play"
+      match = effect.match(/x(\d)\s+to\s+(.+?)\s+if\s+(?:the\s+)?(.+?)\s+is\s+in\s+play/);
       if (match) {
-        const target = match[1];
-        const condition = match[2];
+        const multiplier = parseInt(match[1]);
+        const target = match[2];
+        const condition = match[3];
         if (allActiveCards.some(c => matchesTarget(c.card, condition))) {
           ownBoard.forEach(slot => {
             if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
-              slot.modifiedPoints *= 2;
+              slot.modifiedPoints *= multiplier;
             }
           });
         }
+        continue;
+      }
+      
+      // "x3 to any neighboring [target]" or "x3 to each neighboring [target]"
+      match = effect.match(/x3\s+to\s+(?:any|each)\s+neighboring\s+(.+)/);
+      if (match) {
+        const target = match[1];
+        neighbors.forEach(idx => {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled && matchesTarget(neighbor.card, target)) {
+            neighbor.modifiedPoints *= 3;
+          }
+        });
         continue;
       }
     }
