@@ -42,6 +42,7 @@ const PlayComputer = () => {
   const [permanentRevealedSlots, setPermanentRevealedSlots] = useState<number[]>([]);
   const [effectAnimations, setEffectAnimations] = useState<number[]>([]);
   const [viewingCard, setViewingCard] = useState<PlacedCard | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -184,6 +185,7 @@ const PlayComputer = () => {
                 newState = determineWinner(newState);
                 setGame({ ...newState, phase: "game-over" });
                 setRevealPhase("revealed");
+                setShowResultModal(true);
                 if (newState.winner === "player") {
                   setMessage(`You win by ${newState.winMethod}!`);
                 } else if (newState.winner === "opponent") {
@@ -399,6 +401,8 @@ const PlayComputer = () => {
         permanentRevealedSlots={permanentRevealedSlots}
         effectAnimations={effectAnimations}
         playerName={profile?.username || "Player"}
+        showResultModal={showResultModal}
+        onCloseResultModal={() => setShowResultModal(false)}
       />
 
       {/* Card Info Modal */}
