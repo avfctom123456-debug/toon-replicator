@@ -745,7 +745,184 @@ export function applyPowers(state: GameState): GameState {
   allPlayerCards.forEach(slot => applyBuffsDebuffs(slot, playerBoard, opponentBoard, true));
   allOpponentCards.forEach(slot => applyBuffsDebuffs(slot, opponentBoard, playerBoard, false));
   
-  // Ensure no negative points
+  // Third pass: handle special effects like "cancel power" and "steal buff"
+  const applySpecialEffects = (
+    sourceSlot: PlacedCard,
+    ownBoard: (PlacedCard | null)[],
+    enemyBoard: (PlacedCard | null)[],
+    isPlayer: boolean
+  ) => {
+    const desc = sourceSlot.card.description.toLowerCase();
+    if (desc === "no power" || desc === "no powers") return;
+    
+    const oppositeIdx = getOppositeIndex(sourceSlot.position);
+    const oppositeCard = enemyBoard[oppositeIdx];
+    
+    // "If the opposite card is a villain, cancel its power"
+    let match = desc.match(/if\s+the\s+opposite\s+card\s+is\s+(?:a\s+)?(.+?),?\s+cancel\s+its\s+power/);
+    if (match && oppositeCard && !oppositeCard.cancelled) {
+      const targetType = match[1];
+      if (matchesTarget(oppositeCard.card, targetType)) {
+        // Reset opposite card to base points (effectively cancelling buffs/debuffs from its power)
+        oppositeCard.modifiedPoints = oppositeCard.card.basePoints;
+      }
+    }
+    
+    // "Steal random buff from opposite toon"
+    if (desc.includes("steal") && desc.includes("buff") && desc.includes("opposite")) {
+      if (oppositeCard && !oppositeCard.cancelled) {
+        const buffAmount = oppositeCard.modifiedPoints - oppositeCard.card.basePoints;
+        if (buffAmount > 0) {
+          // Steal the buff
+          sourceSlot.modifiedPoints += buffAmount;
+          oppositeCard.modifiedPoints = oppositeCard.card.basePoints;
+        }
+      }
+    }
+    
+    // "-X to opponents [type]" or "-X to opponent's [type]"
+    match = desc.match(/-(\d+)\s+to\s+opponents?\s+(.+)/);
+    if (match) {
+      const penalty = parseInt(match[1]);
+      const target = match[2];
+      enemyBoard.forEach(slot => {
+        if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
+          slot.modifiedPoints -= penalty;
+        }
+      });
+    }
+  };
+  
+  // Fourth pass: Handle round-specific effects
+  const applyRoundEffects = (
+    sourceSlot: PlacedCard,
+    ownBoard: (PlacedCard | null)[],
+    enemyBoard: (PlacedCard | null)[],
+    isPlayer: boolean
+  ) => {
+    const desc = sourceSlot.card.description.toLowerCase();
+    if (desc === "no power" || desc === "no powers") return;
+    
+    // "-X to all [type] played in 2nd round"
+    let match = desc.match(/-(\d+)\s+to\s+all\s+(.+?)\s+played\s+in\s+2nd\s+round/);
+    if (match) {
+      const penalty = parseInt(match[1]);
+      const target = match[2];
+      [...ownBoard, ...enemyBoard].forEach(slot => {
+        if (slot && !slot.cancelled && isRound2Position(slot.position) && matchesTarget(slot.card, target)) {
+          slot.modifiedPoints -= penalty;
+        }
+      });
+    }
+    
+    // "-X to each [type] played in the 2nd round"
+    match = desc.match(/-(\d+)\s+to\s+each\s+(.+?)\s+played\s+in\s+(?:the\s+)?2nd\s+round/);
+    if (match) {
+      const penalty = parseInt(match[1]);
+      const target = match[2];
+      [...ownBoard, ...enemyBoard].forEach(slot => {
+        if (slot && !slot.cancelled && isRound2Position(slot.position) && matchesTarget(slot.card, target)) {
+          slot.modifiedPoints -= penalty;
+        }
+      });
+    }
+    
+    // "+X to each own [type] played in round 1" (when played in round 1)
+    match = desc.match(/if\s+played\s+in\s+round\s+1[,;]?\s*\+(\d+)\s+to\s+each\s+own\s+(.+?)\s+played\s+in\s+round\s+1/);
+    if (match && !isRound2Position(sourceSlot.position)) {
+      const bonus = parseInt(match[1]);
+      const target = match[2];
+      ownBoard.forEach(slot => {
+        if (slot && !slot.cancelled && !isRound2Position(slot.position) && matchesTarget(slot.card, target)) {
+          slot.modifiedPoints += bonus;
+        }
+      });
+    }
+    
+    // "+X to each own [type]" when played in round 2 - e.g. Anna's round 2 effect
+    match = desc.match(/if\s+played\s+in\s+round\s+2[,;]?\s*\+(\d+)\s+to\s+each\s+own\s+(.+)/);
+    if (match && isRound2Position(sourceSlot.position)) {
+      const bonus = parseInt(match[1]);
+      const target = match[2];
+      ownBoard.forEach(slot => {
+        if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
+          slot.modifiedPoints += bonus;
+        }
+      });
+    }
+    
+    // "+X for each [type] played in the first round"
+    match = desc.match(/\+(\d+)\s+for\s+each\s+(.+?)\s+played\s+in\s+(?:the\s+)?first\s+round/);
+    if (match) {
+      const bonus = parseInt(match[1]);
+      const target = match[2];
+      const allCards = [...ownBoard, ...enemyBoard];
+      const count = allCards.filter(slot => 
+        slot && !slot.cancelled && !isRound2Position(slot.position) && matchesTarget(slot.card, target)
+      ).length;
+      sourceSlot.modifiedPoints += bonus * count;
+    }
+    
+    // "If played in the 1st round, remove X damage from each adjacent 2nd round card"
+    match = desc.match(/if\s+played\s+in\s+(?:the\s+)?1st\s+round[,;]?\s*remove\s+(\d+)\s+damage\s+from\s+each\s+adjacent\s+2nd\s+round\s+card/);
+    if (match && !isRound2Position(sourceSlot.position)) {
+      const healAmount = parseInt(match[1]);
+      const neighbors = getNeighborIndices(sourceSlot.position);
+      neighbors.forEach(idx => {
+        const neighbor = ownBoard[idx];
+        if (neighbor && !neighbor.cancelled && isRound2Position(neighbor.position)) {
+          neighbor.modifiedPoints += healAmount;
+        }
+      });
+    }
+    
+    // "+X to [target] for each [other] in play"
+    match = desc.match(/\+(\d+)\s+to\s+(.+?)\s+for\s+each\s+(.+?)\s+in\s+play/);
+    if (match) {
+      const bonus = parseInt(match[1]);
+      const target = match[2];
+      const countTarget = match[3];
+      const allCards = [...ownBoard, ...enemyBoard].filter((s): s is PlacedCard => s !== null && !s.cancelled);
+      const count = allCards.filter(c => matchesTarget(c.card, countTarget)).length;
+      ownBoard.forEach(slot => {
+        if (slot && !slot.cancelled && matchesTarget(slot.card, target)) {
+          slot.modifiedPoints += bonus * count;
+        }
+      });
+    }
+  };
+  
+  // Fifth pass: Handle Dende-like effects (convert negative to positive)
+  const applyFinalEffects = (
+    sourceSlot: PlacedCard,
+    ownBoard: (PlacedCard | null)[],
+    isPlayer: boolean
+  ) => {
+    const desc = sourceSlot.card.description.toLowerCase();
+    
+    // "Before scoring, if any of your gToon's points are negative, remove - to become positive"
+    if (desc.includes("negative") && desc.includes("positive")) {
+      ownBoard.forEach(slot => {
+        if (slot && !slot.cancelled && slot.modifiedPoints < 0) {
+          slot.modifiedPoints = Math.abs(slot.modifiedPoints);
+        }
+      });
+    }
+  };
+  
+  // Apply special effects
+  allPlayerCards.forEach(slot => applySpecialEffects(slot, playerBoard, opponentBoard, true));
+  allOpponentCards.forEach(slot => applySpecialEffects(slot, opponentBoard, playerBoard, false));
+  
+  // Apply round-specific effects
+  allPlayerCards.forEach(slot => applyRoundEffects(slot, playerBoard, opponentBoard, true));
+  allOpponentCards.forEach(slot => applyRoundEffects(slot, opponentBoard, playerBoard, false));
+  
+  // Apply final effects (like Dende)
+  allPlayerCards.forEach(slot => applyFinalEffects(slot, playerBoard, true));
+  allOpponentCards.forEach(slot => applyFinalEffects(slot, opponentBoard, false));
+  
+  // Ensure no negative points (except where explicitly handled)
   playerBoard.forEach(slot => {
     if (slot) slot.modifiedPoints = Math.max(0, slot.modifiedPoints);
   });
