@@ -373,6 +373,17 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "+X if played as the last card" - Mystico
+      match = effect.match(/\+(\d+)\s+if\s+played\s+as\s+the\s+last\s+card/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        // Last card is position 6 (last slot of round 2)
+        if (slot.position === 6) {
+          slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
       // "+X if any [character] is in play"
       match = effect.match(/\+(\d+)\s+if\s+(?:any\s+)?(.+?)\s+is\s+in\s+play/);
       if (match) {
