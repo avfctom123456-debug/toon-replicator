@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import cardsData from "@/data/cards.json";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useProfile } from "@/hooks/useProfile";
@@ -14,8 +13,6 @@ import {
   GameState,
   PlacedCard,
   GameCard,
-  getCardById,
-  shuffleArray,
   createPlayerState,
   getMainColors,
   checkCancellations,
@@ -59,6 +56,8 @@ const PlayPVP = () => {
   const [viewingCard, setViewingCard] = useState<PlacedCard | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [opponentProfile, setOpponentProfile] = useState<{ username: string } | null>(null);
+  const [loadingGameState, setLoadingGameState] = useState<GameState | null>(null);
+  const [waitingForOpponent, setWaitingForOpponent] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -66,11 +65,149 @@ const PlayPVP = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Reveal sequence - same as CPU mode
+  const performReveal = useCallback((gameState: GameState, isRound1: boolean) => {
+    setRevealPhase("revealing");
+    setRevealedSlots([]);
+    
+    const slotIndices = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
+    
+    // Apply all effects to calculate final points
+    let finalState = checkCancellations(gameState);
+    finalState = applyPowers(finalState);
+    
+    // Create alternating reveal sequence: P1 slot 0, P2 slot 0, P1 slot 1, P2 slot 1...
+    const revealSequence: number[] = [];
+    slotIndices.forEach(slot => {
+      revealSequence.push(slot);        // Player slot (positive)
+      revealSequence.push(-(slot + 1)); // Opponent slot (negative)
+    });
+    
+    let runningPlayerScore = game?.player.totalPoints || 0;
+    let runningOpponentScore = game?.opponent.totalPoints || 0;
+    
+    revealSequence.forEach((slotCode, index) => {
+      setTimeout(() => {
+        setRevealedSlots(prev => [...prev, slotCode]);
+        
+        const isPlayerSlot = slotCode >= 0;
+        const actualSlot = isPlayerSlot ? slotCode : -(slotCode + 1);
+        
+        if (isPlayerSlot) {
+          const playerCard = finalState.player.board[actualSlot];
+          if (playerCard && !playerCard.cancelled) {
+            runningPlayerScore += playerCard.modifiedPoints;
+          }
+        } else {
+          const oppCard = finalState.opponent.board[actualSlot];
+          if (oppCard && !oppCard.cancelled) {
+            runningOpponentScore += oppCard.modifiedPoints;
+          }
+        }
+        
+        setGame(prev => {
+          if (!prev) return prev;
+          
+          const newPlayerBoard = prev.player.board.map((slot, i) => {
+            if (slotIndices.includes(i)) {
+              return finalState.player.board[i];
+            }
+            return slot;
+          });
+          const newOppBoard = prev.opponent.board.map((slot, i) => {
+            if (slotIndices.includes(i)) {
+              return finalState.opponent.board[i];
+            }
+            return slot;
+          });
+          
+          const newPlayerColorCounts: Record<string, number> = { ...prev.player.colorCounts };
+          const newOppColorCounts: Record<string, number> = { ...prev.opponent.colorCounts };
+          
+          if (isPlayerSlot) {
+            const card = finalState.player.board[actualSlot];
+            if (card && !card.cancelled) {
+              card.card.colors?.forEach(color => {
+                newPlayerColorCounts[color] = (newPlayerColorCounts[color] || 0) + 1;
+              });
+            }
+          } else {
+            const card = finalState.opponent.board[actualSlot];
+            if (card && !card.cancelled) {
+              card.card.colors?.forEach(color => {
+                newOppColorCounts[color] = (newOppColorCounts[color] || 0) + 1;
+              });
+            }
+          }
+          
+          return {
+            ...prev,
+            player: {
+              ...prev.player,
+              board: newPlayerBoard,
+              totalPoints: runningPlayerScore,
+              colorCounts: newPlayerColorCounts,
+            },
+            opponent: {
+              ...prev.opponent,
+              board: newOppBoard,
+              totalPoints: runningOpponentScore,
+              colorCounts: newOppColorCounts,
+            },
+          };
+        });
+        
+        if (isPlayerSlot) {
+          const card = finalState.player.board[actualSlot];
+          if (card && card.modifiedPoints !== card.card.basePoints) {
+            setEffectAnimations(prev => [...prev, actualSlot]);
+          }
+        } else {
+          const card = finalState.opponent.board[actualSlot];
+          if (card && card.modifiedPoints !== card.card.basePoints) {
+            setEffectAnimations(prev => [...prev, actualSlot + 100]);
+          }
+        }
+        
+        if (index === revealSequence.length - 1) {
+          setTimeout(() => {
+            let newState = calculateScores(finalState);
+            
+            setTimeout(() => {
+              setEffectAnimations([]);
+              setPermanentRevealedSlots(prev => [...prev, ...slotIndices]);
+              
+              if (isRound1) {
+                newState = refillHand(newState);
+                setGame({ ...newState, phase: "round2-place" });
+                setMessage("Round 2: Place 3 more cards");
+                setRevealPhase("placing");
+                setRevealedSlots([]);
+                setTimeLeft(60);
+                setWaitingForOpponent(false);
+              } else {
+                newState = determineWinner(newState);
+                setGame({ ...newState, phase: "game-over" });
+                setRevealPhase("revealed");
+                setShowResultModal(true);
+                if (newState.winner === "player") {
+                  setMessage(`You win by ${newState.winMethod}!`);
+                } else if (newState.winner === "opponent") {
+                  setMessage(`Opponent wins by ${newState.winMethod}!`);
+                } else {
+                  setMessage("It's a tie!");
+                }
+              }
+            }, 800);
+          }, 300);
+        }
+      }, index * 1200);
+    });
+  }, [game]);
+
   // Handle matchmaking status changes
   useEffect(() => {
-    if (matchmakingStatus === 'matched' && match) {
-      setGamePhase("loading");
-      
+    if (matchmakingStatus === 'matched' && match && gamePhase === "searching") {
       // Fetch opponent profile
       const opponentId = isPlayer1 ? match.player2_id : match.player1_id;
       supabase
@@ -100,27 +237,34 @@ const PlayPVP = () => {
         round2FlipIndex: 0,
       };
 
-      // Wait for loading screen then start
+      setLoadingGameState(initialGame);
+      setGamePhase("loading");
+
+      // Show loading screen for 3 seconds, then start
       setTimeout(() => {
         setGame(initialGame);
         setMessage("Round 1: Place 4 cards");
         setTimeLeft(60);
         setRevealPhase("placing");
+        setRevealedSlots([]);
+        setPermanentRevealedSlots([]);
         setGamePhase("playing");
       }, 3000);
     }
-  }, [matchmakingStatus, match, isPlayer1]);
+  }, [matchmakingStatus, match, isPlayer1, gamePhase]);
 
-  // Sync game state with match
+  // Listen for opponent ready and board updates
   useEffect(() => {
     if (!match || !game || gamePhase !== "playing") return;
 
-    // Listen for opponent moves via game_state updates
-    const gameStateFromMatch = match.game_state as Record<string, unknown>;
+    const opponentReady = isPlayer1 ? match.player2_ready : match.player1_ready;
+    const myReady = isPlayer1 ? match.player1_ready : match.player2_ready;
     
-    if (gameStateFromMatch && Object.keys(gameStateFromMatch).length > 0) {
-      // Update opponent's board from match state
-      const opponentBoard = gameStateFromMatch[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
+    // When both players ready, start reveal
+    if (opponentReady && myReady && waitingForOpponent && revealPhase === "placing") {
+      // Get opponent's board from game_state
+      const gameStateData = match.game_state as Record<string, unknown>;
+      const opponentBoard = gameStateData?.[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
       
       if (opponentBoard) {
         setGame(prev => {
@@ -133,11 +277,66 @@ const PlayPVP = () => {
             }
           };
         });
+
+        // Start reveal with updated game state
+        const isRound1 = game.phase === "round1-place";
+        const updatedGame = {
+          ...game,
+          opponent: {
+            ...game.opponent,
+            board: opponentBoard,
+          }
+        };
+        
+        setMessage("Revealing cards...");
+        setWaitingForOpponent(false);
+        
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          performReveal(updatedGame, isRound1);
+        }, 100);
       }
     }
-  }, [match?.game_state, isPlayer1, gamePhase]);
+  }, [match, game, isPlayer1, waitingForOpponent, revealPhase, performReveal, gamePhase]);
 
   const decks = getDecksWithSlots();
+
+  // Deck selection timer
+  useEffect(() => {
+    if (gamePhase !== "deck-select") return;
+    
+    const timer = setInterval(() => {
+      setDeckSelectTimer((prev) => {
+        if (prev <= 1) {
+          const validDecks = decks.filter((d) => d.filled >= 12);
+          if (validDecks.length > 0) {
+            const randomDeck = validDecks[Math.floor(Math.random() * validDecks.length)];
+            handleDeckSelect(randomDeck.cardIds);
+          }
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gamePhase, decks]);
+
+  // Game timer
+  useEffect(() => {
+    if (!game || game.phase === "game-over" || revealPhase !== "placing" || gamePhase !== "playing") return;
+    
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [game?.phase, revealPhase, gamePhase]);
 
   const handleDeckSelect = useCallback(async (deckCardIds: number[]) => {
     if (deckCardIds.length < 12) {
@@ -187,22 +386,33 @@ const PlayPVP = () => {
 
     const newHand = game.player.hand.filter(c => c.id !== selectedHandCard.id);
 
-    const newGame = {
+    setGame({
       ...game,
-      player: {
-        ...game.player,
-        hand: newHand,
-        board: newBoard,
-      },
-    };
-
-    setGame(newGame);
+      player: { ...game.player, board: newBoard, hand: newHand },
+    });
     setSelectedHandCard(null);
+  };
 
-    // Sync to match - cast for Supabase types
+  const confirmPlacement = async () => {
+    if (!game || !matchId || revealPhase !== "placing") return;
+
+    const isRound1 = game.phase === "round1-place";
+    const placedCount = game.player.board.filter((s, i) => {
+      if (isRound1) return i < 4 && s !== null;
+      return i >= 4 && s !== null;
+    }).length;
+
+    const requiredCount = isRound1 ? 4 : 3;
+
+    if (placedCount < requiredCount) {
+      setMessage(`Place ${requiredCount} cards!`);
+      return;
+    }
+
+    // Sync board to match
     const gameStateUpdate = {
       ...(match?.game_state as Record<string, unknown> || {}),
-      [isPlayer1 ? 'player1_board' : 'player2_board']: newBoard,
+      [isPlayer1 ? 'player1_board' : 'player2_board']: game.player.board,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,25 +420,11 @@ const PlayPVP = () => {
       .from('matches')
       .update({ game_state: gameStateUpdate as any })
       .eq('id', matchId);
-  };
-
-  const confirmPlacement = async () => {
-    if (!game || !matchId) return;
-
-    const isRound1 = game.phase === "round1-place";
-    const requiredCards = isRound1 ? 4 : 3;
-    const slotRange = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
-
-    const placedCount = slotRange.filter(i => game.player.board[i] !== null).length;
-
-    if (placedCount < requiredCards) {
-      setMessage(`Place ${requiredCards - placedCount} more card${requiredCards - placedCount > 1 ? "s" : ""}!`);
-      return;
-    }
 
     // Mark ready
     await setReady();
     setMessage("Waiting for opponent...");
+    setWaitingForOpponent(true);
   };
 
   const resetGame = useCallback(async () => {
@@ -243,6 +439,9 @@ const PlayPVP = () => {
     setShowResultModal(false);
     setDeckSelectTimer(60);
     setTimeLeft(60);
+    setWaitingForOpponent(false);
+    setOpponentProfile(null);
+    setLoadingGameState(null);
   }, [leaveQueue]);
 
   if (authLoading || decksLoading) {
@@ -255,14 +454,6 @@ const PlayPVP = () => {
 
   // Deck Selection
   if (gamePhase === "deck-select") {
-    const handleRandomDeck = () => {
-      const validDecks = decks.filter(d => d.filled >= 12);
-      if (validDecks.length > 0) {
-        const randomDeck = validDecks[Math.floor(Math.random() * validDecks.length)];
-        handleDeckSelect(randomDeck.cardIds);
-      }
-    };
-
     return (
       <ClassicDeckSelect
         decks={decks}
@@ -302,21 +493,18 @@ const PlayPVP = () => {
   }
 
   // Loading screen
-  if (gamePhase === "loading" && match) {
-    const myDeck = isPlayer1 ? match.player1_deck : match.player2_deck;
-    const opponentDeck = isPlayer1 ? match.player2_deck : match.player1_deck;
-    
-    const playerState = createPlayerState(myDeck);
-    const opponentState = createPlayerState(opponentDeck);
+  if (gamePhase === "loading" && loadingGameState) {
+    const playerBottomCard = loadingGameState.player.bottomCard;
+    const opponentBottomCard = loadingGameState.opponent.bottomCard;
 
-    if (!playerState.bottomCard || !opponentState.bottomCard) return null;
+    if (!playerBottomCard || !opponentBottomCard) return null;
 
     return (
       <ClassicLoadingScreen
-        playerCard={playerState.bottomCard}
-        opponentCard={opponentState.bottomCard}
+        playerCard={playerBottomCard}
+        opponentCard={opponentBottomCard}
         playerName={profile?.username || "Player"}
-        mainColors={getMainColors(playerState, opponentState)}
+        mainColors={loadingGameState.mainColors}
         status={`vs ${opponentProfile?.username || 'Opponent'}`}
       />
     );
