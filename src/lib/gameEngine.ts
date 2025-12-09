@@ -265,6 +265,16 @@ function matchesSingleTarget(card: GameCard, target: string): boolean {
   // If after cleaning the target is empty, it doesn't match anything specific
   if (!lowerTarget) return false;
   
+  // Handle compound types like "Male Villains", "Female Heroes"
+  // Check if target contains multiple type words that should all match
+  const compoundTypeMatch = lowerTarget.match(/^(male|female)\s+(hero|villain|animal|monster|prop|vehicle|criminal)s?$/i);
+  if (compoundTypeMatch) {
+    const gender = compoundTypeMatch[1].toUpperCase();
+    const type = compoundTypeMatch[2].toUpperCase();
+    // Card must have both types
+    return card.types.includes(gender) && card.types.includes(type);
+  }
+  
   // Check character name
   if (card.character.toLowerCase().includes(lowerTarget)) return true;
   
@@ -549,9 +559,31 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "+X for each other [type] in play" - excludes self
+      match = effect.match(/\+(\d+)\s+for\s+each\s+other\s+(.+?)(?:\s+in\s+play)?$/);
+      if (match && !effect.includes("neighboring")) {
+        const bonus = parseInt(match[1]);
+        const target = match[2];
+        const count = allActiveCards.filter(c => c.card.id !== slot.card.id && (matchesTarget(c.card, target) || hasColor(c.card, target))).length;
+        slot.modifiedPoints += bonus * count;
+        continue;
+      }
+      
+      // "+X if any other [type] is in play" - excludes self
+      match = effect.match(/\+(\d+)\s+if\s+(?:any\s+)?other\s+(.+?)\s+is\s+in\s+play/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const target = match[2];
+        const hasOther = allActiveCards.some(c => c.card.id !== slot.card.id && matchesTarget(c.card, target));
+        if (hasOther) {
+          slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
       // "+X for each [type] in play" or "+X for each [target]"
       match = effect.match(/\+(\d+)\s+for\s+each\s+(?:opponent\s+)?(.+?)(?:\s+in\s+play)?$/);
-      if (match && !effect.includes("neighboring")) {
+      if (match && !effect.includes("neighboring") && !effect.includes("other")) {
         const bonus = parseInt(match[1]);
         const target = match[2];
         const isOpponentOnly = effect.includes("opponent");
@@ -948,8 +980,8 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
-      // "-X to opposing card if not a [type]"
-      match = effect.match(/-(\d+)\s+to\s+oppos(?:ing|ite)\s+card\s+if\s+not\s+(?:a|an)\s+(.+)/);
+      // "-X to opposing card if not a [type]" (also handles typo "it not a")
+      match = effect.match(/-(\d+)\s+to\s+oppos(?:ing|ite)\s+card\s+(?:if|it)\s+not\s+(?:a|an)\s+(.+)/);
       if (match) {
         const penalty = parseInt(match[1]);
         const exemptType = match[2];
