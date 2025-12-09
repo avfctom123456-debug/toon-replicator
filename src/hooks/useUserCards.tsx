@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-interface UserCard {
+export interface UserCard {
   id: string;
   card_id: number;
   quantity: number;
