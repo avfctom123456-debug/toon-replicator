@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { starterDecks } from "@/lib/starterDecks";
 
 interface Deck {
   id: string;
@@ -17,6 +18,35 @@ export const useDecks = () => {
   const { user } = useAuth();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+
+  const createStarterDecks = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Create all 4 starter decks
+      const deckInserts = starterDecks.map(deck => ({
+        user_id: user.id,
+        slot: deck.slot,
+        card_ids: deck.cardIds,
+      }));
+
+      const { error } = await supabase
+        .from("decks")
+        .insert(deckInserts);
+
+      if (error) {
+        // Ignore unique constraint errors (decks already exist)
+        if (!error.message.includes("duplicate")) {
+          throw error;
+        }
+      } else {
+        toast.success("Starter decks created!");
+      }
+    } catch (error) {
+      console.error("Error creating starter decks:", error);
+    }
+  }, [user]);
 
   const fetchDecks = useCallback(async () => {
     if (!user) {
@@ -33,14 +63,30 @@ export const useDecks = () => {
         .order("slot");
 
       if (error) throw error;
-      setDecks(data || []);
+
+      // If user has no decks, create starter decks
+      if (!data || data.length === 0) {
+        if (!initialized) {
+          setInitialized(true);
+          await createStarterDecks();
+          // Refetch after creating
+          const { data: newData } = await supabase
+            .from("decks")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("slot");
+          setDecks(newData || []);
+        }
+      } else {
+        setDecks(data);
+      }
     } catch (error) {
       console.error("Error fetching decks:", error);
       toast.error("Failed to load decks");
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, initialized, createStarterDecks]);
 
   useEffect(() => {
     fetchDecks();
@@ -87,8 +133,10 @@ export const useDecks = () => {
   const getDecksWithSlots = () => {
     return DECK_SLOTS.map((slot) => {
       const deck = getDeckBySlot(slot);
+      const starterDeck = starterDecks.find(d => d.slot === slot);
       return {
         slot,
+        name: starterDeck?.name || `Deck ${slot}`,
         cardIds: deck?.card_ids || [],
         filled: deck?.card_ids?.length || 0,
       };
