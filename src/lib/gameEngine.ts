@@ -241,7 +241,13 @@ function getOppositeIndex(position: number): number {
 }
 
 function matchesTarget(card: GameCard, target: string): boolean {
-  const lowerTarget = target.toLowerCase().trim();
+  let lowerTarget = target.toLowerCase().trim();
+  
+  // Remove "gtoon", "gtoons", "toon", "toons" suffixes as they're generic terms for any card
+  lowerTarget = lowerTarget.replace(/\s*(gtoons?|toons?)\s*$/i, '').trim();
+  
+  // If after removing gtoon/toon the target is empty, it doesn't match anything specific
+  if (!lowerTarget) return false;
   
   // Check character name
   if (card.character.toLowerCase().includes(lowerTarget)) return true;
@@ -250,7 +256,7 @@ function matchesTarget(card: GameCard, target: string): boolean {
   if (card.title.toLowerCase().includes(lowerTarget)) return true;
   
   // Check types (uppercase in data)
-  const upperTarget = target.toUpperCase().trim();
+  const upperTarget = lowerTarget.toUpperCase().trim();
   if (card.types.includes(upperTarget)) return true;
   if (card.types.some(t => t.toLowerCase() === lowerTarget)) return true;
   
@@ -302,15 +308,21 @@ function matchesTarget(card: GameCard, target: string): boolean {
     "powerpuff": "POWERPUFF GIRLS",
     "clone wars": "CLONE WARS",
     "dragon ball": "DRAGON BALL Z",
+    "dragon ball z": "DRAGON BALL Z",
     "dbz": "DRAGON BALL Z",
     "kung fu panda": "KUNG FU PANDA",
+    "kung fu": "KUNG FU PANDA",
     "despicable me": "DESPICABLE ME",
+    "despicable": "DESPICABLE ME",
     "frozen": "FROZEN",
     "avatar": "AVATAR",
     "spongebob": "SPONGEBOB",
     "shrek": "SHREK",
     "cars": "CARS",
     "phineas": "PHINEAS FERB",
+    "wreck-it ralph": "WRECK-IT RALPH",
+    "wreck it ralph": "WRECK-IT RALPH",
+    "zootopia": "ZOOTOPIA",
   };
   
   for (const [key, group] of Object.entries(groupMap)) {
