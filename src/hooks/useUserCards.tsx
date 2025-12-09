@@ -60,6 +60,20 @@ export function useUserCards() {
     [userCards]
   );
 
+  const getCardCopyNumbers = useCallback(
+    (cardId: number): number[] => {
+      const card = userCards.find((uc) => uc.card_id === cardId);
+      if (!card || !card.copy_number) return [];
+      // For quantity > 1, we have sequential copy numbers starting from the stored one
+      const copies: number[] = [];
+      for (let i = 0; i < card.quantity; i++) {
+        copies.push(card.copy_number + i);
+      }
+      return copies;
+    },
+    [userCards]
+  );
+
   const addCard = useCallback(
     async (cardId: number, quantity: number = 1): Promise<boolean> => {
       if (!user) return false;
@@ -151,6 +165,7 @@ export function useUserCards() {
     getOwnedCardIds,
     hasCard,
     getCardQuantity,
+    getCardCopyNumbers,
     addCard,
     removeCard,
     addMultipleCards,
