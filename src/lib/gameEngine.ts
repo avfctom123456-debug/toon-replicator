@@ -220,12 +220,20 @@ export function checkCancellations(state: GameState): GameState {
   return newState;
 }
 
-// Helper functions for power parsing
+// Board layout:
+// [0] [1] [2] [3]   <- Round 1
+//   [4] [5] [6]     <- Round 2 (offset/centered below)
 function getNeighborIndices(position: number): number[] {
-  const neighbors: number[] = [];
-  if (position > 0) neighbors.push(position - 1);
-  if (position < 6) neighbors.push(position + 1);
-  return neighbors;
+  const neighborMap: Record<number, number[]> = {
+    0: [1, 4],           // right, diagonal down-right
+    1: [0, 2, 4, 5],     // left, right, diagonal down-left, diagonal down-right
+    2: [1, 3, 5, 6],     // left, right, diagonal down-left, diagonal down-right
+    3: [2, 6],           // left, diagonal down-left
+    4: [5, 0, 1],        // right, diagonal up-left, diagonal up-right
+    5: [4, 6, 1, 2],     // left, right, diagonal up-left, diagonal up-right
+    6: [5, 2, 3],        // left, diagonal up-left, diagonal up-right
+  };
+  return neighborMap[position] || [];
 }
 
 function getOppositeIndex(position: number): number {
