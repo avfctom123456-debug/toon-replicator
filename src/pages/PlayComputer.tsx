@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
+import cardsData from "@/data/cards.json";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
+import { useProfile } from "@/hooks/useProfile";
 import { GameBoard } from "@/components/game/GameBoard";
 import { PlayerSidebar } from "@/components/game/PlayerSidebar";
 import { CardHand } from "@/components/game/CardHand";
 import { SelectedCardPreview } from "@/components/game/SelectedCardPreview";
 import { MobileGameHeader } from "@/components/game/MobileGameHeader";
 import { CardInfoModal } from "@/components/game/CardInfoModal";
+import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
+import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
 import {
   GameState,
   PlacedCard,
@@ -24,17 +27,21 @@ import {
 } from "@/lib/gameEngine";
 
 type RevealPhase = "placing" | "revealing" | "revealed";
+type GamePhase = "deck-select" | "loading" | "playing";
 
 const PlayComputer = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { getDecksWithSlots, loading: decksLoading } = useDecks();
+  const { profile } = useProfile();
   
+  const [gamePhase, setGamePhase] = useState<GamePhase>("deck-select");
   const [selectedDeck, setSelectedDeck] = useState<number[] | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const [selectedHandCard, setSelectedHandCard] = useState<GameCard | null>(null);
   const [message, setMessage] = useState("");
   const [timeLeft, setTimeLeft] = useState(60);
+  const [deckSelectTimer, setDeckSelectTimer] = useState(60);
   const [revealPhase, setRevealPhase] = useState<RevealPhase>("placing");
   const [revealedSlots, setRevealedSlots] = useState<number[]>([]);
   const [permanentRevealedSlots, setPermanentRevealedSlots] = useState<number[]>([]);
@@ -108,9 +115,33 @@ const PlayComputer = () => {
     });
   }, []);
 
-  // Timer effect
+  const decks = getDecksWithSlots();
+
+  // Deck selection timer
   useEffect(() => {
-    if (!game || game.phase === "game-over" || revealPhase !== "placing") return;
+    if (gamePhase !== "deck-select") return;
+    
+    const timer = setInterval(() => {
+      setDeckSelectTimer((prev) => {
+        if (prev <= 1) {
+          // Auto-select a random valid deck when time runs out
+          const validDecks = decks.filter((d) => d.filled >= 12);
+          if (validDecks.length > 0) {
+            const randomDeck = validDecks[Math.floor(Math.random() * validDecks.length)];
+            handleDeckSelect(randomDeck.cardIds);
+          }
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gamePhase, decks]);
+
+  // Game timer effect
+  useEffect(() => {
+    if (!game || game.phase === "game-over" || revealPhase !== "placing" || gamePhase !== "playing") return;
     
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -122,25 +153,30 @@ const PlayComputer = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [game?.phase, revealPhase]);
+  }, [game?.phase, revealPhase, gamePhase]);
 
-  const decks = getDecksWithSlots();
-
-  const startGame = (deckCardIds: number[]) => {
+  const handleDeckSelect = useCallback((deckCardIds: number[]) => {
     if (deckCardIds.length < 12) {
       setMessage("Deck must have 12 cards!");
       return;
     }
-    const initialState = initializeGame(deckCardIds);
-    const withAI = aiPlaceCards(initialState, 4, 0);
-    setGame(withAI);
+    
     setSelectedDeck(deckCardIds);
-    setMessage("Round 1: Place 4 cards");
-    setTimeLeft(60);
-    setRevealPhase("placing");
-    setRevealedSlots([]);
-    setPermanentRevealedSlots([]);
-  };
+    setGamePhase("loading");
+    
+    // Show loading screen for 3 seconds, then start the game
+    setTimeout(() => {
+      const initialState = initializeGame(deckCardIds);
+      const withAI = aiPlaceCards(initialState, 4, 0);
+      setGame(withAI);
+      setMessage("Round 1: Place 4 cards");
+      setTimeLeft(60);
+      setRevealPhase("placing");
+      setRevealedSlots([]);
+      setPermanentRevealedSlots([]);
+      setGamePhase("playing");
+    }, 3000);
+  }, []);
 
   const placeCard = (slotIndex: number) => {
     if (!game || !selectedHandCard) return;
@@ -200,11 +236,13 @@ const PlayComputer = () => {
   };
 
   const resetGame = () => {
+    setGamePhase("deck-select");
     setGame(null);
     setSelectedDeck(null);
     setSelectedHandCard(null);
     setMessage("");
     setTimeLeft(60);
+    setDeckSelectTimer(60);
     setRevealPhase("placing");
     setRevealedSlots([]);
     setPermanentRevealedSlots([]);
@@ -222,41 +260,62 @@ const PlayComputer = () => {
 
   if (!user) return null;
 
-  // Deck selection screen
-  if (!game) {
+  // Classic Deck Selection Screen
+  if (gamePhase === "deck-select") {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center px-4 py-6">
-        <div className="mb-4">
-          <img src={gtoonsLogo} alt="gTOONS" className="w-40 h-auto" />
-        </div>
-        
-        <h1 className="text-xl font-bold text-foreground mb-4">Select a Deck</h1>
-        
-        {message && (
-          <p className="text-destructive mb-4">{message}</p>
-        )}
-        
-        <div className="flex flex-col gap-3 w-full max-w-md">
-          {decks.map((deck) => (
-            <Button
-              key={deck.slot}
-              variant="menu"
-              onClick={() => startGame(deck.cardIds)}
-              disabled={deck.filled < 12}
-            >
-              {deck.name} ({deck.filled}/12 cards)
-            </Button>
-          ))}
-        </div>
-        
-        <Button variant="ghost" className="mt-6" onClick={() => navigate("/home")}>
-          Back to Home
-        </Button>
-        
-        <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">v0.0.41</div>
-      </div>
+      <ClassicDeckSelect
+        decks={decks}
+        timeLeft={deckSelectTimer}
+        onSelectDeck={handleDeckSelect}
+        message={message}
+      />
     );
   }
+
+  // Loading Screen with cut cards reveal
+  if (gamePhase === "loading" && selectedDeck) {
+    // Get first card from player's deck and a random opponent card for display
+    const playerCardData = cardsData.find((c: { id: number }) => c.id === selectedDeck[0]);
+    const opponentCardData = cardsData.find((c: { id: number }) => c.id === selectedDeck[1]);
+    
+    const playerDisplayCard: GameCard = {
+      id: playerCardData?.id || 1,
+      title: playerCardData?.title || "Card",
+      character: playerCardData?.character || "Card",
+      basePoints: playerCardData?.basePoints || 5,
+      points: playerCardData?.basePoints || 5,
+      colors: playerCardData?.colors || ["BLUE"],
+      description: playerCardData?.description || "",
+      rarity: playerCardData?.rarity || "COMMON",
+      groups: playerCardData?.groups || [],
+      types: playerCardData?.types || [],
+    };
+    
+    const opponentDisplayCard: GameCard = {
+      id: opponentCardData?.id || 2,
+      title: opponentCardData?.title || "Card",
+      character: opponentCardData?.character || "Card",
+      basePoints: opponentCardData?.basePoints || 5,
+      points: opponentCardData?.basePoints || 5,
+      colors: opponentCardData?.colors || ["RED"],
+      description: opponentCardData?.description || "",
+      rarity: opponentCardData?.rarity || "COMMON",
+      groups: opponentCardData?.groups || [],
+      types: opponentCardData?.types || [],
+    };
+
+    return (
+      <ClassicLoadingScreen
+        playerCard={playerDisplayCard}
+        opponentCard={opponentDisplayCard}
+        playerName={profile?.username || "Player"}
+        mainColors={["BLUE", "RED"]}
+        status="Selecting Cut Cards"
+      />
+    );
+  }
+
+  if (!game) return null;
 
   const isRound1 = game.phase === "round1-place";
   const requiredCards = isRound1 ? 4 : 3;
