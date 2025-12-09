@@ -44,7 +44,7 @@ const allRarities = [...new Set(allCards.map(c => c.rarity))].sort();
 
 export default function CardCollection() {
   const { user, loading: authLoading } = useAuth();
-  const { getCardQuantity, loading: cardsLoading } = useUserCards();
+  const { getCardQuantity, getCardCopyNumbers, loading: cardsLoading } = useUserCards();
   const { profile, loading: profileLoading } = useProfile();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -249,6 +249,15 @@ export default function CardCollection() {
             const owned = isCardOwned(card.id);
             const quantity = getCardTotalQuantity(card.id);
             const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
+            const copyNumbers = getCardCopyNumbers(card.id);
+            const lowestCopy = copyNumbers.length > 0 ? Math.min(...copyNumbers) : null;
+
+            // Determine rarity styling based on lowest copy number
+            const getCopyRarityStyle = (num: number) => {
+              if (num <= 10) return "bg-yellow-500 text-yellow-950";
+              if (num <= 50) return "bg-gray-300 text-gray-800";
+              return "bg-accent text-accent-foreground";
+            };
 
             return (
               <div
@@ -260,6 +269,13 @@ export default function CardCollection() {
               >
                 <CollectionCardImage card={card} bgColor={bgColor} />
                 
+                {/* Copy number badge (shows lowest owned) */}
+                {owned && lowestCopy && (
+                  <div className={`absolute top-2 left-2 ${getCopyRarityStyle(lowestCopy)} text-xs font-bold px-1.5 py-0.5 rounded`}>
+                    #{lowestCopy}
+                  </div>
+                )}
+
                 {/* Quantity badge */}
                 {owned && quantity > 1 && (
                   <div className="absolute top-2 right-2 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-full">
@@ -279,6 +295,12 @@ export default function CardCollection() {
                       />
                     ))}
                   </div>
+                  {/* Show all copy numbers if multiple */}
+                  {copyNumbers.length > 1 && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Copies: {copyNumbers.map(n => `#${n}`).join(", ")}
+                    </p>
+                  )}
                 </div>
               </div>
             );
