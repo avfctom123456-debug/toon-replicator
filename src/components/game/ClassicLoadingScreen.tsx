@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameCard } from "@/lib/gameEngine";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
@@ -143,46 +143,74 @@ export const ClassicLoadingScreen = ({
   mainColors,
   status,
 }: ClassicLoadingScreenProps) => {
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (window.innerWidth < 1024) {
+        setScale(window.innerWidth / 1024);
+      } else {
+        setScale(1);
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   const color1 = mainColors[0] || "BLUE";
   const color2 = mainColors[1] || "RED";
 
   return (
-    <div className="min-h-screen bg-[hsl(212,69%,16%)] flex flex-col items-center justify-center p-4" style={{ minWidth: "1024px" }}>
-      <div className="flex items-center justify-center gap-8 flex-wrap">
-        {/* Player Card */}
-        <ClassicCardDisplay card={playerCard} playerName={playerName} />
+    <div 
+      className="min-h-screen bg-[hsl(212,69%,16%)] overflow-hidden"
+      style={{ height: scale < 1 ? `${100 / scale}vh` : 'auto' }}
+    >
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center p-4"
+        style={{ 
+          width: "1024px",
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        <div className="flex items-center justify-center gap-8 flex-wrap">
+          {/* Player Card */}
+          <ClassicCardDisplay card={playerCard} playerName={playerName} />
 
-        {/* Center Info Box */}
-        <div className="bg-gradient-to-b from-[hsl(200,30%,75%)] to-[hsl(200,35%,60%)] rounded-xl p-1 shadow-xl">
-          <div className="bg-gradient-to-b from-[hsl(200,40%,80%)] to-[hsl(200,35%,70%)] rounded-lg p-6 w-64">
-            <h2 className="text-[hsl(200,70%,50%)] font-bold text-center text-lg mb-4">
-              TWO COLORS REVEALED
-            </h2>
-            <p className="text-[hsl(212,50%,30%)] text-center text-sm mb-3">
-              IF A PLAYER HAS MORE CARDS OF BOTH COLORS, HE OR SHE WINS AUTOMATICALLY.
-            </p>
-            <p className="text-[hsl(212,50%,30%)] text-center text-sm">
-              IF NEITHER PLAYER HAS MORE OF BOTH COLORS, THE GAME WILL BE DECIDED BY POINTS.
-            </p>
+          {/* Center Info Box */}
+          <div className="bg-gradient-to-b from-[hsl(200,30%,75%)] to-[hsl(200,35%,60%)] rounded-xl p-1 shadow-xl">
+            <div className="bg-gradient-to-b from-[hsl(200,40%,80%)] to-[hsl(200,35%,70%)] rounded-lg p-6 w-64">
+              <h2 className="text-[hsl(200,70%,50%)] font-bold text-center text-lg mb-4">
+                TWO COLORS REVEALED
+              </h2>
+              <p className="text-[hsl(212,50%,30%)] text-center text-sm mb-3">
+                IF A PLAYER HAS MORE CARDS OF BOTH COLORS, HE OR SHE WINS AUTOMATICALLY.
+              </p>
+              <p className="text-[hsl(212,50%,30%)] text-center text-sm">
+                IF NEITHER PLAYER HAS MORE OF BOTH COLORS, THE GAME WILL BE DECIDED BY POINTS.
+              </p>
 
-            {/* Color Indicators */}
-            <div className="flex justify-center gap-4 mt-4">
-              <div className={`w-8 h-8 rounded-full ${colorBg[color1]} border-2 border-white shadow-md`} />
-              <div className={`w-8 h-8 rounded-full ${colorBg[color2]} border-2 border-white shadow-md`} />
+              {/* Color Indicators */}
+              <div className="flex justify-center gap-4 mt-4">
+                <div className={`w-8 h-8 rounded-full ${colorBg[color1]} border-2 border-white shadow-md`} />
+                <div className={`w-8 h-8 rounded-full ${colorBg[color2]} border-2 border-white shadow-md`} />
+              </div>
             </div>
           </div>
+
+          {/* Opponent Card */}
+          <ClassicCardDisplay card={opponentCard} playerName="Computer" isOpponent />
         </div>
 
-        {/* Opponent Card */}
-        <ClassicCardDisplay card={opponentCard} playerName="Computer" isOpponent />
-      </div>
-
-      {/* Status Button */}
-      <div className="mt-8">
-        <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,30%,75%)] rounded-full px-8 py-3 shadow-lg border-2 border-[hsl(200,40%,90%)]">
-          <span className="text-[hsl(212,69%,25%)] font-bold text-lg tracking-wide">
-            {status}
-          </span>
+        {/* Status Button */}
+        <div className="mt-8">
+          <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,30%,75%)] rounded-full px-8 py-3 shadow-lg border-2 border-[hsl(200,40%,90%)]">
+            <span className="text-[hsl(212,69%,25%)] font-bold text-lg tracking-wide">
+              {status}
+            </span>
+          </div>
         </div>
       </div>
     </div>
