@@ -1,4 +1,7 @@
 import { Button } from "@/components/ui/button";
+import { Check, Clock } from "lucide-react";
+
+type OpponentStatus = "placing" | "ready" | null;
 
 interface ClassicPlayerSidebarProps {
   computerName: string;
@@ -9,6 +12,7 @@ interface ClassicPlayerSidebarProps {
   playerColorCounts: Record<string, number>;
   mainColors: string[];
   onQuit?: () => void;
+  opponentStatus?: OpponentStatus;
 }
 
 const colorDotClasses: Record<string, string> = {
@@ -42,9 +46,10 @@ interface PlayerSectionProps {
   mainColors: string[];
   deckCount: number;
   isComputer?: boolean;
+  status?: OpponentStatus;
 }
 
-const PlayerSection = ({ name, points, colorCounts, mainColors, deckCount, isComputer }: PlayerSectionProps) => (
+const PlayerSection = ({ name, points, colorCounts, mainColors, deckCount, isComputer, status }: PlayerSectionProps) => (
   <div className="px-2 py-2">
     {/* Player Header */}
     <div className="flex items-center gap-2 mb-2">
@@ -55,7 +60,26 @@ const PlayerSection = ({ name, points, colorCounts, mainColors, deckCount, isCom
           <span className="text-white text-xs font-bold">👑</span>
         )}
       </div>
-      <span className="text-[hsl(200,30%,70%)] text-sm italic">{name}</span>
+      <span className="text-[hsl(200,30%,70%)] text-sm italic flex-1">{name}</span>
+      {status && (
+        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+          status === 'ready' 
+            ? 'bg-green-500/20 text-green-300' 
+            : 'bg-yellow-500/20 text-yellow-300'
+        }`}>
+          {status === 'ready' ? (
+            <>
+              <Check className="w-3 h-3" />
+              <span>Ready</span>
+            </>
+          ) : (
+            <>
+              <Clock className="w-3 h-3 animate-pulse" />
+              <span>Placing</span>
+            </>
+          )}
+        </div>
+      )}
     </div>
 
     {/* Deck Slot Indicator */}
@@ -107,10 +131,11 @@ export const ClassicPlayerSidebar = ({
   playerColorCounts,
   mainColors,
   onQuit,
+  opponentStatus,
 }: ClassicPlayerSidebarProps) => {
   return (
     <div className="w-44 bg-[hsl(200,60%,40%)] flex flex-col border-r border-[hsl(200,50%,35%)]">
-      {/* Computer Section */}
+      {/* Computer/Opponent Section */}
       <PlayerSection
         name={computerName}
         points={computerPoints}
@@ -118,6 +143,7 @@ export const ClassicPlayerSidebar = ({
         mainColors={mainColors}
         deckCount={6}
         isComputer
+        status={opponentStatus}
       />
 
       {/* VS Divider */}

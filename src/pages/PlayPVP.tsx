@@ -512,6 +512,13 @@ const PlayPVP = () => {
 
   if (!game) return null;
 
+  // Determine opponent status for UI
+  const getOpponentStatus = (): "placing" | "ready" | null => {
+    if (!match || revealPhase !== "placing") return null;
+    const opponentReady = isPlayer1 ? match.player2_ready : match.player1_ready;
+    return opponentReady ? "ready" : "placing";
+  };
+
   return (
     <>
       <ClassicGameScreen
@@ -531,6 +538,8 @@ const PlayPVP = () => {
         playerName={profile?.username || "Player"}
         showResultModal={showResultModal}
         onCloseResultModal={() => setShowResultModal(false)}
+        opponentName={opponentProfile?.username || "Opponent"}
+        opponentStatus={getOpponentStatus()}
       />
 
       <CardInfoModal placedCard={viewingCard} onClose={() => setViewingCard(null)} />

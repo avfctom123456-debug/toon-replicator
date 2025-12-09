@@ -8,6 +8,8 @@ import { ClassicGameResultModal } from "./ClassicGameResultModal";
 
 type RevealPhase = "placing" | "revealing" | "revealed";
 
+type OpponentStatus = "placing" | "ready" | null;
+
 interface ClassicGameScreenProps {
   game: GameState;
   selectedHandCard: GameCard | null;
@@ -25,6 +27,8 @@ interface ClassicGameScreenProps {
   playerName: string;
   showResultModal?: boolean;
   onCloseResultModal?: () => void;
+  opponentName?: string;
+  opponentStatus?: OpponentStatus;
 }
 
 export const ClassicGameScreen = ({
@@ -44,6 +48,8 @@ export const ClassicGameScreen = ({
   playerName,
   showResultModal = false,
   onCloseResultModal,
+  opponentName = "Computer",
+  opponentStatus,
 }: ClassicGameScreenProps) => {
   const [scale, setScale] = useState(1);
 
@@ -151,7 +157,7 @@ export const ClassicGameScreen = ({
           >
             {/* Left Sidebar - Player Stats */}
             <ClassicPlayerSidebar
-              computerName="Computer"
+              computerName={opponentName}
               computerPoints={game.opponent.totalPoints}
               computerColorCounts={game.opponent.colorCounts}
               playerName={playerName}
@@ -159,6 +165,7 @@ export const ClassicGameScreen = ({
               playerColorCounts={game.player.colorCounts}
               mainColors={game.mainColors}
               onQuit={onQuit}
+              opponentStatus={opponentStatus}
             />
 
             {/* Center - Game Board */}
