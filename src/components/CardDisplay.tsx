@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal";
+const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
 const colorMap: Record<string, string> = {
   SILVER: "from-gray-300 to-gray-500",
@@ -50,7 +50,7 @@ interface CardDisplayProps {
 
 export const CardDisplay = ({ card, size = "medium", selected = false, onClick }: CardDisplayProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.png`;
+  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const gradient = colorMap[card.colors?.[0]] || "from-gray-400 to-gray-600";
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
   
@@ -100,7 +100,7 @@ interface CardListItemProps {
 
 export const CardListItem = ({ card, selected = false, onClick }: CardListItemProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.png`;
+  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
 
   return (
@@ -154,7 +154,7 @@ interface FullCardProps {
 
 export const FullCard = ({ card, onClose }: FullCardProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.png`;
+  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const gradient = colorMap[card.colors?.[0]] || "from-gray-400 to-gray-600";
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
 
