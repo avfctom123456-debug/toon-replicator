@@ -67,25 +67,40 @@ export const ClassicGameScreen = ({
     return i >= 4 && s !== null;
   }).length;
 
+  // During reveal phase, cards flip face-down first, then reveal one by one
   // Player slots: positive, Opponent slots: negative (-(slot+1))
-  const isSlotRevealed = (slotIndex: number, isOpponent: boolean) => {
-    if (isOpponent) {
-      // Check if opponent slot is revealed using negative encoding
-      return permanentRevealedSlots.includes(slotIndex) || 
-             revealedSlots.includes(-(slotIndex + 1)) ||
-             isGameOver;
+  const isSlotHidden = (slotIndex: number, isOpponent: boolean) => {
+    const isCurrentRound = isRound1 ? slotIndex < 4 : slotIndex >= 4;
+    
+    // Cards from previous rounds are always visible
+    if (!isCurrentRound) return false;
+    
+    // During placing phase, player cards are visible, opponent cards hidden
+    if (revealPhase === "placing") {
+      return isOpponent;
     }
-    return permanentRevealedSlots.includes(slotIndex) || 
-           revealedSlots.includes(slotIndex) ||
-           isGameOver;
+    
+    // During revealing phase, check if this specific slot has been revealed
+    if (revealPhase === "revealing") {
+      if (isOpponent) {
+        return !revealedSlots.includes(-(slotIndex + 1));
+      }
+      return !revealedSlots.includes(slotIndex);
+    }
+    
+    // After reveal, all cards visible
+    return false;
   };
 
   const isSlotRevealing = (slotIndex: number, isOpponent: boolean) => {
     if (revealPhase !== "revealing") return false;
+    const currentSlots = revealedSlots;
+    const lastRevealed = currentSlots[currentSlots.length - 1];
+    
     if (isOpponent) {
-      return revealedSlots.includes(-(slotIndex + 1));
+      return lastRevealed === -(slotIndex + 1);
     }
-    return revealedSlots.includes(slotIndex);
+    return lastRevealed === slotIndex;
   };
 
   const getStatusMessage = () => {
@@ -145,16 +160,16 @@ export const ClassicGameScreen = ({
             <div className="flex-1 flex flex-col">
               {/* Opponent Board Area */}
               <div className="flex-1 bg-[hsl(200,25%,78%)] p-4 flex flex-col justify-end">
-                {/* Round 2 row (3 slots) - Top */}
+              {/* Round 2 row (3 slots) - Top */}
                 <div className="flex justify-center gap-4 mb-3">
                   {[4, 5, 6].map((i) => (
                     <ClassicBoardSlot
                       key={`opp-${i}`}
                       slot={game.opponent.board[i]}
-                      isHidden={!isSlotRevealed(i, true)}
+                      isHidden={isSlotHidden(i, true)}
                       isRevealing={isSlotRevealing(i, true)}
                       hasEffect={effectAnimations.includes(i + 100)}
-                      onViewCard={isSlotRevealed(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
+                      onViewCard={!isSlotHidden(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
                     />
                   ))}
                 </div>
@@ -164,10 +179,10 @@ export const ClassicGameScreen = ({
                     <ClassicBoardSlot
                       key={`opp-${i}`}
                       slot={game.opponent.board[i]}
-                      isHidden={!isSlotRevealed(i, true)}
+                      isHidden={isSlotHidden(i, true)}
                       isRevealing={isSlotRevealing(i, true)}
                       hasEffect={effectAnimations.includes(i + 100)}
-                      onViewCard={isSlotRevealed(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
+                      onViewCard={!isSlotHidden(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
                     />
                   ))}
                 </div>
@@ -216,8 +231,10 @@ export const ClassicGameScreen = ({
                         isActive={isActive}
                         isClickable={isActive && selectedHandCard !== null}
                         onClick={() => onPlaceCard(i)}
+                        isHidden={isSlotHidden(i, false)}
+                        isRevealing={isSlotRevealing(i, false)}
                         hasEffect={effectAnimations.includes(i)}
-                        onViewCard={game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
+                        onViewCard={!isSlotHidden(i, false) && game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
                       />
                     );
                   })}
@@ -233,8 +250,10 @@ export const ClassicGameScreen = ({
                         isActive={isActive}
                         isClickable={isActive && selectedHandCard !== null}
                         onClick={() => onPlaceCard(i)}
+                        isHidden={isSlotHidden(i, false)}
+                        isRevealing={isSlotRevealing(i, false)}
                         hasEffect={effectAnimations.includes(i)}
-                        onViewCard={game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
+                        onViewCard={!isSlotHidden(i, false) && game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
                       />
                     );
                   })}
