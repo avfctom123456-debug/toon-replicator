@@ -159,8 +159,47 @@ export const ClassicLoadingScreen = ({
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  const color1 = mainColors[0] || "BLUE";
-  const color2 = mainColors[1] || "RED";
+  const colorCount = mainColors.length;
+  const isColorGame = colorCount >= 1;
+  const isTwoColorGame = colorCount >= 2;
+
+  const getGameModeTitle = () => {
+    if (isTwoColorGame) return "TWO COLORS REVEALED";
+    if (isColorGame) return "ONE COLOR REVEALED";
+    return "POINTS GAME";
+  };
+
+  const getGameModeDescription = () => {
+    if (isTwoColorGame) {
+      return (
+        <>
+          <p className="text-[hsl(212,50%,30%)] text-center text-sm mb-3">
+            IF A PLAYER HAS MORE CARDS OF BOTH COLORS, HE OR SHE WINS AUTOMATICALLY.
+          </p>
+          <p className="text-[hsl(212,50%,30%)] text-center text-sm">
+            IF NEITHER PLAYER HAS MORE OF BOTH COLORS, THE GAME WILL BE DECIDED BY POINTS.
+          </p>
+        </>
+      );
+    }
+    if (isColorGame) {
+      return (
+        <>
+          <p className="text-[hsl(212,50%,30%)] text-center text-sm mb-3">
+            IF A PLAYER HAS MORE CARDS OF THIS COLOR, HE OR SHE WINS AUTOMATICALLY.
+          </p>
+          <p className="text-[hsl(212,50%,30%)] text-center text-sm">
+            IF NEITHER PLAYER HAS MORE OF THIS COLOR, THE GAME WILL BE DECIDED BY POINTS.
+          </p>
+        </>
+      );
+    }
+    return (
+      <p className="text-[hsl(212,50%,30%)] text-center text-sm">
+        NO COLORS WERE REVEALED. THE GAME WILL BE DECIDED BY POINTS.
+      </p>
+    );
+  };
 
   return (
     <div 
@@ -179,24 +218,21 @@ export const ClassicLoadingScreen = ({
           {/* Player Card */}
           <ClassicCardDisplay card={playerCard} playerName={playerName} />
 
-          {/* Center Info Box */}
           <div className="bg-gradient-to-b from-[hsl(200,30%,75%)] to-[hsl(200,35%,60%)] rounded-xl p-1 shadow-xl">
             <div className="bg-gradient-to-b from-[hsl(200,40%,80%)] to-[hsl(200,35%,70%)] rounded-lg p-6 w-64">
               <h2 className="text-[hsl(200,70%,50%)] font-bold text-center text-lg mb-4">
-                TWO COLORS REVEALED
+                {getGameModeTitle()}
               </h2>
-              <p className="text-[hsl(212,50%,30%)] text-center text-sm mb-3">
-                IF A PLAYER HAS MORE CARDS OF BOTH COLORS, HE OR SHE WINS AUTOMATICALLY.
-              </p>
-              <p className="text-[hsl(212,50%,30%)] text-center text-sm">
-                IF NEITHER PLAYER HAS MORE OF BOTH COLORS, THE GAME WILL BE DECIDED BY POINTS.
-              </p>
+              {getGameModeDescription()}
 
               {/* Color Indicators */}
-              <div className="flex justify-center gap-4 mt-4">
-                <div className={`w-8 h-8 rounded-full ${colorBg[color1]} border-2 border-white shadow-md`} />
-                <div className={`w-8 h-8 rounded-full ${colorBg[color2]} border-2 border-white shadow-md`} />
-              </div>
+              {mainColors.length > 0 && (
+                <div className="flex justify-center gap-4 mt-4">
+                  {mainColors.map((color, idx) => (
+                    <div key={idx} className={`w-8 h-8 rounded-full ${colorBg[color] || "bg-gray-400"} border-2 border-white shadow-md`} />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

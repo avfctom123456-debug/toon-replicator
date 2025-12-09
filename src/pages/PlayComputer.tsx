@@ -53,15 +53,23 @@ const PlayComputer = () => {
     setRevealPhase("revealing");
     setRevealedSlots([]);
     
-    const slotsToReveal = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
+    const slotIndices = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
     
-    // Reveal cards one by one
-    slotsToReveal.forEach((slot, index) => {
+    // Create alternating reveal sequence: P1 slot 0, P2 slot 0, P1 slot 1, P2 slot 1...
+    // Use negative numbers for opponent slots to distinguish them
+    const revealSequence: number[] = [];
+    slotIndices.forEach(slot => {
+      revealSequence.push(slot);        // Player slot (positive)
+      revealSequence.push(-(slot + 1)); // Opponent slot (negative, offset by 1 to avoid -0)
+    });
+    
+    // Reveal cards one by one alternating P1/P2
+    revealSequence.forEach((slotCode, index) => {
       setTimeout(() => {
-        setRevealedSlots(prev => [...prev, slot]);
+        setRevealedSlots(prev => [...prev, slotCode]);
         
         // After all cards revealed, apply effects
-        if (index === slotsToReveal.length - 1) {
+        if (index === revealSequence.length - 1) {
           setTimeout(() => {
             let newState = checkCancellations(gameState);
             newState = applyPowers(newState);
@@ -80,8 +88,8 @@ const PlayComputer = () => {
             
             setTimeout(() => {
               setEffectAnimations([]);
-              // Mark these slots as permanently revealed
-              setPermanentRevealedSlots(prev => [...prev, ...slotsToReveal]);
+              // Mark these slots as permanently revealed (all player slots from this round)
+              setPermanentRevealedSlots(prev => [...prev, ...slotIndices]);
               
               if (isRound1) {
                 newState = refillHand(newState);
@@ -150,6 +158,8 @@ const PlayComputer = () => {
     return () => clearInterval(timer);
   }, [game?.phase, revealPhase, gamePhase]);
 
+  const [loadingGameState, setLoadingGameState] = useState<GameState | null>(null);
+
   const handleDeckSelect = useCallback((deckCardIds: number[]) => {
     if (deckCardIds.length < 12) {
       setMessage("Deck must have 12 cards!");
@@ -157,12 +167,15 @@ const PlayComputer = () => {
     }
     
     setSelectedDeck(deckCardIds);
+    
+    // Initialize game immediately to get cut cards and main colors
+    const initialState = initializeGame(deckCardIds);
+    const withAI = aiPlaceCards(initialState, 4, 0);
+    setLoadingGameState(withAI);
     setGamePhase("loading");
     
     // Show loading screen for 3 seconds, then start the game
     setTimeout(() => {
-      const initialState = initializeGame(deckCardIds);
-      const withAI = aiPlaceCards(initialState, 4, 0);
       setGame(withAI);
       setMessage("Round 1: Place 4 cards");
       setTimeLeft(60);
@@ -268,43 +281,18 @@ const PlayComputer = () => {
   }
 
   // Loading Screen with cut cards reveal
-  if (gamePhase === "loading" && selectedDeck) {
-    // Get first card from player's deck and a random opponent card for display
-    const playerCardData = cardsData.find((c: { id: number }) => c.id === selectedDeck[0]);
-    const opponentCardData = cardsData.find((c: { id: number }) => c.id === selectedDeck[1]);
+  if (gamePhase === "loading" && loadingGameState) {
+    const playerBottomCard = loadingGameState.player.bottomCard;
+    const opponentBottomCard = loadingGameState.opponent.bottomCard;
     
-    const playerDisplayCard: GameCard = {
-      id: playerCardData?.id || 1,
-      title: playerCardData?.title || "Card",
-      character: playerCardData?.character || "Card",
-      basePoints: playerCardData?.basePoints || 5,
-      points: playerCardData?.basePoints || 5,
-      colors: playerCardData?.colors || ["BLUE"],
-      description: playerCardData?.description || "",
-      rarity: playerCardData?.rarity || "COMMON",
-      groups: playerCardData?.groups || [],
-      types: playerCardData?.types || [],
-    };
-    
-    const opponentDisplayCard: GameCard = {
-      id: opponentCardData?.id || 2,
-      title: opponentCardData?.title || "Card",
-      character: opponentCardData?.character || "Card",
-      basePoints: opponentCardData?.basePoints || 5,
-      points: opponentCardData?.basePoints || 5,
-      colors: opponentCardData?.colors || ["RED"],
-      description: opponentCardData?.description || "",
-      rarity: opponentCardData?.rarity || "COMMON",
-      groups: opponentCardData?.groups || [],
-      types: opponentCardData?.types || [],
-    };
+    if (!playerBottomCard || !opponentBottomCard) return null;
 
     return (
       <ClassicLoadingScreen
-        playerCard={playerDisplayCard}
-        opponentCard={opponentDisplayCard}
+        playerCard={playerBottomCard}
+        opponentCard={opponentBottomCard}
         playerName={profile?.username || "Player"}
-        mainColors={["BLUE", "RED"]}
+        mainColors={loadingGameState.mainColors}
         status="Selecting Cut Cards"
       />
     );
