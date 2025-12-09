@@ -55,40 +55,121 @@ const PlayComputer = () => {
     
     const slotIndices = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
     
+    // First, apply all effects to calculate final points (but don't show yet)
+    let finalState = checkCancellations(gameState);
+    finalState = applyPowers(finalState);
+    
     // Create alternating reveal sequence: P1 slot 0, P2 slot 0, P1 slot 1, P2 slot 1...
-    // Use negative numbers for opponent slots to distinguish them
     const revealSequence: number[] = [];
     slotIndices.forEach(slot => {
       revealSequence.push(slot);        // Player slot (positive)
       revealSequence.push(-(slot + 1)); // Opponent slot (negative, offset by 1 to avoid -0)
     });
     
+    // Track running scores during reveal
+    let runningPlayerScore = game?.player.totalPoints || 0;
+    let runningOpponentScore = game?.opponent.totalPoints || 0;
+    
     // Reveal cards one by one alternating P1/P2
     revealSequence.forEach((slotCode, index) => {
       setTimeout(() => {
         setRevealedSlots(prev => [...prev, slotCode]);
         
-        // After all cards revealed, apply effects
+        // Update game state with the revealed card's points
+        const isPlayerSlot = slotCode >= 0;
+        const actualSlot = isPlayerSlot ? slotCode : -(slotCode + 1);
+        
+        if (isPlayerSlot) {
+          const playerCard = finalState.player.board[actualSlot];
+          if (playerCard && !playerCard.cancelled) {
+            runningPlayerScore += playerCard.modifiedPoints;
+          }
+        } else {
+          const oppCard = finalState.opponent.board[actualSlot];
+          if (oppCard && !oppCard.cancelled) {
+            runningOpponentScore += oppCard.modifiedPoints;
+          }
+        }
+        
+        // Update game with running scores and effect indicators
+        setGame(prev => {
+          if (!prev) return prev;
+          
+          // Merge finalState boards to show effects on revealed cards
+          const newPlayerBoard = prev.player.board.map((slot, i) => {
+            if (slotIndices.includes(i)) {
+              return finalState.player.board[i];
+            }
+            return slot;
+          });
+          const newOppBoard = prev.opponent.board.map((slot, i) => {
+            if (slotIndices.includes(i)) {
+              return finalState.opponent.board[i];
+            }
+            return slot;
+          });
+          
+          // Calculate color counts from revealed cards only
+          const revealedPlayerSlots = revealSequence.slice(0, index + 1).filter(s => s >= 0);
+          const revealedOppSlots = revealSequence.slice(0, index + 1).filter(s => s < 0).map(s => -(s + 1));
+          
+          const newPlayerColorCounts: Record<string, number> = { ...prev.player.colorCounts };
+          const newOppColorCounts: Record<string, number> = { ...prev.opponent.colorCounts };
+          
+          // Only add color from the just-revealed card
+          if (isPlayerSlot) {
+            const card = finalState.player.board[actualSlot];
+            if (card && !card.cancelled) {
+              card.card.colors?.forEach(color => {
+                newPlayerColorCounts[color] = (newPlayerColorCounts[color] || 0) + 1;
+              });
+            }
+          } else {
+            const card = finalState.opponent.board[actualSlot];
+            if (card && !card.cancelled) {
+              card.card.colors?.forEach(color => {
+                newOppColorCounts[color] = (newOppColorCounts[color] || 0) + 1;
+              });
+            }
+          }
+          
+          return {
+            ...prev,
+            player: {
+              ...prev.player,
+              board: newPlayerBoard,
+              totalPoints: runningPlayerScore,
+              colorCounts: newPlayerColorCounts,
+            },
+            opponent: {
+              ...prev.opponent,
+              board: newOppBoard,
+              totalPoints: runningOpponentScore,
+              colorCounts: newOppColorCounts,
+            },
+          };
+        });
+        
+        // Show effect animation on the just-revealed card if it has modified points
+        if (isPlayerSlot) {
+          const card = finalState.player.board[actualSlot];
+          if (card && card.modifiedPoints !== card.card.basePoints) {
+            setEffectAnimations(prev => [...prev, actualSlot]);
+          }
+        } else {
+          const card = finalState.opponent.board[actualSlot];
+          if (card && card.modifiedPoints !== card.card.basePoints) {
+            setEffectAnimations(prev => [...prev, actualSlot + 100]);
+          }
+        }
+        
+        // After all cards revealed, finalize
         if (index === revealSequence.length - 1) {
           setTimeout(() => {
-            let newState = checkCancellations(gameState);
-            newState = applyPowers(newState);
-            newState = calculateScores(newState);
-            
-            // Animate effect changes
-            const affectedSlots = newState.player.board
-              .map((slot, i) => slot && slot.modifiedPoints !== slot.card.basePoints ? i : -1)
-              .filter(i => i !== -1);
-            
-            const oppAffectedSlots = newState.opponent.board
-              .map((slot, i) => slot && slot.modifiedPoints !== slot.card.basePoints ? i + 100 : -1)
-              .filter(i => i !== -1);
-            
-            setEffectAnimations([...affectedSlots, ...oppAffectedSlots]);
+            let newState = calculateScores(finalState);
             
             setTimeout(() => {
               setEffectAnimations([]);
-              // Mark these slots as permanently revealed (all player slots from this round)
               setPermanentRevealedSlots(prev => [...prev, ...slotIndices]);
               
               if (isRound1) {
@@ -111,12 +192,12 @@ const PlayComputer = () => {
                   setMessage("It's a tie!");
                 }
               }
-            }, 1000);
-          }, 500);
+            }, 800);
+          }, 300);
         }
-      }, index * 400);
+      }, index * 500);
     });
-  }, []);
+  }, [game]);
 
   const decks = getDecksWithSlots();
 

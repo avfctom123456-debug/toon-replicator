@@ -74,15 +74,18 @@ export const ClassicBoardSlot = ({
       );
     }
 
+    const pointsDiff = slot.modifiedPoints - slot.card.basePoints;
+    const hasPointsChange = pointsDiff !== 0;
+
     return (
       <div 
         className={`${slotSize} relative ${slot.cancelled ? "opacity-40" : ""} ${
-          isRevealing ? "animate-flip-in" : ""
-        } ${hasEffect ? "animate-pulse-glow" : ""} ${onViewCard ? "cursor-pointer" : ""}`}
+          isRevealing ? "animate-scale-in" : ""
+        } ${onViewCard ? "cursor-pointer" : ""}`}
         onClick={onViewCard}
       >
         <div className={`w-full h-full rounded-full ${bgColor} overflow-hidden border-4 ${borderColor} shadow-lg transition-transform ${
-          hasEffect ? "scale-110" : ""
+          hasEffect ? "scale-110 ring-2 ring-yellow-400" : ""
         } ${onViewCard ? "hover:ring-2 hover:ring-white/50" : ""}`}>
           {!imageError ? (
             <img
@@ -99,7 +102,7 @@ export const ClassicBoardSlot = ({
         </div>
         {/* Points Badge */}
         <div className={`absolute -bottom-1 -right-1 w-7 h-7 ${bgColor} rounded-full flex items-center justify-center font-bold text-white text-sm border-2 border-white shadow-md transition-all ${
-          hasEffect ? "scale-125 ring-2 ring-yellow-400" : ""
+          hasEffect ? "scale-125" : ""
         }`}>
           {slot.modifiedPoints}
         </div>
@@ -109,12 +112,14 @@ export const ClassicBoardSlot = ({
             <span className="text-red-600 text-4xl font-bold drop-shadow-lg">✕</span>
           </div>
         )}
-        {/* Points change indicator */}
-        {hasEffect && slot.modifiedPoints !== slot.card.basePoints && (
-          <div className={`absolute -top-2 left-1/2 -translate-x-1/2 text-xs font-bold px-1 rounded animate-bounce ${
-            slot.modifiedPoints > slot.card.basePoints ? "text-green-500 bg-white/80" : "text-red-500 bg-white/80"
+        {/* Points change indicator - always show on cards with effects */}
+        {hasPointsChange && (
+          <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-sm font-bold px-2 py-0.5 rounded-full shadow-lg ${
+            pointsDiff > 0 
+              ? "text-white bg-green-500 animate-bounce" 
+              : "text-white bg-red-500 animate-bounce"
           }`}>
-            {slot.modifiedPoints > slot.card.basePoints ? `+${slot.modifiedPoints - slot.card.basePoints}` : slot.modifiedPoints - slot.card.basePoints}
+            {pointsDiff > 0 ? `+${pointsDiff}` : pointsDiff}
           </div>
         )}
       </div>
