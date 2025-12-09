@@ -38,7 +38,7 @@ export default function TradeBoard() {
   const { user, loading: authLoading } = useAuth();
   const { profile, refetchProfile } = useProfile();
   const { trades, loading: tradesLoading, createTrade, acceptTrade, cancelTrade } = useTrades();
-  const { userCards, getOwnedCardIds } = useUserCards();
+  const { userCards } = useUserCards();
   const { 
     auctions, 
     loading: auctionsLoading, 
@@ -48,18 +48,18 @@ export default function TradeBoard() {
     endAuction 
   } = useAuctions();
 
-  // Trade form state
+  // Trade form state - now uses user_card_ids for specific copies
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [offerCardIds, setOfferCardIds] = useState<number[]>([]);
+  const [offerUserCardIds, setOfferUserCardIds] = useState<string[]>([]);
   const [offerCoins, setOfferCoins] = useState(0);
   const [wantCardIds, setWantCardIds] = useState<number[]>([]);
   const [wantCoins, setWantCoins] = useState(0);
-  const [selectedOfferCard, setSelectedOfferCard] = useState<string>("");
+  const [selectedOfferUserCard, setSelectedOfferUserCard] = useState<string>("");
   const [selectedWantCard, setSelectedWantCard] = useState<string>("");
 
-  // Auction form state
+  // Auction form state - now uses specific user_card
   const [showAuctionDialog, setShowAuctionDialog] = useState(false);
-  const [auctionCardId, setAuctionCardId] = useState<string>("");
+  const [auctionUserCardId, setAuctionUserCardId] = useState<string>("");
   const [startingBid, setStartingBid] = useState(10);
   const [auctionDuration, setAuctionDuration] = useState(60); // minutes
 
@@ -87,22 +87,35 @@ export default function TradeBoard() {
     return null;
   }
 
-  const ownedCardIds = getOwnedCardIds();
+  // Build list of owned cards with their specific copy info
+  const ownedCardsWithCopies = userCards
+    .map(uc => {
+      const cardData = getCardById(uc.card_id);
+      return cardData ? {
+        ...cardData,
+        userCardId: uc.id,
+        copyNumber: uc.copy_number,
+      } : null;
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null)
+    .sort((a, b) => a.title.localeCompare(b.title) || (a.copyNumber || 0) - (b.copyNumber || 0));
+
   const allCards = (cardsData as { id: number; title: string }[]).sort((a, b) => 
     a.title.localeCompare(b.title)
   );
-  
-  const ownedCardsWithDetails = ownedCardIds
-    .map((id) => getCardById(id))
-    .filter((card): card is NonNullable<typeof card> => card !== null)
-    .sort((a, b) => a.title.localeCompare(b.title));
 
   // Trade handlers
   const handleCreateTrade = async () => {
+    // Extract card_ids from user_card selection for the offer
+    const offerCardIds = offerUserCardIds.map(ucId => {
+      const uc = userCards.find(u => u.id === ucId);
+      return uc?.card_id || 0;
+    }).filter(id => id > 0);
+    
     const success = await createTrade(offerCardIds, offerCoins, wantCardIds, wantCoins);
     if (success) {
       setShowCreateDialog(false);
-      setOfferCardIds([]);
+      setOfferUserCardIds([]);
       setOfferCoins(0);
       setWantCardIds([]);
       setWantCoins(0);
@@ -111,9 +124,9 @@ export default function TradeBoard() {
   };
 
   const addOfferCard = () => {
-    if (selectedOfferCard && !offerCardIds.includes(parseInt(selectedOfferCard))) {
-      setOfferCardIds([...offerCardIds, parseInt(selectedOfferCard)]);
-      setSelectedOfferCard("");
+    if (selectedOfferUserCard && !offerUserCardIds.includes(selectedOfferUserCard)) {
+      setOfferUserCardIds([...offerUserCardIds, selectedOfferUserCard]);
+      setSelectedOfferUserCard("");
     }
   };
 
@@ -126,20 +139,27 @@ export default function TradeBoard() {
 
   // Auction handlers
   const handleCreateAuction = async () => {
-    if (!auctionCardId) {
+    if (!auctionUserCardId) {
       toast.error("Please select a card");
       return;
     }
 
+    const selectedCard = ownedCardsWithCopies.find(c => c.userCardId === auctionUserCardId);
+    if (!selectedCard) {
+      toast.error("Card not found");
+      return;
+    }
+
     const result = await createAuction(
-      parseInt(auctionCardId),
+      selectedCard.id,
       startingBid,
-      auctionDuration
+      auctionDuration,
+      auctionUserCardId
     );
 
     if (result.success) {
       setShowAuctionDialog(false);
-      setAuctionCardId("");
+      setAuctionUserCardId("");
       setStartingBid(10);
       setAuctionDuration(60);
       toast.success("Auction created!");
@@ -243,14 +263,24 @@ export default function TradeBoard() {
                       <Label className="text-lg font-semibold">You Offer</Label>
                       <div className="mt-2 space-y-2">
                         <div className="flex gap-2">
-                          <Select value={selectedOfferCard} onValueChange={setSelectedOfferCard}>
+                          <Select value={selectedOfferUserCard} onValueChange={setSelectedOfferUserCard}>
                             <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Select a card you own" />
+                              <SelectValue placeholder="Select a card copy you own" />
                             </SelectTrigger>
                             <SelectContent>
-                              {ownedCardsWithDetails.map((card) => (
-                                <SelectItem key={card.id} value={card.id.toString()}>
-                                  {card.title}
+                              {ownedCardsWithCopies.map((card) => (
+                                <SelectItem key={card.userCardId} value={card.userCardId}>
+                                  <span className="flex items-center gap-2">
+                                    {card.title}
+                                    {card.copyNumber && (
+                                      <span className={`text-xs ${
+                                        card.copyNumber <= 10 ? "text-yellow-500 font-bold" :
+                                        card.copyNumber <= 50 ? "text-gray-400" : "text-muted-foreground"
+                                      }`}>
+                                        #{card.copyNumber}
+                                      </span>
+                                    )}
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -260,13 +290,14 @@ export default function TradeBoard() {
                           </Button>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {offerCardIds.map((cardId) => {
-                            const card = getCardById(cardId);
-                            return card ? (
+                          {offerUserCardIds.map((userCardId) => {
+                            const cardCopy = ownedCardsWithCopies.find(c => c.userCardId === userCardId);
+                            return cardCopy ? (
                               <CardChip 
-                                key={cardId} 
-                                card={card} 
-                                onRemove={() => setOfferCardIds(offerCardIds.filter(id => id !== cardId))}
+                                key={userCardId} 
+                                card={cardCopy}
+                                copyNumber={cardCopy.copyNumber}
+                                onRemove={() => setOfferUserCardIds(offerUserCardIds.filter(id => id !== userCardId))}
                               />
                             ) : null;
                           })}
@@ -335,7 +366,7 @@ export default function TradeBoard() {
                       onClick={handleCreateTrade}
                       className="w-full"
                       disabled={
-                        (offerCardIds.length === 0 && offerCoins === 0) ||
+                        (offerUserCardIds.length === 0 && offerCoins === 0) ||
                         (wantCardIds.length === 0 && wantCoins === 0)
                       }
                     >
@@ -447,24 +478,39 @@ export default function TradeBoard() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div>
-                      <Label>Card to Auction</Label>
-                      <Select value={auctionCardId} onValueChange={setAuctionCardId}>
+                      <Label>Card to Auction (select specific copy)</Label>
+                      <Select value={auctionUserCardId} onValueChange={setAuctionUserCardId}>
                         <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select a card" />
+                          <SelectValue placeholder="Select a card copy" />
                         </SelectTrigger>
                         <SelectContent>
-                          {ownedCardsWithDetails.map((card) => (
-                            <SelectItem key={card.id} value={card.id.toString()}>
-                              <div className="flex items-center gap-2">
+                          {ownedCardsWithCopies.map((card) => (
+                            <SelectItem key={card.userCardId} value={card.userCardId}>
+                              <span className="flex items-center gap-2">
                                 {card.title}
-                              </div>
+                                {card.copyNumber && (
+                                  <span className={`text-xs ${
+                                    card.copyNumber <= 10 ? "text-yellow-500 font-bold" :
+                                    card.copyNumber <= 50 ? "text-gray-400" : "text-muted-foreground"
+                                  }`}>
+                                    #{card.copyNumber}
+                                  </span>
+                                )}
+                              </span>
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      {auctionCardId && (
+                      {auctionUserCardId && (
                         <div className="mt-2 flex justify-center">
-                          <MiniCard card={getCardById(parseInt(auctionCardId))!} size="md" />
+                          {(() => {
+                            const selectedCard = ownedCardsWithCopies.find(c => c.userCardId === auctionUserCardId);
+                            return selectedCard ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <MiniCard card={selectedCard} size="md" copyNumber={selectedCard.copyNumber} />
+                              </div>
+                            ) : null;
+                          })()}
                         </div>
                       )}
                     </div>
@@ -497,7 +543,7 @@ export default function TradeBoard() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={handleCreateAuction} className="w-full" disabled={!auctionCardId}>
+                    <Button onClick={handleCreateAuction} className="w-full" disabled={!auctionUserCardId}>
                       Start Auction
                     </Button>
                   </div>
@@ -543,12 +589,22 @@ export default function TradeBoard() {
                         <div className="flex gap-4">
                           {/* Card Image */}
                           <div className="flex-shrink-0">
-                            <MiniCard card={card} size="md" />
+                            <MiniCard card={card} size="md" copyNumber={auction.copy_number} />
                           </div>
                           
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-foreground truncate">{card.title}</h3>
+                            <h3 className="font-bold text-foreground truncate">
+                              {card.title}
+                              {auction.copy_number && (
+                                <span className={`ml-1 text-sm ${
+                                  auction.copy_number <= 10 ? "text-yellow-500" :
+                                  auction.copy_number <= 50 ? "text-gray-400" : "text-muted-foreground"
+                                }`}>
+                                  #{auction.copy_number}
+                                </span>
+                              )}
+                            </h3>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                               <User className="h-3 w-3" />
                               {auction.seller_username}

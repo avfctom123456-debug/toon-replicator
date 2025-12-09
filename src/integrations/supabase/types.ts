@@ -58,6 +58,7 @@ export type Database = {
           starting_bid: number
           status: string
           updated_at: string
+          user_card_id: string | null
           user_id: string
         }
         Insert: {
@@ -71,6 +72,7 @@ export type Database = {
           starting_bid?: number
           status?: string
           updated_at?: string
+          user_card_id?: string | null
           user_id: string
         }
         Update: {
@@ -84,9 +86,18 @@ export type Database = {
           starting_bid?: number
           status?: string
           updated_at?: string
+          user_card_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "auctions_user_card_id_fkey"
+            columns: ["user_card_id"]
+            isOneToOne: false
+            referencedRelation: "user_cards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       card_overrides: {
         Row: {
@@ -456,6 +467,7 @@ export type Database = {
           id: string
           offer_card_ids: number[]
           offer_coins: number
+          offer_user_card_ids: string[] | null
           status: string
           updated_at: string
           user_id: string
@@ -468,6 +480,7 @@ export type Database = {
           id?: string
           offer_card_ids?: number[]
           offer_coins?: number
+          offer_user_card_ids?: string[] | null
           status?: string
           updated_at?: string
           user_id: string
@@ -480,6 +493,7 @@ export type Database = {
           id?: string
           offer_card_ids?: number[]
           offer_coins?: number
+          offer_user_card_ids?: string[] | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -544,6 +558,10 @@ export type Database = {
       calculate_elo_change: {
         Args: { k_factor?: number; loser_elo: number; winner_elo: number }
         Returns: number
+      }
+      complete_trade: {
+        Args: { p_acceptor_user_card_ids: string[]; p_trade_id: string }
+        Returns: Json
       }
       end_auction: { Args: { p_auction_id: string }; Returns: Json }
       end_season_and_distribute_rewards: { Args: never; Returns: string }

@@ -6,6 +6,7 @@ export interface Auction {
   id: string;
   user_id: string;
   card_id: number;
+  user_card_id: string | null;
   starting_bid: number;
   current_bid: number;
   highest_bidder_id: string | null;
@@ -16,6 +17,7 @@ export interface Auction {
   updated_at: string;
   seller_username?: string;
   highest_bidder_username?: string;
+  copy_number?: number | null;
 }
 
 export interface AuctionBid {
@@ -68,11 +70,29 @@ export const useAuctions = () => {
       (profiles || []).map(p => [p.user_id, p.username])
     );
 
+    // Fetch copy numbers for user_card_ids
+    const userCardIds = data.filter(a => a.user_card_id).map(a => a.user_card_id!);
+    let copyNumberMap = new Map<string, number>();
+    
+    if (userCardIds.length > 0) {
+      const { data: userCards } = await supabase
+        .from("user_cards")
+        .select("id, copy_number")
+        .in("id", userCardIds);
+      
+      copyNumberMap = new Map(
+        (userCards || []).map(uc => [uc.id, uc.copy_number])
+      );
+    }
+
     const auctionsWithUsernames = data.map(auction => ({
       ...auction,
       seller_username: usernameMap.get(auction.user_id) || "Unknown",
       highest_bidder_username: auction.highest_bidder_id 
         ? usernameMap.get(auction.highest_bidder_id) || "Unknown"
+        : null,
+      copy_number: auction.user_card_id 
+        ? copyNumberMap.get(auction.user_card_id) 
         : null
     }));
 
@@ -103,7 +123,8 @@ export const useAuctions = () => {
   const createAuction = async (
     cardId: number,
     startingBid: number,
-    durationMinutes: number
+    durationMinutes: number,
+    userCardId?: string
   ) => {
     if (!user) return { success: false, error: "Not authenticated" };
 
@@ -114,6 +135,7 @@ export const useAuctions = () => {
       card_id: cardId,
       starting_bid: startingBid,
       ends_at: endsAt,
+      user_card_id: userCardId || null,
     });
 
     if (error) {
