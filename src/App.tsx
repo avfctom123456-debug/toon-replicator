@@ -15,6 +15,7 @@ import PackShop from "./pages/PackShop";
 import TradeBoard from "./pages/TradeBoard";
 import AdminPanel from "./pages/AdminPanel";
 import CardCollection from "./pages/CardCollection";
+import CardEditor from "./pages/CardEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/pack-shop" element={<PackShop />} />
             <Route path="/trade-board" element={<TradeBoard />} />
             <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/card-editor" element={<CardEditor />} />
             <Route path="/collection" element={<CardCollection />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

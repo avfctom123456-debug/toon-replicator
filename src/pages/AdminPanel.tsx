@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -251,6 +251,10 @@ export default function AdminPanel() {
             <Settings className="h-6 w-6" />
             Admin Panel
           </h1>
+          <Button onClick={() => navigate("/card-editor")}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Card Editor
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

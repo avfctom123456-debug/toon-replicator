@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      card_overrides: {
+        Row: {
+          card_id: number
+          created_at: string
+          custom_base_points: number | null
+          custom_description: string | null
+          custom_image_url: string | null
+          custom_title: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          card_id: number
+          created_at?: string
+          custom_base_points?: number | null
+          custom_description?: string | null
+          custom_image_url?: string | null
+          custom_title?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          card_id?: number
+          created_at?: string
+          custom_base_points?: number | null
+          custom_description?: string | null
+          custom_image_url?: string | null
+          custom_title?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       decks: {
         Row: {
           card_ids: number[]
