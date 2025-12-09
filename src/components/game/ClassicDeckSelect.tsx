@@ -44,7 +44,7 @@ export const ClassicDeckSelect = ({
   message,
 }: ClassicDeckSelectProps) => {
   const [selectedDeckIndex, setSelectedDeckIndex] = useState<number | null>(null);
-  const [hoveredDeck, setHoveredDeck] = useState<number | null>(null);
+  const [previewDeckIndex, setPreviewDeckIndex] = useState<number | null>(null);
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export const ClassicDeckSelect = ({
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  const displayedDeck = hoveredDeck ?? selectedDeckIndex;
+  const displayedDeck = previewDeckIndex ?? selectedDeckIndex;
   const deckCards =
     displayedDeck !== null ? decks[displayedDeck]?.cardIds.map(getCardById).filter(Boolean) : [];
 
@@ -77,8 +77,14 @@ export const ClassicDeckSelect = ({
   const handleDeckClick = (index: number) => {
     const deck = decks[index];
     if (deck.filled >= 12) {
-      setSelectedDeckIndex(index);
-      onSelectDeck(deck.cardIds);
+      if (previewDeckIndex === index) {
+        // Second click - confirm selection
+        setSelectedDeckIndex(index);
+        onSelectDeck(deck.cardIds);
+      } else {
+        // First click - preview deck
+        setPreviewDeckIndex(index);
+      }
     }
   };
 
@@ -120,8 +126,6 @@ export const ClassicDeckSelect = ({
               <div
                 key={deck.slot}
                 onClick={() => handleDeckClick(index)}
-                onMouseEnter={() => setHoveredDeck(index)}
-                onMouseLeave={() => setHoveredDeck(null)}
                 className={`
                   flex items-center justify-between px-4 py-3 cursor-pointer transition-all
                   border-b border-[hsl(200,30%,60%)]/30
@@ -129,15 +133,21 @@ export const ClassicDeckSelect = ({
                     ? "hover:bg-[hsl(200,40%,85%)]" 
                     : "opacity-50 cursor-not-allowed"
                   }
+                  ${previewDeckIndex === index ? "bg-[hsl(200,50%,75%)] ring-2 ring-[hsl(200,60%,50%)]" : ""}
                   ${selectedDeckIndex === index ? "bg-[hsl(200,40%,85%)]" : ""}
                 `}
               >
                 <span className="text-[hsl(212,50%,30%)] font-semibold italic text-lg">
                   {deck.slot}
                 </span>
-                <span className="text-[hsl(212,50%,35%)] font-medium">
-                  {deck.filled}
-                </span>
+                <div className="flex items-center gap-2">
+                  {previewDeckIndex === index && (
+                    <span className="text-[hsl(200,70%,35%)] text-xs font-bold">Click to confirm</span>
+                  )}
+                  <span className="text-[hsl(212,50%,35%)] font-medium">
+                    {deck.filled}
+                  </span>
+                </div>
               </div>
             ))}
 
@@ -150,16 +160,16 @@ export const ClassicDeckSelect = ({
               <span className="text-[hsl(212,50%,30%)] font-bold">Random Deck</span>
             </div>
 
-            {/* Selected Deck Info */}
-            {selectedDeckIndex !== null && (
+            {/* Preview Deck Info */}
+            {previewDeckIndex !== null && (
               <div className="flex items-center gap-3 px-4 py-3 bg-[hsl(200,25%,88%)]">
-                <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
+                <div className="w-8 h-8 bg-[hsl(200,60%,50%)] rounded flex items-center justify-center">
                   <span className="text-white font-bold text-sm">
-                    {decks[selectedDeckIndex].slot}
+                    {decks[previewDeckIndex].slot}
                   </span>
                 </div>
                 <span className="text-[hsl(212,50%,35%)] font-medium italic">
-                  {decks[selectedDeckIndex].name}
+                  {decks[previewDeckIndex].name}
                 </span>
               </div>
             )}
