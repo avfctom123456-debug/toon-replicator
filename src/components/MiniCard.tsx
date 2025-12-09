@@ -26,9 +26,10 @@ interface MiniCardProps {
   card: CardData;
   size?: "xs" | "sm" | "md";
   showPoints?: boolean;
+  copyNumber?: number | null;
 }
 
-export const MiniCard = ({ card, size = "sm", showPoints = true }: MiniCardProps) => {
+export const MiniCard = ({ card, size = "sm", showPoints = true, copyNumber }: MiniCardProps) => {
   const [imageError, setImageError] = useState(false);
   const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const bgColor = colorBg[card.colors?.[0] || ""] || "bg-gray-500";
@@ -45,8 +46,15 @@ export const MiniCard = ({ card, size = "sm", showPoints = true }: MiniCardProps
     md: "w-6 h-6 text-xs -bottom-1 -right-1",
   };
 
+  // Lower numbers are more rare - gold for #1-10, silver for #11-50
+  const getRarityStyle = (num: number) => {
+    if (num <= 10) return "text-yellow-400 font-bold";
+    if (num <= 50) return "text-gray-300 font-semibold";
+    return "text-muted-foreground";
+  };
+
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block group">
       <div className={`${sizeClasses[size]} rounded-full ${bgColor} overflow-hidden border-2 border-muted shadow-md`}>
         {!imageError ? (
           <img
@@ -66,6 +74,11 @@ export const MiniCard = ({ card, size = "sm", showPoints = true }: MiniCardProps
           {card.basePoints}
         </div>
       )}
+      {copyNumber && (
+        <div className={`absolute -top-1 -left-1 bg-background/90 rounded px-1 text-[8px] ${getRarityStyle(copyNumber)} border border-border`}>
+          #{copyNumber}
+        </div>
+      )}
     </div>
   );
 };
@@ -73,12 +86,20 @@ export const MiniCard = ({ card, size = "sm", showPoints = true }: MiniCardProps
 interface CardRowProps {
   card: CardData;
   onRemove?: () => void;
+  copyNumber?: number | null;
 }
 
-export const CardChip = ({ card, onRemove }: CardRowProps) => {
+export const CardChip = ({ card, onRemove, copyNumber }: CardRowProps) => {
   const [imageError, setImageError] = useState(false);
   const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const bgColor = colorBg[card.colors?.[0] || ""] || "bg-gray-500";
+
+  // Lower numbers are more rare - gold for #1-10, silver for #11-50
+  const getRarityStyle = (num: number) => {
+    if (num <= 10) return "text-yellow-400 font-bold";
+    if (num <= 50) return "text-gray-300 font-semibold";
+    return "text-muted-foreground";
+  };
 
   return (
     <div className="flex items-center gap-2 bg-muted/50 rounded-full pl-1 pr-2 py-1">
@@ -96,7 +117,12 @@ export const CardChip = ({ card, onRemove }: CardRowProps) => {
           </span>
         )}
       </div>
-      <span className="text-xs text-foreground font-medium">{card.title}</span>
+      <span className="text-xs text-foreground font-medium">
+        {card.title}
+        {copyNumber && (
+          <span className={`ml-1 ${getRarityStyle(copyNumber)}`}>#{copyNumber}</span>
+        )}
+      </span>
       {onRemove && (
         <button
           onClick={onRemove}
