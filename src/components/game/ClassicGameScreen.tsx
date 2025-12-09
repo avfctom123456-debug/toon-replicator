@@ -67,10 +67,25 @@ export const ClassicGameScreen = ({
     return i >= 4 && s !== null;
   }).length;
 
-  const isSlotRevealed = (slotIndex: number) => {
+  // Player slots: positive, Opponent slots: negative (-(slot+1))
+  const isSlotRevealed = (slotIndex: number, isOpponent: boolean) => {
+    if (isOpponent) {
+      // Check if opponent slot is revealed using negative encoding
+      return permanentRevealedSlots.includes(slotIndex) || 
+             revealedSlots.includes(-(slotIndex + 1)) ||
+             isGameOver;
+    }
     return permanentRevealedSlots.includes(slotIndex) || 
            revealedSlots.includes(slotIndex) ||
            isGameOver;
+  };
+
+  const isSlotRevealing = (slotIndex: number, isOpponent: boolean) => {
+    if (revealPhase !== "revealing") return false;
+    if (isOpponent) {
+      return revealedSlots.includes(-(slotIndex + 1));
+    }
+    return revealedSlots.includes(slotIndex);
   };
 
   const getStatusMessage = () => {
@@ -136,10 +151,10 @@ export const ClassicGameScreen = ({
                     <ClassicBoardSlot
                       key={`opp-${i}`}
                       slot={game.opponent.board[i]}
-                      isHidden={!isSlotRevealed(i)}
-                      isRevealing={revealPhase === "revealing" && revealedSlots.includes(i)}
+                      isHidden={!isSlotRevealed(i, true)}
+                      isRevealing={isSlotRevealing(i, true)}
                       hasEffect={effectAnimations.includes(i + 100)}
-                      onViewCard={isSlotRevealed(i) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
+                      onViewCard={isSlotRevealed(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
                     />
                   ))}
                 </div>
@@ -149,10 +164,10 @@ export const ClassicGameScreen = ({
                     <ClassicBoardSlot
                       key={`opp-${i}`}
                       slot={game.opponent.board[i]}
-                      isHidden={!isSlotRevealed(i)}
-                      isRevealing={revealPhase === "revealing" && revealedSlots.includes(i)}
+                      isHidden={!isSlotRevealed(i, true)}
+                      isRevealing={isSlotRevealing(i, true)}
                       hasEffect={effectAnimations.includes(i + 100)}
-                      onViewCard={isSlotRevealed(i) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
+                      onViewCard={isSlotRevealed(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
                     />
                   ))}
                 </div>
