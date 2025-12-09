@@ -1,11 +1,20 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const Home = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const username = location.state?.username || "Player";
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out successfully");
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center px-4 py-8">
@@ -51,8 +60,21 @@ const Home = () => {
         </Button>
       </div>
 
+      {/* Auth Button */}
+      <div className="mt-6">
+        {user ? (
+          <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
+            Sign Out
+          </Button>
+        ) : (
+          <Button variant="menu" onClick={() => navigate("/auth")}>
+            Sign In / Sign Up
+          </Button>
+        )}
+      </div>
+
       {/* Discord Button */}
-      <div className="mt-8 flex flex-col items-center gap-2">
+      <div className="mt-4 flex flex-col items-center gap-2">
         <Button 
           variant="discord"
           onClick={() => window.open("https://discord.gg/gtoons", "_blank")}

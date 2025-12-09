@@ -2,22 +2,21 @@ import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CardListItem, CardDisplay, FullCard } from "@/components/CardDisplay";
 import cardsData from "@/data/cards.json";
 
-const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal";
-
-const colorMap: Record<string, string> = {
-  SILVER: "bg-gray-400",
-  BLUE: "bg-blue-500",
-  BLACK: "bg-gray-800",
-  GREEN: "bg-green-500",
-  PURPLE: "bg-purple-500",
-  RED: "bg-red-500",
-  ORANGE: "bg-orange-500",
-  YELLOW: "bg-yellow-500",
-  PINK: "bg-pink-500",
-  WHITE: "bg-white",
-};
+interface CardData {
+  id: number;
+  title: string;
+  character: string;
+  basePoints: number;
+  points: number;
+  colors: string[];
+  description: string;
+  rarity: string;
+  groups: string[];
+  types: string[];
+}
 
 const DeckEdit = () => {
   const navigate = useNavigate();
@@ -26,12 +25,13 @@ const DeckEdit = () => {
   
   const [search, setSearch] = useState("");
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [viewCard, setViewCard] = useState<CardData | null>(null);
 
   const filteredCards = useMemo(() => {
-    return cardsData.filter((c: any) => 
+    return (cardsData as CardData[]).filter((c) => 
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       c.character.toLowerCase().includes(search.toLowerCase())
-    ).slice(0, 50); // Limit for performance
+    ).slice(0, 50);
   }, [search]);
 
   const toggleCard = (id: number) => {
@@ -42,8 +42,9 @@ const DeckEdit = () => {
     }
   };
 
-  const getImageUrl = (id: number) => `${IMAGE_BASE_URL}/${id}.png`;
-  const getColor = (colors: string[]) => colorMap[colors?.[0]] || "bg-gray-500";
+  const selectedCardData = useMemo(() => {
+    return (cardsData as CardData[]).filter(c => selectedCards.includes(c.id));
+  }, [selectedCards]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -60,45 +61,22 @@ const DeckEdit = () => {
 
       {/* Character List */}
       <div className="flex-1 overflow-y-auto px-4 space-y-2">
-        {filteredCards.map((card: any) => (
-          <div 
-            key={card.id}
-            onClick={() => toggleCard(card.id)}
-            className={`bg-card rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-all ${
-              selectedCards.includes(card.id) ? "ring-2 ring-accent" : ""
-            }`}
-          >
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className={`w-14 h-14 rounded-full ${getColor(card.colors)} flex items-center justify-center overflow-hidden border-2 border-muted`}>
-                <img 
-                  src={getImageUrl(card.id)} 
-                  alt={card.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${getColor(card.colors)} flex items-center justify-center text-xs font-bold text-white border-2 border-card`}>
-                {card.basePoints}
-              </div>
+        {filteredCards.map((card) => (
+          <div key={card.id} className="flex gap-2 items-center">
+            <div className="flex-1" onClick={() => toggleCard(card.id)}>
+              <CardListItem 
+                card={card} 
+                selected={selectedCards.includes(card.id)}
+              />
             </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-foreground">{card.title}</h3>
-              <p className="text-sm text-muted-foreground truncate">{card.description}</p>
-            </div>
-
-            {/* Icons */}
-            <div className="flex items-center gap-1 text-muted-foreground text-sm">
-              {card.types?.includes("MALE") && <span>♂</span>}
-              {card.types?.includes("FEMALE") && <span>♀</span>}
-              {card.types?.includes("HERO") && <span>🦸</span>}
-              {card.types?.includes("VILLAIN") && <span>😈</span>}
-              {card.types?.includes("VEHICLE") && <span>🚗</span>}
-            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setViewCard(card)}
+              className="text-muted-foreground"
+            >
+              View
+            </Button>
           </div>
         ))}
       </div>
@@ -107,14 +85,19 @@ const DeckEdit = () => {
       <div className="p-4 border-t border-border">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-foreground font-bold">{selectedCards.length}/12</span>
-          <div className="flex gap-1 flex-1 overflow-x-auto">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div 
-                key={i}
-                className={`w-12 h-12 rounded-lg flex-shrink-0 ${
-                  i < selectedCards.length ? "bg-accent/50" : "bg-muted"
-                }`}
-              />
+          <div className="flex gap-1 flex-1 overflow-x-auto py-1">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0">
+                {selectedCardData[i] ? (
+                  <CardDisplay 
+                    card={selectedCardData[i]} 
+                    size="small"
+                    onClick={() => toggleCard(selectedCardData[i].id)}
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-muted" />
+                )}
+              </div>
             ))}
           </div>
         </div>
@@ -136,6 +119,11 @@ const DeckEdit = () => {
           </Button>
         </div>
       </div>
+
+      {/* Full Card Viewer */}
+      {viewCard && (
+        <FullCard card={viewCard} onClose={() => setViewCard(null)} />
+      )}
 
       <div className="fixed bottom-20 left-4 text-muted-foreground text-xs">
         v0.0.36
