@@ -220,6 +220,51 @@ export type Database = {
         }
         Relationships: []
       }
+      player_stats: {
+        Row: {
+          best_win_streak: number
+          cpu_wins: number
+          created_at: string
+          elo_rating: number
+          id: string
+          last_match_at: string | null
+          pvp_draws: number
+          pvp_losses: number
+          pvp_wins: number
+          updated_at: string
+          user_id: string
+          win_streak: number
+        }
+        Insert: {
+          best_win_streak?: number
+          cpu_wins?: number
+          created_at?: string
+          elo_rating?: number
+          id?: string
+          last_match_at?: string | null
+          pvp_draws?: number
+          pvp_losses?: number
+          pvp_wins?: number
+          updated_at?: string
+          user_id: string
+          win_streak?: number
+        }
+        Update: {
+          best_win_streak?: number
+          cpu_wins?: number
+          created_at?: string
+          elo_rating?: number
+          id?: string
+          last_match_at?: string | null
+          pvp_draws?: number
+          pvp_losses?: number
+          pvp_wins?: number
+          updated_at?: string
+          user_id?: string
+          win_streak?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           coins: number
@@ -339,12 +384,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_elo_change: {
+        Args: { k_factor?: number; loser_elo: number; winner_elo: number }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      update_cpu_win: { Args: { p_user_id: string }; Returns: undefined }
+      update_pvp_stats: {
+        Args: { p_is_draw?: boolean; p_loser_id: string; p_winner_id: string }
+        Returns: undefined
       }
     }
     Enums: {
