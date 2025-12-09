@@ -195,7 +195,7 @@ const PlayComputer = () => {
             }, 800);
           }, 300);
         }
-      }, index * 500);
+      }, index * 1200);
     });
   }, [game]);
 
