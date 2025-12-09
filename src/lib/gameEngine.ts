@@ -453,6 +453,17 @@ export function applyPowers(state: GameState): GameState {
         continue;
       }
       
+      // "-X if any [character] is in play" - negative conditional
+      match = effect.match(/-(\d+)\s+if\s+(?:any\s+)?(.+?)\s+is\s+in\s+play/);
+      if (match) {
+        const penalty = parseInt(match[1]);
+        const target = match[2];
+        if (allActiveCards.some(c => matchesTarget(c.card, target))) {
+          slot.modifiedPoints -= penalty;
+        }
+        continue;
+      }
+      
       // "+X if next to any [target]"
       match = effect.match(/\+(\d+)\s+if\s+next\s+to\s+(?:any\s+)?(.+)/);
       if (match) {
