@@ -989,6 +989,19 @@ export function applyPowers(state: GameState): GameState {
         }
       }
     }
+    
+    // "Opposing card loses all adjacency effects" - Dee Dee, Lawrence Fletcher, Otto Osworth
+    if (desc.includes("opposing card loses all adjacency")) {
+      const oppositeCard = enemyBoard[oppositeIdx];
+      if (oppositeCard && !oppositeCard.cancelled) {
+        // Check if the opposite card has any adjacency-based effects in its description
+        const oppDesc = oppositeCard.card.description.toLowerCase();
+        if (oppDesc.includes("next to") || oppDesc.includes("adjacent") || oppDesc.includes("neighboring")) {
+          // Reset to base points, removing any adjacency bonuses
+          oppositeCard.modifiedPoints = oppositeCard.card.basePoints;
+        }
+      }
+    }
   };
   
   // Fourth pass: Handle round-specific effects
