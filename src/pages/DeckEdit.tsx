@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { CardListItem, CardDisplay, FullCard } from "@/components/CardDisplay";
 import { useDecks } from "@/hooks/useDecks";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useUserCards } from "@/hooks/useUserCards";
-import { starterDecks } from "@/lib/starterDecks";
+import { starterDecks, getStarterDeckBySlot } from "@/lib/starterDecks";
 import cardsData from "@/data/cards.json";
 
 interface CardData {
@@ -29,6 +30,7 @@ const DeckEdit = () => {
   const initialCardIds = location.state?.cardIds || [];
   
   const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const { getOwnedCardIds, loading: cardsLoading } = useUserCards();
   
   useEffect(() => {
@@ -43,21 +45,22 @@ const DeckEdit = () => {
   const [viewCard, setViewCard] = useState<CardData | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Get all starter deck card IDs (always available)
+  // Get the user's claimed starter deck card IDs (only their chosen deck)
   const starterCardIds = useMemo(() => {
     const ids = new Set<number>();
-    starterDecks.forEach(deck => {
-      deck.cardIds.forEach(id => ids.add(id));
-    });
+    if (profile?.starter_deck_claimed) {
+      const claimedDeckCards = getStarterDeckBySlot(profile.starter_deck_claimed);
+      claimedDeckCards.forEach(id => ids.add(id));
+    }
     return ids;
-  }, []);
+  }, [profile?.starter_deck_claimed]);
 
   // Get owned card IDs
   const ownedCardIds = useMemo(() => {
     return new Set(getOwnedCardIds());
   }, [getOwnedCardIds]);
 
-  // Available cards = owned cards + all starter deck cards
+  // Available cards = owned cards + user's claimed starter deck cards
   const availableCardIds = useMemo(() => {
     const available = new Set<number>();
     starterCardIds.forEach(id => available.add(id));
@@ -101,7 +104,7 @@ const DeckEdit = () => {
     }
   };
   
-  if (authLoading || cardsLoading) {
+  if (authLoading || cardsLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
