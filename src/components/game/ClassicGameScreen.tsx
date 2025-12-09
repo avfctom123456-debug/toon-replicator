@@ -4,6 +4,7 @@ import { ClassicBoardSlot } from "./ClassicBoardSlot";
 import { ClassicPlayerSidebar } from "./ClassicPlayerSidebar";
 import { ClassicCardPreview } from "./ClassicCardPreview";
 import { ClassicHandGrid } from "./ClassicHandGrid";
+import { ClassicGameResultModal } from "./ClassicGameResultModal";
 
 type RevealPhase = "placing" | "revealing" | "revealed";
 
@@ -22,6 +23,8 @@ interface ClassicGameScreenProps {
   permanentRevealedSlots: number[];
   effectAnimations: number[];
   playerName: string;
+  showResultModal?: boolean;
+  onCloseResultModal?: () => void;
 }
 
 export const ClassicGameScreen = ({
@@ -39,6 +42,8 @@ export const ClassicGameScreen = ({
   permanentRevealedSlots,
   effectAnimations,
   playerName,
+  showResultModal = false,
+  onCloseResultModal,
 }: ClassicGameScreenProps) => {
   const [scale, setScale] = useState(1);
 
@@ -286,6 +291,16 @@ export const ClassicGameScreen = ({
           </div>
         </div>
       </div>
+
+      {/* Game Result Modal */}
+      <ClassicGameResultModal
+        isOpen={showResultModal && game.phase === "game-over"}
+        winner={game.winner || null}
+        winMethod={game.winMethod || "Points"}
+        playerScore={game.player.totalPoints}
+        opponentScore={game.opponent.totalPoints}
+        onReview={() => onCloseResultModal?.()}
+      />
     </div>
   );
 };
