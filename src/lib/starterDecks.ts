@@ -72,7 +72,7 @@ export const starterDecks: StarterDeck[] = [
     description: "Saiyans, Namekians, and powerful energy attacks",
     cardIds: [
       454, // Spirit Goku (YELLOW) - 10 pts Saiyan Spirit
-      455, // Super Saiyan Goku (ORANGE) - 5 pts Saiyan Hero
+      458, // Kid Goku (GREEN) - 7 pts Saiyan Hero
       465, // Prince Vegeta (ORANGE) - -3 to Politicians
       457, // Angry Bulma (PINK) - x2 to Vegeta
       456, // Piccolo (ORANGE) - 9 pts Namekian Hero
