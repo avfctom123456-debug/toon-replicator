@@ -4,13 +4,15 @@ import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
-import { Coins } from "lucide-react";
+import { Coins, Package, ArrowRightLeft, Settings } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -76,6 +78,32 @@ const Home = () => {
         >
           Deck Builder
         </Button>
+        <Button 
+          variant="menu"
+          onClick={() => navigate("/pack-shop")}
+          className="flex items-center gap-2"
+        >
+          <Package className="h-5 w-5" />
+          Pack Shop
+        </Button>
+        <Button 
+          variant="menu"
+          onClick={() => navigate("/trade-board")}
+          className="flex items-center gap-2"
+        >
+          <ArrowRightLeft className="h-5 w-5" />
+          Trade Board
+        </Button>
+        {isAdmin && (
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/admin")}
+            className="flex items-center gap-2 border-primary"
+          >
+            <Settings className="h-5 w-5" />
+            Admin Panel
+          </Button>
+        )}
       </div>
 
       {/* Sign Out */}
