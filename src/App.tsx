@@ -11,6 +11,7 @@ import DeckBuilder from "./pages/DeckBuilder";
 import DeckEdit from "./pages/DeckEdit";
 import Lobby from "./pages/Lobby";
 import PlayComputer from "./pages/PlayComputer";
+import PlayPVP from "./pages/PlayPVP";
 import PackShop from "./pages/PackShop";
 import TradeBoard from "./pages/TradeBoard";
 import AdminPanel from "./pages/AdminPanel";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/deck-edit" element={<DeckEdit />} />
             <Route path="/lobby" element={<Lobby />} />
             <Route path="/play" element={<PlayComputer />} />
+            <Route path="/play-pvp" element={<PlayPVP />} />
             <Route path="/pack-shop" element={<PackShop />} />
             <Route path="/trade-board" element={<TradeBoard />} />
             <Route path="/admin" element={<AdminPanel />} />

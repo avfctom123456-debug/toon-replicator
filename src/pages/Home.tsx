@@ -61,10 +61,10 @@ const Home = () => {
       {/* Menu Buttons */}
       <div className="flex flex-col gap-3 w-full max-w-md">
         <Button 
-          variant="menu" 
-          onClick={() => navigate("/lobby")}
+          variant="menu"
+          onClick={() => navigate("/play-pvp")}
         >
-          Multiplayer Lobby
+          Play PVP
         </Button>
         <Button 
           variant="menu"

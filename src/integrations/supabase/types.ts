@@ -77,6 +77,84 @@ export type Database = {
         }
         Relationships: []
       }
+      matches: {
+        Row: {
+          created_at: string
+          current_turn: string | null
+          game_state: Json
+          id: string
+          phase: string
+          player1_deck: number[]
+          player1_id: string
+          player1_last_seen: string
+          player1_ready: boolean
+          player2_deck: number[]
+          player2_id: string
+          player2_last_seen: string
+          player2_ready: boolean
+          updated_at: string
+          win_method: string | null
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_turn?: string | null
+          game_state?: Json
+          id?: string
+          phase?: string
+          player1_deck?: number[]
+          player1_id: string
+          player1_last_seen?: string
+          player1_ready?: boolean
+          player2_deck?: number[]
+          player2_id: string
+          player2_last_seen?: string
+          player2_ready?: boolean
+          updated_at?: string
+          win_method?: string | null
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_turn?: string | null
+          game_state?: Json
+          id?: string
+          phase?: string
+          player1_deck?: number[]
+          player1_id?: string
+          player1_last_seen?: string
+          player1_ready?: boolean
+          player2_deck?: number[]
+          player2_id?: string
+          player2_last_seen?: string
+          player2_ready?: boolean
+          updated_at?: string
+          win_method?: string | null
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      matchmaking_queue: {
+        Row: {
+          created_at: string
+          deck_card_ids: number[]
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deck_card_ids?: number[]
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deck_card_ids?: number[]
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pack_cards: {
         Row: {
           card_id: number
