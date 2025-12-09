@@ -15,6 +15,8 @@ const buttonVariants = cva(
         secondary: "bg-input text-popover-foreground hover:bg-input/90 shadow-sm",
         ghost: "hover:bg-secondary/50",
         link: "text-primary underline-offset-4 hover:underline",
+        menu: "bg-card text-foreground hover:bg-card/80 border border-border/50",
+        discord: "bg-[#5865F2] text-white hover:bg-[#4752C4]",
       },
       size: {
         default: "h-10 px-4 py-2",

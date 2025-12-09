@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Shuffle } from "lucide-react";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import {
@@ -9,7 +10,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 const adjectives1 = [
   "Emotional", "Brave", "Swift", "Mighty", "Silent", "Fierce", "Gentle", "Noble", 
@@ -29,6 +29,7 @@ const nouns = [
 const getRandomItem = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
 const Index = () => {
+  const navigate = useNavigate();
   const [word1, setWord1] = useState(adjectives1[0]);
   const [word2, setWord2] = useState(adjectives2[0]);
   const [word3, setWord3] = useState(nouns[0]);
@@ -40,9 +41,9 @@ const Index = () => {
   }, []);
 
   const handleOk = useCallback(() => {
-    const username = `${word1}${word2}${word3}`;
-    toast.success(`Welcome, ${username}!`);
-  }, [word1, word2, word3]);
+    const username = `${word1} ${word2} ${word3}`;
+    navigate("/home", { state: { username } });
+  }, [word1, word2, word3, navigate]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
