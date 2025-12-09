@@ -240,10 +240,10 @@ function getOppositeIndex(position: number): number {
   return position; // Same index on opponent's board
 }
 
-// Parse multi-target strings like "Dexter, Dee Dee, Dexter's Mom, or Dexter's Dad"
+// Parse multi-target strings like "Dexter, Dee Dee, Dexter's Mom, or Dexter's Dad" or "Ed, Edd, and Eddy"
 function parseMultiTargets(targetStr: string): string[] {
-  // Split by comma or "or" and clean up
-  const parts = targetStr.split(/,\s*|\s+or\s+/).map(t => t.trim()).filter(t => t && t !== 'and');
+  // Split by comma, "or", or "and" and clean up
+  const parts = targetStr.split(/,\s*|\s+or\s+|\s+and\s+/).map(t => t.trim()).filter(t => t);
   return parts.length > 0 ? parts : [targetStr];
 }
 
@@ -253,7 +253,16 @@ function matchesSingleTarget(card: GameCard, target: string): boolean {
   // Remove "gtoon", "gtoons", "toon", "toons" suffixes as they're generic terms for any card
   lowerTarget = lowerTarget.replace(/\s*(gtoons?|toons?)\s*$/i, '').trim();
   
-  // If after removing gtoon/toon the target is empty, it doesn't match anything specific
+  // Handle "member of [Group]" pattern - extract the group name
+  const memberMatch = lowerTarget.match(/member\s+of\s+(.+)/);
+  if (memberMatch) {
+    lowerTarget = memberMatch[1].trim();
+  }
+  
+  // Also handle "[Group] member" pattern
+  lowerTarget = lowerTarget.replace(/\s+member$/i, '').trim();
+  
+  // If after cleaning the target is empty, it doesn't match anything specific
   if (!lowerTarget) return false;
   
   // Check character name
@@ -313,6 +322,7 @@ function matchesSingleTarget(card: GameCard, target: string): boolean {
     "justice league": "JUSTICE LEAGUE",
     "teen titan": "TEEN TITANS",
     "powerpuff": "POWERPUFF GIRLS",
+    "powerpuff girls": "POWERPUFF GIRLS",
     "clone wars": "CLONE WARS",
     "dragon ball": "DRAGON BALL Z",
     "dragon ball z": "DRAGON BALL Z",
@@ -330,6 +340,16 @@ function matchesSingleTarget(card: GameCard, target: string): boolean {
     "wreck-it ralph": "WRECK-IT RALPH",
     "wreck it ralph": "WRECK-IT RALPH",
     "zootopia": "ZOOTOPIA",
+    "ed, edd 'n eddy": "ED EDD N EDDY",
+    "ed edd n eddy": "ED EDD N EDDY",
+    "ed, edd n eddy": "ED EDD N EDDY",
+    "mystery, inc": "MYSTERY, INC.",
+    "mystery inc": "MYSTERY, INC.",
+    "injustice gang": "INJUSTICE GANG",
+    "imaginary friend": "IMAGINARY FRIEND",
+    "bean scouts": "BEAN SCOUTS",
+    "mucha lucha": "MUCHA LUCHA",
+    "looney tunes": "LOONEY TUNES",
   };
   
   for (const [key, group] of Object.entries(groupMap)) {
