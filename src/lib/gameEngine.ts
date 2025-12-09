@@ -913,7 +913,7 @@ export function applyPowers(state: GameState): GameState {
       const targets = targetStr.split(/,\s*|\s+or\s+/).map(t => t.trim()).filter(t => t);
       [...ownBoard, ...enemyBoard].forEach(slot => {
         if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id) {
-          if (targets.some(t => matchesTarget(slot.card, t))) {
+        if (targets.some(t => matchesTarget(slot.card, t))) {
             slot.modifiedPoints -= penalty;
           }
         }
@@ -929,6 +929,64 @@ export function applyPowers(state: GameState): GameState {
         sourceSlot.modifiedPoints += 3 * cloneCount;
       } else {
         sourceSlot.modifiedPoints += 3 * droidCount;
+      }
+    }
+    
+    // Fairy Godmother: "Set Opponent's Strongest Hero to Villain and recalculate buffs"
+    if (desc.includes("opponent's strongest hero") && desc.includes("villain")) {
+      // Find the opponent's strongest hero
+      let strongestHero: PlacedCard | null = null;
+      let strongestPoints = -1;
+      enemyBoard.forEach(slot => {
+        if (slot && !slot.cancelled && matchesTarget(slot.card, "hero")) {
+          if (slot.card.basePoints > strongestPoints) {
+            strongestPoints = slot.card.basePoints;
+            strongestHero = slot;
+          }
+        }
+      });
+      
+      if (strongestHero) {
+        // Convert HERO type to VILLAIN type
+        const heroSlot = strongestHero as PlacedCard;
+        const newTypes = heroSlot.card.types.filter(t => t !== "HERO");
+        if (!newTypes.includes("VILLAIN")) {
+          newTypes.push("VILLAIN");
+        }
+        // Create a modified card with updated types
+        heroSlot.card = { ...heroSlot.card, types: newTypes };
+      }
+    }
+    
+    // Vanellope: "If played in the 2nd round, can swap positions with choice of your first round toons"
+    if (desc.includes("swap positions") && desc.includes("2nd round") && isRound2Position(sourceSlot.position)) {
+      // Find the best round 1 card to swap with (highest base points)
+      let bestSwapIdx = -1;
+      let bestSwapPoints = -1;
+      for (let i = 0; i < 4; i++) {
+        const slot = ownBoard[i];
+        if (slot && !slot.cancelled && slot.card.basePoints > bestSwapPoints) {
+          bestSwapPoints = slot.card.basePoints;
+          bestSwapIdx = i;
+        }
+      }
+      
+      if (bestSwapIdx >= 0) {
+        const round1Slot = ownBoard[bestSwapIdx];
+        if (round1Slot) {
+          // Swap positions
+          const tempCard = { ...sourceSlot.card };
+          const tempModified = sourceSlot.modifiedPoints;
+          const tempCancelled = sourceSlot.cancelled;
+          
+          sourceSlot.card = round1Slot.card;
+          sourceSlot.modifiedPoints = round1Slot.card.basePoints;
+          sourceSlot.cancelled = round1Slot.cancelled;
+          
+          round1Slot.card = tempCard;
+          round1Slot.modifiedPoints = tempCard.basePoints;
+          round1Slot.cancelled = tempCancelled;
+        }
       }
     }
   };
