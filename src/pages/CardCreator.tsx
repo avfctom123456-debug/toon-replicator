@@ -106,10 +106,50 @@ const POWER_PATTERNS = [
   { label: "-X to opposing higher base", template: "-{points} to each opposing card with higher base value", category: "debuff" },
   { label: "-X to each [Type]", template: "-{points} to each {type}", category: "debuff" },
   
-  // Special/Complex
-  { label: "Cancels opposite [Type]", template: "Cancels opposite card if it's a {type}", category: "special" },
+  // Special/Complex (existing)
+  { label: "Cancels opposite [Type]", template: "Cancels opposite card if it is a {type}", category: "special" },
   { label: "All [Type] get +X per [Target]", template: "All {type} get +{points} for each {target} in play", category: "special" },
   { label: "+X to [Card] if adjacent to [Card]", template: "+{points} to {cardA} if adjacent to {cardB}", category: "special" },
+  
+  // === NEW EFFECTS ===
+  
+  // Defensive Effects
+  { label: "Cannot be cancelled (Shield)", template: "Cannot be cancelled", category: "defensive" },
+  { label: "Immune to cancellation", template: "Immune to cancellation and negative effects", category: "defensive" },
+  { label: "Immune to negative effects", template: "Immune to negative effects", category: "defensive" },
+  { label: "Shielded", template: "Shielded - this card cannot be cancelled", category: "defensive" },
+  
+  // Steal Effects
+  { label: "Steal X from opposite", template: "Steal {points} points from opposing card", category: "steal" },
+  { label: "Steal X from all opponents", template: "Steal {points} points from all opposing cards", category: "steal" },
+  { label: "Steal buff from opposite", template: "Steal random buff from opposite toon", category: "steal" },
+  
+  // Swap/Copy Effects
+  { label: "Swap points with neighbor", template: "Swap points with a neighboring card", category: "swap" },
+  { label: "Swap points with [Type]", template: "Swap points with neighboring {type}", category: "swap" },
+  { label: "Copy base points of [Type]", template: "Copy the base points of another {type}", category: "swap" },
+  { label: "Mirror opposing effect", template: "Mirror opposing card's effect", category: "swap" },
+  
+  // Position-Based Effects
+  { label: "+X if in corner", template: "+{points} if placed in corner", category: "position" },
+  { label: "+X if in center", template: "+{points} if placed in center", category: "position" },
+  { label: "+X per adjacent filled slot", template: "+{points} for each adjacent filled slot", category: "position" },
+  
+  // Underdog/Comeback Effects
+  { label: "+X if total lower (Underdog)", template: "+{points} if your total is lower than opponent's", category: "underdog" },
+  { label: "x2 if total lower", template: "x2 if your total is lower than opponent's", category: "underdog" },
+  { label: "x2 if only non-cancelled (Last Stand)", template: "x2 if this is your only non-cancelled card", category: "underdog" },
+  
+  // Random/Gamble Effects
+  { label: "Random +1 to +5", template: "Randomly gain +1 to +5 points", category: "random" },
+  { label: "Random +1 to +10", template: "Randomly gain +1 to +10 points", category: "random" },
+  { label: "Random +5 to +15", template: "Randomly gain +5 to +15 points", category: "random" },
+  
+  // Sacrifice/Chain Effects
+  { label: "Sacrifice for +X to all", template: "Cancel this card to give +{points} to all your other cards", category: "chain" },
+  { label: "Double neighbor effects (Echo)", template: "Double each neighboring card's effect", category: "chain" },
+  { label: "+X per triggered effect (Amplify)", template: "+{points} for each card with a triggered effect", category: "chain" },
+  { label: "+X per negative on your cards (Counter)", template: "+{points} for each negative effect on your cards", category: "chain" },
 ];
 
 const COMMON_GROUPS = [
@@ -553,6 +593,134 @@ export default function CardCreator() {
                   <p className="text-xs text-purple-400">Special / Complex</p>
                   <div className="flex flex-wrap gap-1">
                     {POWER_PATTERNS.filter(p => p.category === "special" || p.category === "basic").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* NEW EFFECT CATEGORIES */}
+                
+                {/* Defensive */}
+                <div className="space-y-1">
+                  <p className="text-xs text-cyan-400">🛡️ Defensive (Shield, Immunity)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "defensive").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Steal */}
+                <div className="space-y-1">
+                  <p className="text-xs text-rose-400">💀 Steal Effects</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "steal").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Swap/Copy */}
+                <div className="space-y-1">
+                  <p className="text-xs text-indigo-400">🔄 Swap / Copy / Mirror</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "swap").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Position */}
+                <div className="space-y-1">
+                  <p className="text-xs text-teal-400">📍 Position-Based</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "position").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Underdog */}
+                <div className="space-y-1">
+                  <p className="text-xs text-amber-400">🔥 Underdog / Comeback</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "underdog").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Random */}
+                <div className="space-y-1">
+                  <p className="text-xs text-emerald-400">🎲 Random / Gamble</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "random").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Chain/Combo */}
+                <div className="space-y-1">
+                  <p className="text-xs text-fuchsia-400">⚡ Chain / Combo Effects</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "chain").map((pattern) => (
                       <Button
                         key={pattern.label}
                         variant="outline"
