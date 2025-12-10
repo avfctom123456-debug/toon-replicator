@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
+import { NotificationBell } from "@/components/NotificationBell";
 import { toast } from "sonner";
-import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy } from "lucide-react";
+import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const Home = () => {
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground animate-pulse">Loading...</div>
       </div>
     );
   }
@@ -37,109 +38,144 @@ const Home = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center px-4 py-8">
-      {/* Logo */}
-      <div className="mb-4">
+    <div className="min-h-screen bg-background flex flex-col items-center px-4 py-6 md:py-8">
+      {/* Header with logo and notifications */}
+      <div className="w-full max-w-md flex items-center justify-between mb-4">
+        <div className="w-10" /> {/* Spacer */}
         <img 
           src={gtoonsLogo} 
           alt="gTOONS Remastered" 
-          className="w-56 md:w-72 h-auto"
+          className="w-48 md:w-64 h-auto"
         />
+        <NotificationBell />
       </div>
 
-      {/* Currency Display */}
-      <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-full mb-6">
-        <Coins className="h-5 w-5 text-yellow-500" />
-        <span className="text-foreground font-bold">{profile?.coins ?? 0}</span>
+      {/* Player Info Card */}
+      <div className="w-full max-w-md bg-card/50 backdrop-blur border border-border/50 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-muted-foreground text-sm">Welcome back,</p>
+            <h1 className="text-2xl font-bold text-primary">
+              {profile?.username || "Player"}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-full border border-border/30">
+            <Coins className="h-5 w-5 text-yellow-500" />
+            <span className="text-foreground font-bold text-lg">{profile?.coins ?? 0}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Welcome Message */}
-      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">
-        Welcome {profile?.username || "Player"}!
-      </h1>
+      {/* Play Section */}
+      <div className="w-full max-w-md space-y-3 mb-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Play</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/play-pvp")}
+            className="h-20 flex flex-col gap-1"
+          >
+            <Swords className="h-6 w-6" />
+            <span>Play PVP</span>
+          </Button>
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/play")}
+            className="h-20 flex flex-col gap-1"
+          >
+            <Bot className="h-6 w-6" />
+            <span>Play CPU</span>
+          </Button>
+        </div>
+      </div>
 
-      {/* Menu Buttons */}
-      <div className="flex flex-col gap-3 w-full max-w-md">
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/play-pvp")}
-        >
-          Play PVP
-        </Button>
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/play")}
-        >
-          Play Computer
-        </Button>
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/deck-builder")}
-        >
-          Deck Builder
-        </Button>
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/collection")}
-          className="flex items-center gap-2"
-        >
-          <Library className="h-5 w-5" />
-          Card Collection
-        </Button>
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/pack-shop")}
-          className="flex items-center gap-2"
-        >
-          <Package className="h-5 w-5" />
-          Pack Shop
-        </Button>
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/trade-board")}
-          className="flex items-center gap-2"
-        >
-          <ArrowRightLeft className="h-5 w-5" />
-          Trade Board
-        </Button>
+      {/* Cards Section */}
+      <div className="w-full max-w-md space-y-3 mb-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Cards</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/deck-builder")}
+            className="h-16 flex items-center justify-center gap-2"
+          >
+            <Layers className="h-5 w-5" />
+            <span>Deck Builder</span>
+          </Button>
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/collection")}
+            className="h-16 flex items-center justify-center gap-2"
+          >
+            <Library className="h-5 w-5" />
+            <span>Collection</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Shop & Trade Section */}
+      <div className="w-full max-w-md space-y-3 mb-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Shop & Trade</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/pack-shop")}
+            className="h-16 flex items-center justify-center gap-2"
+          >
+            <Package className="h-5 w-5" />
+            <span>Pack Shop</span>
+          </Button>
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/trade-board")}
+            className="h-16 flex items-center justify-center gap-2"
+          >
+            <ArrowRightLeft className="h-5 w-5" />
+            <span>Trade Board</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Leaderboard */}
+      <div className="w-full max-w-md mb-4">
         <Button 
           variant="menu"
           onClick={() => navigate("/leaderboard")}
-          className="flex items-center gap-2"
+          className="w-full h-14 flex items-center justify-center gap-2"
         >
           <Trophy className="h-5 w-5" />
-          Leaderboard
+          <span>Leaderboard</span>
         </Button>
-        {isAdmin && (
+      </div>
+
+      {/* Admin Panel */}
+      {isAdmin && (
+        <div className="w-full max-w-md mb-4">
           <Button 
             variant="menu"
             onClick={() => navigate("/admin")}
-            className="flex items-center gap-2 border-primary"
+            className="w-full h-14 flex items-center justify-center gap-2 border-primary/50"
           >
             <Settings className="h-5 w-5" />
-            Admin Panel
+            <span>Admin Panel</span>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Sign Out */}
-      <div className="mt-6">
-        <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
-          Sign Out
-        </Button>
-      </div>
-
-      {/* Discord Button */}
-      <div className="mt-4 flex flex-col items-center gap-2">
+      {/* Footer */}
+      <div className="w-full max-w-md mt-auto pt-4 flex flex-col items-center gap-3">
         <Button 
           variant="discord"
           onClick={() => window.open("https://discord.gg/gtoons", "_blank")}
           className="flex items-center gap-2"
         >
           <DiscordIcon />
-          Discord
+          Join Discord
         </Button>
-        <p className="text-accent text-sm italic">Join the Discord to play with others!</p>
+        <p className="text-accent/80 text-xs text-center">Join the community to find matches!</p>
+        
+        <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground text-sm">
+          Sign Out
+        </Button>
       </div>
 
       {/* Version */}
@@ -151,7 +187,7 @@ const Home = () => {
 };
 
 const DiscordIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
     <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
   </svg>
 );
