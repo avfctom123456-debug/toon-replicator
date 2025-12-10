@@ -256,6 +256,8 @@ export const ClassicGameScreen = ({
                     const isEmptySlotActive = isRound1 && !hasCard && revealPhase === "placing" && !waitingForOpponent;
                     const isPlacedCardClickable = isRound1 && hasCard && revealPhase === "placing" && !waitingForOpponent;
                     const cardId = game.player.board[i]?.card.id;
+                    // Only show card info for cards that are NOT removable (locked in from previous round or after reveal)
+                    const canViewCard = !isSlotHidden(i, false) && game.player.board[i] && !isPlacedCardClickable;
                     return (
                       <ClassicBoardSlot
                         key={`player-${i}`}
@@ -266,7 +268,7 @@ export const ClassicGameScreen = ({
                         isHidden={isSlotHidden(i, false)}
                         isRevealing={isSlotRevealing(i, false)}
                         hasEffect={effectAnimations.includes(i)}
-                        onViewCard={!isSlotHidden(i, false) && game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
+                        onViewCard={canViewCard ? () => onViewCard(game.player.board[i]) : undefined}
                         customImageUrl={cardId ? getOverride(cardId)?.custom_image_url : undefined}
                       />
                     );
@@ -279,6 +281,8 @@ export const ClassicGameScreen = ({
                     const isEmptySlotActive = isRound2 && !hasCard && revealPhase === "placing" && !waitingForOpponent;
                     const isPlacedCardClickable = isRound2 && hasCard && revealPhase === "placing" && !waitingForOpponent;
                     const cardId = game.player.board[i]?.card.id;
+                    // Only show card info for cards that are NOT removable (locked in from previous round or after reveal)
+                    const canViewCard = !isSlotHidden(i, false) && game.player.board[i] && !isPlacedCardClickable;
                     return (
                       <ClassicBoardSlot
                         key={`player-${i}`}
@@ -289,7 +293,7 @@ export const ClassicGameScreen = ({
                         isHidden={isSlotHidden(i, false)}
                         isRevealing={isSlotRevealing(i, false)}
                         hasEffect={effectAnimations.includes(i)}
-                        onViewCard={!isSlotHidden(i, false) && game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
+                        onViewCard={canViewCard ? () => onViewCard(game.player.board[i]) : undefined}
                         customImageUrl={cardId ? getOverride(cardId)?.custom_image_url : undefined}
                       />
                     );
