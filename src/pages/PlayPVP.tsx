@@ -401,21 +401,23 @@ const PlayPVP = () => {
     return () => clearInterval(timer);
   }, [gamePhase, decks]);
 
-  // Game timer
+  // Game timer - only count down when not waiting for opponent
   useEffect(() => {
-    if (!game || game.phase === "game-over" || revealPhase !== "placing" || gamePhase !== "playing") return;
+    if (!game || game.phase === "game-over" || revealPhase !== "placing" || gamePhase !== "playing" || waitingForOpponent) return;
     
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          return 60;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [game?.phase, revealPhase, gamePhase]);
+  }, [game?.phase, revealPhase, gamePhase, waitingForOpponent]);
+
+  // Handle time running out - auto-confirm placement
+  useEffect(() => {
+    if (timeLeft <= 0 && game && revealPhase === "placing" && gamePhase === "playing" && !waitingForOpponent) {
+      confirmPlacement();
+    }
+  }, [timeLeft, game, revealPhase, gamePhase, waitingForOpponent]);
 
   const handleDeckSelect = useCallback(async (deckCardIds: number[]) => {
     if (deckCardIds.length < 12) {
@@ -436,27 +438,48 @@ const PlayPVP = () => {
   }, [leaveQueue]);
 
   const placeCard = async (slotIndex: number) => {
-    if (!game || !selectedHandCard || !matchId) return;
+    if (!game || !matchId) return;
     if (game.phase !== "round1-place" && game.phase !== "round2-place") return;
-    if (revealPhase !== "placing") return;
+    if (revealPhase !== "placing" || waitingForOpponent) return;
 
     const maxSlot = game.phase === "round1-place" ? 4 : 7;
     const minSlot = game.phase === "round1-place" ? 0 : 4;
 
     if (slotIndex < minSlot || slotIndex >= maxSlot) return;
-    if (game.player.board[slotIndex] !== null) return;
 
-    // Duplicate characters are allowed - they will cancel each other out during reveal
+    const existingCard = game.player.board[slotIndex];
 
+    // If clicking on an occupied slot with no card selected, return it to hand
+    if (existingCard && !selectedHandCard) {
+      const newBoard = [...game.player.board];
+      newBoard[slotIndex] = null;
+      const newHand = [...game.player.hand, existingCard.card];
+
+      setGame({
+        ...game,
+        player: { ...game.player, board: newBoard, hand: newHand },
+      });
+      return;
+    }
+
+    // If no card selected and slot empty, nothing to do
+    if (!selectedHandCard) return;
+
+    // Place the selected card (replace existing if any)
     const newBoard = [...game.player.board];
+    let newHand = game.player.hand.filter(c => c.id !== selectedHandCard.id);
+
+    // If there's an existing card, return it to hand
+    if (existingCard) {
+      newHand = [...newHand, existingCard.card];
+    }
+
     newBoard[slotIndex] = {
       card: selectedHandCard,
       cancelled: false,
       modifiedPoints: selectedHandCard.points,
       position: slotIndex,
     };
-
-    const newHand = game.player.hand.filter(c => c.id !== selectedHandCard.id);
 
     setGame({
       ...game,
@@ -614,6 +637,7 @@ const PlayPVP = () => {
         onCloseResultModal={() => setShowResultModal(false)}
         opponentName={opponentProfile?.username || "Opponent"}
         opponentStatus={getOpponentStatus()}
+        waitingForOpponent={waitingForOpponent}
       />
 
       <CardInfoModal placedCard={viewingCard} onClose={() => setViewingCard(null)} />
