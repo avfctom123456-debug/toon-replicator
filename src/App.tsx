@@ -31,25 +31,29 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/deck-builder" element={<DeckBuilder />} />
-            <Route path="/deck-edit" element={<DeckEdit />} />
-            <Route path="/lobby" element={<Lobby />} />
-            <Route path="/play" element={<PlayComputer />} />
-            <Route path="/play-pvp" element={<PlayPVP />} />
-            <Route path="/pack-shop" element={<PackShop />} />
-            <Route path="/trade-board" element={<TradeBoard />} />
-            <Route path="/auction/:id" element={<AuctionView />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/card-editor" element={<CardEditor />} />
-            <Route path="/card-creator" element={<CardCreator />} />
-            <Route path="/collection" element={<CardCollection />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <div className="min-h-screen w-full flex justify-center bg-background">
+            <div className="w-full max-w-7xl">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/home" element={<Home />} />
+                <Route path="/deck-builder" element={<DeckBuilder />} />
+                <Route path="/deck-edit" element={<DeckEdit />} />
+                <Route path="/lobby" element={<Lobby />} />
+                <Route path="/play" element={<PlayComputer />} />
+                <Route path="/play-pvp" element={<PlayPVP />} />
+                <Route path="/pack-shop" element={<PackShop />} />
+                <Route path="/trade-board" element={<TradeBoard />} />
+                <Route path="/auction/:id" element={<AuctionView />} />
+                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/card-editor" element={<CardEditor />} />
+                <Route path="/card-creator" element={<CardCreator />} />
+                <Route path="/collection" element={<CardCollection />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </div>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
