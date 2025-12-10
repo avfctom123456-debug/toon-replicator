@@ -14,6 +14,7 @@ import PlayComputer from "./pages/PlayComputer";
 import PlayPVP from "./pages/PlayPVP";
 import PackShop from "./pages/PackShop";
 import TradeBoard from "./pages/TradeBoard";
+import AuctionView from "./pages/AuctionView";
 import AdminPanel from "./pages/AdminPanel";
 import CardCollection from "./pages/CardCollection";
 import CardEditor from "./pages/CardEditor";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/play-pvp" element={<PlayPVP />} />
             <Route path="/pack-shop" element={<PackShop />} />
             <Route path="/trade-board" element={<TradeBoard />} />
+            <Route path="/auction/:id" element={<AuctionView />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/card-editor" element={<CardEditor />} />
             <Route path="/card-creator" element={<CardCreator />} />
