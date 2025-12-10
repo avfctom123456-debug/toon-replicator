@@ -13,6 +13,11 @@ export interface PlayerStats {
   win_streak: number;
   best_win_streak: number;
   last_match_at: string | null;
+  packs_opened: number;
+  total_coins_earned: number;
+  highest_score: number;
+  color_wins: number;
+  perfect_wins: number;
   created_at: string;
   updated_at: string;
 }
@@ -84,7 +89,56 @@ export const usePlayerStats = () => {
     return true;
   };
 
-  return { stats, loading, updatePvpStats, updateCpuWin, refetchStats: fetchStats };
+  // Update game-specific stats for achievements
+  const updateGameStats = async (options: {
+    score?: number;
+    isColorWin?: boolean;
+    isPerfectWin?: boolean;
+  }) => {
+    if (!user) return false;
+
+    const updates: Record<string, unknown> = {};
+    
+    // Get current stats
+    const { data: currentStats } = await supabase
+      .from("player_stats")
+      .select("highest_score, color_wins, perfect_wins")
+      .eq("user_id", user.id)
+      .single();
+
+    if (options.score !== undefined) {
+      const currentHighest = currentStats?.highest_score || 0;
+      if (options.score > currentHighest) {
+        updates.highest_score = options.score;
+      }
+    }
+
+    if (options.isColorWin) {
+      updates.color_wins = (currentStats?.color_wins || 0) + 1;
+    }
+
+    if (options.isPerfectWin) {
+      updates.perfect_wins = (currentStats?.perfect_wins || 0) + 1;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      if (currentStats) {
+        await supabase
+          .from("player_stats")
+          .update(updates)
+          .eq("user_id", user.id);
+      } else {
+        await supabase
+          .from("player_stats")
+          .insert({ user_id: user.id, ...updates });
+      }
+    }
+
+    await fetchStats();
+    return true;
+  };
+
+  return { stats, loading, updatePvpStats, updateCpuWin, updateGameStats, refetchStats: fetchStats };
 };
 
 export const useLeaderboard = (limit: number = 50) => {
