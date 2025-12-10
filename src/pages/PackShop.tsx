@@ -55,9 +55,17 @@ export default function PackShop() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <div className="flex items-center gap-2 text-foreground">
-            <Coins className="h-5 w-5 text-yellow-500" />
-            <span className="font-bold">{profile?.coins || 0}</span>
+          <div className="flex items-center gap-4">
+            {(profile?.free_packs_remaining ?? 0) > 0 && (
+              <div className="flex items-center gap-1 text-green-500 bg-green-500/10 px-3 py-1 rounded-full">
+                <Gift className="h-4 w-4" />
+                <span className="font-bold text-sm">{profile?.free_packs_remaining} Free</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-foreground">
+              <Coins className="h-5 w-5 text-yellow-500" />
+              <span className="font-bold">{profile?.coins || 0}</span>
+            </div>
           </div>
         </div>
 
@@ -125,17 +133,24 @@ export default function PackShop() {
                       <span className="text-sm text-muted-foreground">
                         {pack.cards_per_pack} cards
                       </span>
-                      <div className="flex items-center gap-1 text-yellow-500">
-                        <Coins className="h-4 w-4" />
-                        <span className="font-bold">{pack.cost}</span>
-                      </div>
+                      {(profile?.free_packs_remaining ?? 0) > 0 ? (
+                        <div className="flex items-center gap-1 text-green-500">
+                          <Gift className="h-4 w-4" />
+                          <span className="font-bold">FREE</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-yellow-500">
+                          <Coins className="h-4 w-4" />
+                          <span className="font-bold">{pack.cost}</span>
+                        </div>
+                      )}
                     </div>
                     <Button
                       onClick={() => handleOpenPack(pack.id)}
-                      disabled={opening || (profile?.coins || 0) < pack.cost}
+                      disabled={opening || ((profile?.free_packs_remaining ?? 0) === 0 && (profile?.coins || 0) < pack.cost)}
                       className="w-full"
                     >
-                      {opening ? "Opening..." : "Open Pack"}
+                      {opening ? "Opening..." : (profile?.free_packs_remaining ?? 0) > 0 ? "Open Free Pack" : "Open Pack"}
                     </Button>
                   </CardContent>
                 </Card>

@@ -644,6 +644,7 @@ export type Database = {
         Row: {
           coins: number
           created_at: string
+          free_packs_remaining: number
           id: string
           starter_deck_claimed: string | null
           updated_at: string
@@ -653,6 +654,7 @@ export type Database = {
         Insert: {
           coins?: number
           created_at?: string
+          free_packs_remaining?: number
           id?: string
           starter_deck_claimed?: string | null
           updated_at?: string
@@ -662,6 +664,7 @@ export type Database = {
         Update: {
           coins?: number
           created_at?: string
+          free_packs_remaining?: number
           id?: string
           starter_deck_claimed?: string | null
           updated_at?: string
