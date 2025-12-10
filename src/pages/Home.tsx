@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationBell";
+import { PromoCodeRedeemer } from "@/components/PromoCodeRedeemer";
 import { toast } from "sonner";
 import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers } from "lucide-react";
 
@@ -41,7 +42,7 @@ const Home = () => {
     <div className="min-h-screen bg-background flex flex-col items-center px-4 py-6 md:py-8">
       {/* Header with logo and notifications */}
       <div className="w-full max-w-md flex items-center justify-between mb-4">
-        <div className="w-10" /> {/* Spacer */}
+        <PromoCodeRedeemer onSuccess={() => window.location.reload()} />
         <img 
           src={gtoonsLogo} 
           alt="gTOONS Remastered" 

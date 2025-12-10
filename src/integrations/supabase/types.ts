@@ -419,6 +419,71 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_code_redemptions: {
+        Row: {
+          id: string
+          promo_code_id: string
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          promo_code_id: string
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          promo_code_id?: string
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_code_redemptions_promo_code_id_fkey"
+            columns: ["promo_code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          current_uses: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          reward_type: string
+          reward_value: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          current_uses?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          reward_type: string
+          reward_value: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          current_uses?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          reward_type?: string
+          reward_value?: number
+        }
+        Relationships: []
+      }
       season_player_stats: {
         Row: {
           created_at: string
@@ -623,6 +688,7 @@ export type Database = {
         Args: { p_auction_id: string; p_bid_amount: number }
         Returns: Json
       }
+      redeem_promo_code: { Args: { p_code: string }; Returns: Json }
       update_cpu_win: { Args: { p_user_id: string }; Returns: undefined }
       update_pvp_stats: {
         Args: { p_is_draw?: boolean; p_loser_id: string; p_winner_id: string }
