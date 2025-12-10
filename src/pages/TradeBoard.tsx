@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -221,9 +222,12 @@ export default function TradeBoard() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <div className="flex items-center gap-2 text-foreground">
-            <Coins className="h-5 w-5 text-yellow-500" />
-            <span className="font-bold">{profile?.coins || 0}</span>
+          <div className="flex items-center gap-3 text-foreground">
+            <NotificationBell />
+            <div className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-yellow-500" />
+              <span className="font-bold">{profile?.coins || 0}</span>
+            </div>
           </div>
         </div>
 
