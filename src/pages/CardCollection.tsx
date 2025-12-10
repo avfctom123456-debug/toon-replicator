@@ -7,6 +7,7 @@ import { FullCard } from "@/components/CardDisplay";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserCards } from "@/hooks/useUserCards";
 import { useProfile } from "@/hooks/useProfile";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 import { getStarterDeckBySlot } from "@/lib/starterDecks";
 import cardsData from "@/data/cards.json";
 
@@ -46,6 +47,7 @@ export default function CardCollection() {
   const { user, loading: authLoading } = useAuth();
   const { getCardQuantity, getCardCopyNumbers, loading: cardsLoading } = useUserCards();
   const { profile, loading: profileLoading } = useProfile();
+  const { getOverride } = useCardOverrides();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -259,6 +261,9 @@ export default function CardCollection() {
               return "bg-accent text-accent-foreground";
             };
 
+            const override = getOverride(card.id);
+            const customImageUrl = override?.custom_image_url;
+
             return (
               <div
                 key={card.id}
@@ -267,7 +272,7 @@ export default function CardCollection() {
                   owned ? "ring-2 ring-accent" : "opacity-40 grayscale"
                 }`}
               >
-                <CollectionCardImage card={card} bgColor={bgColor} />
+                <CollectionCardImage card={card} bgColor={bgColor} customImageUrl={customImageUrl} />
                 
                 {/* Copy number badge (shows lowest owned) */}
                 {owned && lowestCopy && (
@@ -310,18 +315,23 @@ export default function CardCollection() {
 
       {/* Full card view modal */}
       {viewCard && (
-        <FullCard card={viewCard} onClose={() => setViewCard(null)} />
+        <FullCard 
+          card={viewCard} 
+          onClose={() => setViewCard(null)} 
+          customImageUrl={getOverride(viewCard.id)?.custom_image_url}
+        />
       )}
     </div>
   );
 }
 
-function CollectionCardImage({ card, bgColor }: { card: CardData; bgColor: string }) {
+function CollectionCardImage({ card, bgColor, customImageUrl }: { card: CardData; bgColor: string; customImageUrl?: string | null }) {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
 
   return (
-    <div className={`aspect-square rounded-lg ${bgColor} overflow-hidden flex items-center justify-center`}>
+    <div className={`aspect-square rounded-full ${bgColor} overflow-hidden flex items-center justify-center border-4 border-muted shadow-lg`}>
       {!imageError ? (
         <img
           src={imageUrl}
