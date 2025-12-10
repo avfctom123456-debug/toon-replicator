@@ -46,11 +46,13 @@ interface CardDisplayProps {
   size?: "small" | "medium" | "large";
   selected?: boolean;
   onClick?: () => void;
+  customImageUrl?: string | null;
 }
 
-export const CardDisplay = ({ card, size = "medium", selected = false, onClick }: CardDisplayProps) => {
+export const CardDisplay = ({ card, size = "medium", selected = false, onClick, customImageUrl }: CardDisplayProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const gradient = colorMap[card.colors?.[0]] || "from-gray-400 to-gray-600";
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
   
@@ -96,11 +98,13 @@ interface CardListItemProps {
   card: CardData;
   selected?: boolean;
   onClick?: () => void;
+  customImageUrl?: string | null;
 }
 
-export const CardListItem = ({ card, selected = false, onClick }: CardListItemProps) => {
+export const CardListItem = ({ card, selected = false, onClick, customImageUrl }: CardListItemProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
 
   return (
@@ -150,11 +154,13 @@ export const CardListItem = ({ card, selected = false, onClick }: CardListItemPr
 interface FullCardProps {
   card: CardData;
   onClose?: () => void;
+  customImageUrl?: string | null;
 }
 
-export const FullCard = ({ card, onClose }: FullCardProps) => {
+export const FullCard = ({ card, onClose, customImageUrl }: FullCardProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const gradient = colorMap[card.colors?.[0]] || "from-gray-400 to-gray-600";
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
 

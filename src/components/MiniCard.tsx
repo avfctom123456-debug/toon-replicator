@@ -27,11 +27,13 @@ interface MiniCardProps {
   size?: "xs" | "sm" | "md";
   showPoints?: boolean;
   copyNumber?: number | null;
+  customImageUrl?: string | null;
 }
 
-export const MiniCard = ({ card, size = "sm", showPoints = true, copyNumber }: MiniCardProps) => {
+export const MiniCard = ({ card, size = "sm", showPoints = true, copyNumber, customImageUrl }: MiniCardProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const bgColor = colorBg[card.colors?.[0] || ""] || "bg-gray-500";
 
   const sizeClasses = {
@@ -87,11 +89,13 @@ interface CardRowProps {
   card: CardData;
   onRemove?: () => void;
   copyNumber?: number | null;
+  customImageUrl?: string | null;
 }
 
-export const CardChip = ({ card, onRemove, copyNumber }: CardRowProps) => {
+export const CardChip = ({ card, onRemove, copyNumber, customImageUrl }: CardRowProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const bgColor = colorBg[card.colors?.[0] || ""] || "bg-gray-500";
 
   // Lower numbers are more rare - gold for #1-10, silver for #11-50
