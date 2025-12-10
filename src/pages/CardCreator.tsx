@@ -123,6 +123,14 @@ const POWER_PATTERNS = [
   { label: "Steal X from opposite", template: "Steal {points} points from opposing card", category: "steal" },
   { label: "Steal X from all opponents", template: "Steal {points} points from all opposing cards", category: "steal" },
   { label: "Steal buff from opposite", template: "Steal random buff from opposite toon", category: "steal" },
+  { label: "Steal effect from opposite", template: "Steal the effect from opposite card", category: "steal" },
+  
+  // Double Effects
+  { label: "Double effect to the left", template: "Double the effect of the card to the left", category: "amplify" },
+  { label: "Double effect to the right", template: "Double the effect of the card to the right", category: "amplify" },
+  
+  // Random Cancel
+  { label: "Cancel random opponent", template: "Cancel a random opponent's gtoon", category: "special" },
   
   // Swap/Copy Effects
   { label: "Swap points with neighbor", template: "Swap points with a neighboring card", category: "swap" },
