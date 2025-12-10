@@ -5,11 +5,19 @@ import { useProfile } from "./useProfile";
 import { useUserCards } from "./useUserCards";
 import { toast } from "sonner";
 
+interface OfferCardWithCopy {
+  card_id: number;
+  user_card_id: string;
+  copy_number: number | null;
+}
+
 interface Trade {
   id: string;
   user_id: string;
   status: "open" | "completed" | "cancelled";
   offer_card_ids: number[];
+  offer_user_card_ids: string[] | null;
+  offer_cards_with_copies: OfferCardWithCopy[];
   offer_coins: number;
   want_card_ids: number[];
   want_coins: number;
@@ -33,7 +41,34 @@ export function useTrades() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTrades((data as Trade[]) || []);
+
+      // Fetch copy numbers for offered cards
+      const tradesWithCopies = await Promise.all(
+        (data || []).map(async (trade) => {
+          const offerUserCardIds = trade.offer_user_card_ids || [];
+          let offerCardsWithCopies: OfferCardWithCopy[] = [];
+
+          if (offerUserCardIds.length > 0) {
+            const { data: userCardsData } = await supabase
+              .from("user_cards")
+              .select("id, card_id, copy_number")
+              .in("id", offerUserCardIds);
+
+            offerCardsWithCopies = (userCardsData || []).map(uc => ({
+              card_id: uc.card_id,
+              user_card_id: uc.id,
+              copy_number: uc.copy_number,
+            }));
+          }
+
+          return {
+            ...trade,
+            offer_cards_with_copies: offerCardsWithCopies,
+          } as Trade;
+        })
+      );
+
+      setTrades(tradesWithCopies);
     } catch (error) {
       console.error("Error fetching trades:", error);
     } finally {
@@ -50,7 +85,8 @@ export function useTrades() {
       offerCardIds: number[],
       offerCoins: number,
       wantCardIds: number[],
-      wantCoins: number
+      wantCoins: number,
+      offerUserCardIds?: string[]
     ): Promise<boolean> => {
       if (!user) return false;
 
@@ -72,6 +108,7 @@ export function useTrades() {
         const { error } = await supabase.from("trades").insert({
           user_id: user.id,
           offer_card_ids: offerCardIds,
+          offer_user_card_ids: offerUserCardIds || [],
           offer_coins: offerCoins,
           want_card_ids: wantCardIds,
           want_coins: wantCoins,
