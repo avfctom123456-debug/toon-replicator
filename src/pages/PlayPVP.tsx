@@ -349,7 +349,16 @@ const PlayPVP = () => {
       const gameStateData = match.game_state as Record<string, unknown>;
       const opponentBoard = gameStateData?.[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
       
-      if (opponentBoard) {
+      // Validate opponent has actually placed cards for the current round
+      const isRound1 = game.phase === "round1-place";
+      const requiredSlots = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
+      const hasValidOpponentBoard = opponentBoard && 
+        Array.isArray(opponentBoard) && 
+        requiredSlots.every(slot => opponentBoard[slot] !== null && opponentBoard[slot] !== undefined);
+      
+      if (hasValidOpponentBoard) {
+        console.log('Both players ready, starting reveal. Opponent board:', opponentBoard);
+        
         setGame(prev => {
           if (!prev) return prev;
           return {
@@ -362,7 +371,6 @@ const PlayPVP = () => {
         });
 
         // Start reveal with updated game state
-        const isRound1 = game.phase === "round1-place";
         const updatedGame = {
           ...game,
           opponent: {
@@ -378,6 +386,8 @@ const PlayPVP = () => {
         setTimeout(() => {
           performReveal(updatedGame, isRound1);
         }, 100);
+      } else {
+        console.log('Opponent ready but board not valid yet:', opponentBoard);
       }
     }
   }, [match, game, isPlayer1, waitingForOpponent, revealPhase, performReveal, gamePhase]);
