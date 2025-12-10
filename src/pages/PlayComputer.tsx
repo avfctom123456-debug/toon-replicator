@@ -411,6 +411,78 @@ const PlayComputer = () => {
     setViewingCard(null);
   };
 
+  // Handle gambling animation completion - MUST be before early returns
+  const handleGamblingComplete = useCallback(() => {
+    setGamblingResult(null);
+    if (gamblingQueue.length > 0) {
+      const [next, ...rest] = gamblingQueue;
+      setGamblingQueue(rest);
+      setTimeout(() => setGamblingResult(next), 100);
+    }
+  }, [gamblingQueue]);
+
+  // Handle choice effect selection - MUST be before early returns
+  const handleChoiceSelect = useCallback((choice: string) => {
+    if (!game || !choiceData) return;
+    
+    setGame(prev => {
+      if (!prev) return prev;
+      
+      const board = choiceData.isPlayer ? [...prev.player.board] : [...prev.opponent.board];
+      const card = board[choiceData.cardPosition];
+      
+      if (card) {
+        card.choiceResolved = true;
+        card.chosenEffect = choice;
+        
+        if (choice.startsWith('flat:')) {
+          const bonus = parseInt(choice.split(':')[1]);
+          card.modifiedPoints += bonus;
+        } else if (choice.startsWith('self:')) {
+          const bonus = parseInt(choice.split(':')[1]);
+          card.modifiedPoints += bonus;
+        } else if (choice.startsWith('opposite:')) {
+          const penalty = parseInt(choice.split(':')[1]);
+          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
+          const oppositeCard = oppositeBoard[choiceData.cardPosition];
+          if (oppositeCard && !oppositeCard.shielded) {
+            oppositeCard.modifiedPoints += penalty;
+          }
+        } else if (choice === 'cancel-opposite') {
+          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
+          const oppositeCard = oppositeBoard[choiceData.cardPosition];
+          if (oppositeCard && !oppositeCard.shielded) {
+            oppositeCard.cancelled = true;
+          }
+        } else if (choice === 'double-self') {
+          card.modifiedPoints *= 2;
+        }
+      }
+      
+      if (choiceData.isPlayer) {
+        return { ...prev, player: { ...prev.player, board } };
+      } else {
+        return { ...prev, opponent: { ...prev.opponent, board: board as (PlacedCard | null)[] } };
+      }
+    });
+    
+    setChoiceData(null);
+    
+    if (pendingChoiceCards.length > 0 && game) {
+      const [next, ...rest] = pendingChoiceCards;
+      setPendingChoiceCards(rest);
+      
+      const board = next.isPlayer ? game.player.board : game.opponent.board;
+      const card = board[next.position];
+      if (card) {
+        const parsed = parseChoiceEffect(card.card.description || '', card.card.title, next.position, next.isPlayer);
+        if (parsed) {
+          setTimeout(() => setChoiceData(parsed), 100);
+        }
+      }
+    }
+  }, [game, choiceData, pendingChoiceCards]);
+
   if (authLoading || decksLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -452,82 +524,6 @@ const PlayComputer = () => {
   }
 
   if (!game) return null;
-
-  // Handle gambling animation completion
-  const handleGamblingComplete = useCallback(() => {
-    setGamblingResult(null);
-    // Process next gambling result in queue if any
-    if (gamblingQueue.length > 0) {
-      const [next, ...rest] = gamblingQueue;
-      setGamblingQueue(rest);
-      setTimeout(() => setGamblingResult(next), 100);
-    }
-  }, [gamblingQueue]);
-
-  // Handle choice effect selection
-  const handleChoiceSelect = useCallback((choice: string) => {
-    if (!game || !choiceData) return;
-    
-    // Apply the choice result to the game state
-    setGame(prev => {
-      if (!prev) return prev;
-      
-      const board = choiceData.isPlayer ? [...prev.player.board] : [...prev.opponent.board];
-      const card = board[choiceData.cardPosition];
-      
-      if (card) {
-        card.choiceResolved = true;
-        card.chosenEffect = choice;
-        
-        // Apply the chosen effect
-        if (choice.startsWith('flat:')) {
-          const bonus = parseInt(choice.split(':')[1]);
-          card.modifiedPoints += bonus;
-        } else if (choice.startsWith('self:')) {
-          const bonus = parseInt(choice.split(':')[1]);
-          card.modifiedPoints += bonus;
-        } else if (choice.startsWith('opposite:')) {
-          const penalty = parseInt(choice.split(':')[1]);
-          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
-          const oppositeCard = oppositeBoard[choiceData.cardPosition];
-          if (oppositeCard && !oppositeCard.shielded) {
-            oppositeCard.modifiedPoints += penalty;
-          }
-        } else if (choice === 'cancel-opposite') {
-          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
-          const oppositeCard = oppositeBoard[choiceData.cardPosition];
-          if (oppositeCard && !oppositeCard.shielded) {
-            oppositeCard.cancelled = true;
-          }
-        } else if (choice === 'double-self') {
-          card.modifiedPoints *= 2;
-        }
-      }
-      
-      if (choiceData.isPlayer) {
-        return { ...prev, player: { ...prev.player, board } };
-      } else {
-        return { ...prev, opponent: { ...prev.opponent, board: board as (PlacedCard | null)[] } };
-      }
-    });
-    
-    setChoiceData(null);
-    
-    // Process next pending choice if any
-    if (pendingChoiceCards.length > 0) {
-      const [next, ...rest] = pendingChoiceCards;
-      setPendingChoiceCards(rest);
-      
-      const board = next.isPlayer ? game.player.board : game.opponent.board;
-      const card = board[next.position];
-      if (card) {
-        const parsed = parseChoiceEffect(card.card.description || '', card.card.title, next.position, next.isPlayer);
-        if (parsed) {
-          setTimeout(() => setChoiceData(parsed), 100);
-        }
-      }
-    }
-  }, [game, choiceData, pendingChoiceCards]);
 
   // Classic Game Screen (forced desktop view)
   return (
