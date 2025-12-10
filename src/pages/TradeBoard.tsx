@@ -15,8 +15,9 @@ import { MiniCard, CardChip } from "@/components/MiniCard";
 import { toast } from "sonner";
 import { 
   ArrowLeft, Coins, ArrowRightLeft, Plus, Gavel, Clock, 
-  TrendingUp, User
+  TrendingUp, User, History
 } from "lucide-react";
+import { AuctionBidHistoryModal } from "@/components/trade/AuctionBidHistoryModal";
 import {
   Dialog,
   DialogContent,
@@ -653,6 +654,15 @@ export default function TradeBoard() {
                                 {isHighestBidder && <span className="text-green-500 ml-1">(You!)</span>}
                               </div>
                             )}
+                            <AuctionBidHistoryModal 
+                              auction={auction} 
+                              trigger={
+                                <button className="flex items-center gap-1 text-xs text-primary hover:underline mt-1">
+                                  <History className="h-3 w-3" />
+                                  View bid history
+                                </button>
+                              }
+                            />
                           </div>
                         </div>
 
