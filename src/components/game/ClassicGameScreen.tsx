@@ -5,6 +5,7 @@ import { ClassicPlayerSidebar } from "./ClassicPlayerSidebar";
 import { ClassicCardPreview } from "./ClassicCardPreview";
 import { ClassicHandGrid } from "./ClassicHandGrid";
 import { ClassicGameResultModal } from "./ClassicGameResultModal";
+import { EffectIndicators } from "./EffectIndicators";
 import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 type RevealPhase = "placing" | "revealing" | "revealed";
@@ -173,7 +174,10 @@ export const ClassicGameScreen = ({
             />
 
             {/* Center - Game Board */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col relative">
+              {/* Effect Indicators - shown during reveal */}
+              <EffectIndicators game={game} isRevealing={revealPhase === "revealing" || revealPhase === "revealed"} />
+              
               {/* Opponent Board Area */}
               <div className="flex-1 bg-[hsl(200,25%,78%)] p-4 flex flex-col justify-end">
               {/* Round 2 row (3 slots) - Top */}
@@ -336,6 +340,7 @@ export const ClassicGameScreen = ({
         playerScore={game.player.totalPoints}
         opponentScore={game.opponent.totalPoints}
         onReview={() => onCloseResultModal?.()}
+        reverseScoring={game.reverseScoring}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ArrowDownUp } from "lucide-react";
 
 interface ClassicGameResultModalProps {
   isOpen: boolean;
@@ -7,6 +8,7 @@ interface ClassicGameResultModalProps {
   playerScore: number;
   opponentScore: number;
   onReview: () => void;
+  reverseScoring?: boolean;
 }
 
 export const ClassicGameResultModal = ({
@@ -16,6 +18,7 @@ export const ClassicGameResultModal = ({
   playerScore,
   opponentScore,
   onReview,
+  reverseScoring = false,
 }: ClassicGameResultModalProps) => {
   const navigate = useNavigate();
 
@@ -29,7 +32,10 @@ export const ClassicGameResultModal = ({
 
   const getSubtitle = () => {
     if (winner === "tie") return "Match Drawn";
-    return `Winner by ${winMethod.charAt(0).toUpperCase() + winMethod.slice(1)}`;
+    const method = reverseScoring && winMethod === "points" 
+      ? "Lowest Points" 
+      : winMethod.charAt(0).toUpperCase() + winMethod.slice(1);
+    return `Winner by ${method}`;
   };
 
   return (
@@ -58,9 +64,19 @@ export const ClassicGameResultModal = ({
           </h2>
           
           {/* Subtitle - Win Method */}
-          <p className="text-[hsl(200,30%,40%)] text-lg mb-2">
+          <p className="text-[hsl(200,30%,40%)] text-lg mb-2 flex items-center justify-center gap-2">
+            {reverseScoring && <ArrowDownUp className="w-4 h-4 text-purple-600" />}
             {getSubtitle()}
+            {reverseScoring && <ArrowDownUp className="w-4 h-4 text-purple-600" />}
           </p>
+          
+          {/* Reverse Scoring Notice */}
+          {reverseScoring && (
+            <div className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full mb-3 inline-flex items-center gap-1">
+              <ArrowDownUp className="w-3 h-3" />
+              Reverse Scoring Active
+            </div>
+          )}
 
           {/* Score Display */}
           <div className="flex justify-center items-center gap-4 mb-6 text-[hsl(200,40%,35%)]">
