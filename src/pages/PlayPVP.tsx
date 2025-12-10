@@ -566,24 +566,44 @@ const PlayPVP = () => {
     return (
       <div className="min-h-screen bg-[hsl(210,50%,15%)] flex items-center justify-center">
         <div className="bg-gradient-to-b from-[hsl(200,25%,80%)] to-[hsl(200,30%,70%)] rounded-lg p-8 text-center shadow-2xl">
-          <div className="animate-pulse mb-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-[hsl(200,50%,50%)] flex items-center justify-center">
-              <span className="text-white text-2xl">🔍</span>
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-[hsl(200,50%,25%)] mb-2">
-            Searching for opponent...
-          </h2>
-          <p className="text-[hsl(200,40%,35%)] mb-4">
-            Time: {Math.floor(searchTime / 60)}:{(searchTime % 60).toString().padStart(2, '0')}
-          </p>
-          <Button
-            onClick={cancelSearch}
-            variant="secondary"
-            className="bg-[hsl(200,30%,60%)] hover:bg-[hsl(200,30%,55%)] text-white"
-          >
-            Cancel
-          </Button>
+          {matchmakingStatus === 'matched' && opponentProfile ? (
+            <>
+              <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">✓</span>
+              </div>
+              <h2 className="text-2xl font-bold text-[hsl(200,50%,25%)] mb-2">
+                Opponent Found!
+              </h2>
+              <div className="bg-[hsl(200,30%,85%)] rounded-lg px-6 py-3 mb-4">
+                <p className="text-[hsl(200,40%,45%)] text-sm">Playing against</p>
+                <p className="text-[hsl(200,50%,25%)] font-bold text-xl">{opponentProfile.username}</p>
+              </div>
+              <p className="text-[hsl(200,40%,35%)] text-sm animate-pulse">
+                Starting game...
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="animate-pulse mb-4">
+                <div className="w-16 h-16 mx-auto rounded-full bg-[hsl(200,50%,50%)] flex items-center justify-center">
+                  <span className="text-white text-2xl">🔍</span>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-[hsl(200,50%,25%)] mb-2">
+                Searching for opponent...
+              </h2>
+              <p className="text-[hsl(200,40%,35%)] mb-4">
+                Time: {Math.floor(searchTime / 60)}:{(searchTime % 60).toString().padStart(2, '0')}
+              </p>
+              <Button
+                onClick={cancelSearch}
+                variant="secondary"
+                className="bg-[hsl(200,30%,60%)] hover:bg-[hsl(200,30%,55%)] text-white"
+              >
+                Cancel
+              </Button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -601,6 +621,7 @@ const PlayPVP = () => {
         playerCard={playerBottomCard}
         opponentCard={opponentBottomCard}
         playerName={profile?.username || "Player"}
+        opponentName={opponentProfile?.username || "Opponent"}
         mainColors={loadingGameState.mainColors}
         status={`vs ${opponentProfile?.username || 'Opponent'}`}
       />

@@ -135,6 +135,7 @@ interface ClassicLoadingScreenProps {
   playerCard: GameCard;
   opponentCard: GameCard;
   playerName: string;
+  opponentName?: string;
   mainColors: string[];
   status: string;
 }
@@ -143,6 +144,7 @@ export const ClassicLoadingScreen = ({
   playerCard,
   opponentCard,
   playerName,
+  opponentName = "Computer",
   mainColors,
   status,
 }: ClassicLoadingScreenProps) => {
@@ -241,7 +243,7 @@ export const ClassicLoadingScreen = ({
           </div>
 
           {/* Opponent Card */}
-          <ClassicCardDisplay card={opponentCard} playerName="Computer" isOpponent customImageUrl={getOverride(opponentCard.id)?.custom_image_url} />
+          <ClassicCardDisplay card={opponentCard} playerName={opponentName} isOpponent customImageUrl={getOverride(opponentCard.id)?.custom_image_url} />
         </div>
 
         {/* Status Button */}
