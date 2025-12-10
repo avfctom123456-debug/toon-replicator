@@ -1,6 +1,29 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(1320, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+  } catch (e) {
+    console.log("Could not play notification sound:", e);
+  }
+};
 
 export interface ChallengeInvite {
   id: string;
@@ -95,7 +118,14 @@ export const useChallenges = (onChallengeAccepted?: (matchId: string) => void) =
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "challenge_invites" },
-        () => fetchChallenges()
+        async (payload) => {
+          const newChallenge = payload.new as ChallengeInvite;
+          // If this is an incoming challenge for us, play sound
+          if (user && newChallenge.challenged_id === user.id) {
+            playNotificationSound();
+          }
+          fetchChallenges();
+        }
       )
       .on(
         "postgres_changes",
@@ -112,6 +142,13 @@ export const useChallenges = (onChallengeAccepted?: (matchId: string) => void) =
   const sendChallenge = async (friendUserId: string, deckCardIds: number[]) => {
     if (!user) return null;
 
+    // Get challenger's username
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("user_id", user.id)
+      .single();
+
     const { data, error } = await supabase
       .from("challenge_invites")
       .insert({
@@ -127,6 +164,15 @@ export const useChallenges = (onChallengeAccepted?: (matchId: string) => void) =
       console.error("Error sending challenge:", error);
       return null;
     }
+
+    // Create notification for the challenged user
+    await supabase.from("notifications").insert({
+      user_id: friendUserId,
+      type: "challenge_received",
+      title: "Challenge Received!",
+      message: `${profile?.username || "A player"} has challenged you to a match!`,
+      data: { challenge_id: data.id, challenger_id: user.id },
+    });
 
     return data;
   };
