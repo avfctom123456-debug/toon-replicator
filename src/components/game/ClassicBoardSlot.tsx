@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlacedCard } from "@/lib/gameEngine";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { CardEffectBadge } from "./EffectIndicators";
+import { TransformAnimation, TransformIndicator } from "./TransformAnimation";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
@@ -55,6 +56,8 @@ export const ClassicBoardSlot = ({
   customImageUrl,
 }: ClassicBoardSlotProps) => {
   const [imageError, setImageError] = useState(false);
+  const [showTransformAnim, setShowTransformAnim] = useState(false);
+  const [prevTransformState, setPrevTransformState] = useState<string | null>(null);
   const slotSize = "w-20 h-20";
 
   if (slot) {
@@ -62,6 +65,23 @@ export const ClassicBoardSlot = ({
     const borderColor = colorBorder[slot.card.colors?.[0]] || "border-gray-400";
     const defaultImageUrl = `${IMAGE_BASE_URL}/${slot.card.id}.jpg`;
     const imageUrl = customImageUrl || defaultImageUrl;
+    
+    // Detect transform changes for animation
+    const currentTransformState = JSON.stringify({
+      types: slot.convertedTypes,
+      colors: slot.convertedColors,
+    });
+    
+    useEffect(() => {
+      if (prevTransformState === null) {
+        setPrevTransformState(currentTransformState);
+      } else if (prevTransformState !== currentTransformState && 
+                 (slot.convertedTypes?.length || slot.convertedColors?.length)) {
+        setShowTransformAnim(true);
+        setPrevTransformState(currentTransformState);
+        setTimeout(() => setShowTransformAnim(false), 1500);
+      }
+    }, [currentTransformState, prevTransformState]);
     // Hidden card (face down with GToons logo)
     if (isHidden) {
       return (
@@ -132,6 +152,19 @@ export const ClassicBoardSlot = ({
         )}
         {/* Special effect badges */}
         <CardEffectBadge slot={slot} />
+        
+        {/* Transform animation */}
+        <TransformAnimation
+          isVisible={showTransformAnim}
+          transformType={slot.convertedColors?.length ? "color" : "type"}
+          newValue={slot.convertedColors?.[0] || slot.convertedTypes?.[0]}
+        />
+        
+        {/* Persistent transform indicator */}
+        <TransformIndicator
+          convertedTypes={slot.convertedTypes}
+          convertedColors={slot.convertedColors}
+        />
       </div>
     );
   }
