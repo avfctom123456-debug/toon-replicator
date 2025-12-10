@@ -1,5 +1,5 @@
 import { GameState, PlacedCard } from "@/lib/gameEngine";
-import { Sparkles, ArrowDownUp, Palette, Shuffle, Zap, Shield, Target } from "lucide-react";
+import { Sparkles, ArrowDownUp, Palette, Shuffle, Zap, Shield, Target, RefreshCw, Dices } from "lucide-react";
 
 interface EffectIndicatorsProps {
   game: GameState;
@@ -92,6 +92,28 @@ export const EffectIndicators = ({ game, isRevealing }: EffectIndicatorsProps) =
     });
   }
   
+  // Check for type-transformed cards
+  const typeTransformedCards = allCards.filter(slot => slot.convertedTypes && slot.convertedTypes.length > 0);
+  if (typeTransformedCards.length > 0) {
+    activeEffects.push({
+      id: "type-transform",
+      icon: <RefreshCw className="w-4 h-4" />,
+      label: "Type Transformed",
+      color: "bg-emerald-500",
+    });
+  }
+  
+  // Check for gambling effects resolved
+  const gamblingCards = allCards.filter(slot => slot.gamblingResult);
+  if (gamblingCards.length > 0) {
+    activeEffects.push({
+      id: "gambling",
+      icon: <Dices className="w-4 h-4" />,
+      label: "Gambling Effect",
+      color: "bg-amber-500",
+    });
+  }
+  
   if (activeEffects.length === 0 || !isRevealing) return null;
   
   return (
@@ -159,6 +181,33 @@ export const CardEffectBadge = ({ slot }: { slot: PlacedCard }) => {
       icon: <Target className="w-3 h-3" />,
       color: "bg-red-500",
       title: `${slot.stolenPoints} points stolen`,
+    });
+  }
+  
+  // Type transformed badge
+  if (slot.convertedTypes && slot.convertedTypes.length > 0) {
+    badges.push({
+      icon: <RefreshCw className="w-3 h-3" />,
+      color: "bg-emerald-500",
+      title: `Now: ${slot.convertedTypes.join(', ')}`,
+    });
+  }
+  
+  // Gambling result badge
+  if (slot.gamblingResult) {
+    badges.push({
+      icon: <Dices className="w-3 h-3" />,
+      color: slot.gamblingResult === 'win' ? "bg-green-500" : "bg-red-500",
+      title: `Gambling ${slot.gamblingResult}`,
+    });
+  }
+  
+  // Choice effect resolved
+  if (slot.choiceResolved && slot.chosenEffect) {
+    badges.push({
+      icon: <Zap className="w-3 h-3" />,
+      color: "bg-purple-500",
+      title: `Choice: ${slot.chosenEffect}`,
     });
   }
   

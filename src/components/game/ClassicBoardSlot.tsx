@@ -79,6 +79,9 @@ export const ClassicBoardSlot = ({
 
     const pointsDiff = slot.modifiedPoints - slot.card.basePoints;
     const hasPointsChange = pointsDiff !== 0;
+    const isTransformed = (slot.convertedColors && slot.convertedColors.length > 0) || 
+                         (slot.convertedTypes && slot.convertedTypes.length > 0);
+    const hasGamblingEffect = slot.gamblingResult === 'win' || slot.gamblingResult === 'lose';
 
     return (
       <div 
@@ -89,6 +92,8 @@ export const ClassicBoardSlot = ({
       >
         <div className={`w-full h-full rounded-full ${bgColor} overflow-hidden border-4 ${borderColor} shadow-lg transition-transform ${
           hasEffect ? "scale-110 ring-2 ring-yellow-400" : ""
+        } ${isTransformed ? "ring-2 ring-emerald-400 ring-offset-2 ring-offset-transparent" : ""} ${
+          hasGamblingEffect ? (slot.gamblingResult === 'win' ? "ring-2 ring-amber-400" : "ring-2 ring-red-400") : ""
         } ${onViewCard ? "hover:ring-2 hover:ring-white/50" : ""} ${isClickable ? "hover:ring-2 hover:ring-red-400/50 hover:scale-95" : ""}`}>
           {!imageError ? (
             <img
