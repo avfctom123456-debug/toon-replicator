@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -199,6 +200,8 @@ export const useTournaments = () => {
 };
 
 export const useTournamentDetails = (tournamentId: string) => {
+  const queryClient = useQueryClient();
+
   const { data: tournament } = useQuery({
     queryKey: ['tournament', tournamentId],
     queryFn: async () => {
@@ -267,6 +270,58 @@ export const useTournamentDetails = (tournamentId: string) => {
     },
     enabled: !!tournamentId,
   });
+
+  // Real-time subscriptions
+  useEffect(() => {
+    if (!tournamentId) return;
+
+    const channel = supabase
+      .channel(`tournament-${tournamentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournaments',
+          filter: `id=eq.${tournamentId}`,
+        },
+        () => {
+          console.log('Tournament updated');
+          queryClient.invalidateQueries({ queryKey: ['tournament', tournamentId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournament_matches',
+          filter: `tournament_id=eq.${tournamentId}`,
+        },
+        () => {
+          console.log('Tournament match updated');
+          queryClient.invalidateQueries({ queryKey: ['tournament-matches', tournamentId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournament_participants',
+          filter: `tournament_id=eq.${tournamentId}`,
+        },
+        () => {
+          console.log('Tournament participants updated');
+          queryClient.invalidateQueries({ queryKey: ['tournament-participants', tournamentId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tournamentId, queryClient]);
 
   return { tournament, participants, matches };
 };
