@@ -30,6 +30,7 @@ interface ClassicGameScreenProps {
   onCloseResultModal?: () => void;
   opponentName?: string;
   opponentStatus?: OpponentStatus;
+  waitingForOpponent?: boolean;
 }
 
 export const ClassicGameScreen = ({
@@ -51,6 +52,7 @@ export const ClassicGameScreen = ({
   onCloseResultModal,
   opponentName = "Computer",
   opponentStatus,
+  waitingForOpponent = false,
 }: ClassicGameScreenProps) => {
   const { getOverride } = useCardOverrides();
   const [scale, setScale] = useState(1);
@@ -214,14 +216,19 @@ export const ClassicGameScreen = ({
               <div className="bg-[hsl(212,60%,25%)] py-2 flex items-center justify-center gap-4">
                 <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,30%,70%)] rounded-full px-6 py-2 shadow-lg border border-[hsl(200,40%,90%)] flex items-center gap-4">
                   <span className="text-[hsl(212,60%,25%)] font-bold">
-                    {getStatusMessage()}
+                    {waitingForOpponent ? "Waiting for opponent..." : getStatusMessage()}
                   </span>
-                  {isPlacing && (
+                  {isPlacing && !waitingForOpponent && (
                     <span className="text-[hsl(212,50%,40%)] font-medium">
                       Time Left: {timeLeft}
                     </span>
                   )}
-                  {isPlacing && placedCount >= requiredCards && (
+                  {waitingForOpponent && (
+                    <span className="text-[hsl(212,50%,40%)] font-medium animate-pulse">
+                      ⏳
+                    </span>
+                  )}
+                  {isPlacing && placedCount >= requiredCards && !waitingForOpponent && (
                     <button
                       onClick={onConfirm}
                       className="bg-[hsl(200,40%,85%)] hover:bg-[hsl(200,50%,80%)] text-[hsl(212,60%,25%)] font-bold px-4 py-1 rounded-full transition-colors border border-[hsl(200,30%,60%)]"
@@ -245,14 +252,16 @@ export const ClassicGameScreen = ({
                 {/* Round 1 row (4 slots) - Top */}
                 <div className="flex justify-center gap-4 mb-3">
                   {[0, 1, 2, 3].map((i) => {
-                    const isActive = isRound1 && game.player.board[i] === null && revealPhase === "placing";
+                    const hasCard = game.player.board[i] !== null;
+                    const isEmptySlotActive = isRound1 && !hasCard && revealPhase === "placing" && !waitingForOpponent;
+                    const isPlacedCardClickable = isRound1 && hasCard && revealPhase === "placing" && !waitingForOpponent;
                     const cardId = game.player.board[i]?.card.id;
                     return (
                       <ClassicBoardSlot
                         key={`player-${i}`}
                         slot={game.player.board[i]}
-                        isActive={isActive}
-                        isClickable={isActive && selectedHandCard !== null}
+                        isActive={isEmptySlotActive || isPlacedCardClickable}
+                        isClickable={(isEmptySlotActive && selectedHandCard !== null) || isPlacedCardClickable}
                         onClick={() => onPlaceCard(i)}
                         isHidden={isSlotHidden(i, false)}
                         isRevealing={isSlotRevealing(i, false)}
@@ -266,14 +275,16 @@ export const ClassicGameScreen = ({
                 {/* Round 2 row (3 slots) - Bottom */}
                 <div className="flex justify-center gap-4">
                   {[4, 5, 6].map((i) => {
-                    const isActive = isRound2 && game.player.board[i] === null && revealPhase === "placing";
+                    const hasCard = game.player.board[i] !== null;
+                    const isEmptySlotActive = isRound2 && !hasCard && revealPhase === "placing" && !waitingForOpponent;
+                    const isPlacedCardClickable = isRound2 && hasCard && revealPhase === "placing" && !waitingForOpponent;
                     const cardId = game.player.board[i]?.card.id;
                     return (
                       <ClassicBoardSlot
                         key={`player-${i}`}
                         slot={game.player.board[i]}
-                        isActive={isActive}
-                        isClickable={isActive && selectedHandCard !== null}
+                        isActive={isEmptySlotActive || isPlacedCardClickable}
+                        isClickable={(isEmptySlotActive && selectedHandCard !== null) || isPlacedCardClickable}
                         onClick={() => onPlaceCard(i)}
                         isHidden={isSlotHidden(i, false)}
                         isRevealing={isSlotRevealing(i, false)}
