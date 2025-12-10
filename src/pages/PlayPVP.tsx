@@ -425,6 +425,12 @@ const PlayPVP = () => {
       return;
     }
 
+    // Reset state from any previous match
+    setOpponentProfile(null);
+    setLoadingGameState(null);
+    setGame(null);
+    setRewardsProcessed(false);
+    
     setSelectedDeck(deckCardIds);
     setGamePhase("searching");
     
@@ -566,7 +572,7 @@ const PlayPVP = () => {
     return (
       <div className="min-h-screen bg-[hsl(210,50%,15%)] flex items-center justify-center">
         <div className="bg-gradient-to-b from-[hsl(200,25%,80%)] to-[hsl(200,30%,70%)] rounded-lg p-8 text-center shadow-2xl">
-          {matchmakingStatus === 'matched' && opponentProfile ? (
+          {matchmakingStatus === 'matched' && matchId ? (
             <>
               <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <span className="text-white font-bold text-2xl">✓</span>
@@ -574,10 +580,12 @@ const PlayPVP = () => {
               <h2 className="text-2xl font-bold text-[hsl(200,50%,25%)] mb-2">
                 Opponent Found!
               </h2>
-              <div className="bg-[hsl(200,30%,85%)] rounded-lg px-6 py-3 mb-4">
-                <p className="text-[hsl(200,40%,45%)] text-sm">Playing against</p>
-                <p className="text-[hsl(200,50%,25%)] font-bold text-xl">{opponentProfile.username}</p>
-              </div>
+              {opponentProfile && (
+                <div className="bg-[hsl(200,30%,85%)] rounded-lg px-6 py-3 mb-4">
+                  <p className="text-[hsl(200,40%,45%)] text-sm">Playing against</p>
+                  <p className="text-[hsl(200,50%,25%)] font-bold text-xl">{opponentProfile.username}</p>
+                </div>
+              )}
               <p className="text-[hsl(200,40%,35%)] text-sm animate-pulse">
                 Starting game...
               </p>
