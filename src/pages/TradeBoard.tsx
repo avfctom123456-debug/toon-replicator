@@ -112,7 +112,7 @@ export default function TradeBoard() {
       return uc?.card_id || 0;
     }).filter(id => id > 0);
     
-    const success = await createTrade(offerCardIds, offerCoins, wantCardIds, wantCoins);
+    const success = await createTrade(offerCardIds, offerCoins, wantCardIds, wantCoins, offerUserCardIds);
     if (success) {
       setShowCreateDialog(false);
       setOfferUserCardIds([]);
@@ -401,15 +401,36 @@ export default function TradeBoard() {
                           <div>
                             <p className="text-sm font-semibold text-foreground mb-2">Offering:</p>
                             <div className="flex flex-wrap gap-2">
-                              {trade.offer_card_ids.map((cardId) => {
-                                const card = getCardById(cardId);
-                                return card ? (
-                                  <div key={cardId} className="flex items-center gap-2">
-                                    <MiniCard card={card} size="sm" />
-                                    <span className="text-sm text-muted-foreground">{card.title}</span>
-                                  </div>
-                                ) : null;
-                              })}
+                              {trade.offer_cards_with_copies && trade.offer_cards_with_copies.length > 0 
+                                ? trade.offer_cards_with_copies.map((offerCard) => {
+                                    const card = getCardById(offerCard.card_id);
+                                    return card ? (
+                                      <div key={offerCard.user_card_id} className="flex items-center gap-2">
+                                        <MiniCard card={card} size="sm" copyNumber={offerCard.copy_number} />
+                                        <span className="text-sm text-muted-foreground">
+                                          {card.title}
+                                          {offerCard.copy_number && (
+                                            <span className={`ml-1 ${
+                                              offerCard.copy_number <= 10 ? "text-yellow-500 font-bold" :
+                                              offerCard.copy_number <= 50 ? "text-gray-400" : ""
+                                            }`}>
+                                              #{offerCard.copy_number}
+                                            </span>
+                                          )}
+                                        </span>
+                                      </div>
+                                    ) : null;
+                                  })
+                                : trade.offer_card_ids.map((cardId) => {
+                                    const card = getCardById(cardId);
+                                    return card ? (
+                                      <div key={cardId} className="flex items-center gap-2">
+                                        <MiniCard card={card} size="sm" />
+                                        <span className="text-sm text-muted-foreground">{card.title}</span>
+                                      </div>
+                                    ) : null;
+                                  })
+                              }
                             </div>
                             {trade.offer_coins > 0 && (
                               <div className="flex items-center gap-1 text-sm text-yellow-500 mt-2">
