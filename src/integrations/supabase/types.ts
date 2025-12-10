@@ -343,8 +343,10 @@ export type Database = {
           best_win_streak: number
           cpu_wins: number
           created_at: string
+          daily_coins_earned: number
           elo_rating: number
           id: string
+          last_coin_reset: string
           last_match_at: string | null
           pvp_draws: number
           pvp_losses: number
@@ -357,8 +359,10 @@ export type Database = {
           best_win_streak?: number
           cpu_wins?: number
           created_at?: string
+          daily_coins_earned?: number
           elo_rating?: number
           id?: string
+          last_coin_reset?: string
           last_match_at?: string | null
           pvp_draws?: number
           pvp_losses?: number
@@ -371,8 +375,10 @@ export type Database = {
           best_win_streak?: number
           cpu_wins?: number
           created_at?: string
+          daily_coins_earned?: number
           elo_rating?: number
           id?: string
+          last_coin_reset?: string
           last_match_at?: string | null
           pvp_draws?: number
           pvp_losses?: number
