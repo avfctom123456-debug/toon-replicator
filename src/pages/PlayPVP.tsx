@@ -47,6 +47,7 @@ const PlayPVP = () => {
     leaveQueue,
     joinMatch,
     setReady,
+    resetReady,
     isPlayer1,
     searchTime 
   } = useMatchmaking();
@@ -204,6 +205,8 @@ const PlayPVP = () => {
               setPermanentRevealedSlots(prev => [...prev, ...slotIndices]);
               
               if (isRound1) {
+                // Reset ready flags before starting round 2
+                resetReady();
                 newState = refillHand(newState);
                 setGame({ ...newState, phase: "round2-place" });
                 setMessage("Round 2: Place 3 more cards");
@@ -282,7 +285,7 @@ const PlayPVP = () => {
         }
       }, index * 1200);
     });
-  }, [game]);
+  }, [game, resetReady]);
 
   // Handle matchmaking status changes
   useEffect(() => {
