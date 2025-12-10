@@ -18,6 +18,8 @@ export interface PlacedCard {
   cancelled: boolean;
   modifiedPoints: number;
   position: number;
+  shielded?: boolean; // Immune to cancellation and negative effects
+  stolenPoints?: number; // Points stolen from this card
 }
 
 export interface PlayerState {
@@ -166,6 +168,21 @@ export function checkCancellations(state: GameState): GameState {
   const playerBoard = [...state.player.board];
   const opponentBoard = [...state.opponent.board];
   
+  // First, mark shielded cards (cannot be cancelled)
+  const markShielded = (board: (PlacedCard | null)[]) => {
+    board.forEach((slot, i) => {
+      if (slot) {
+        const desc = slot.card.description.toLowerCase();
+        if (desc.includes("cannot be cancelled") || desc.includes("immune to cancellation") || desc.includes("shielded")) {
+          board[i] = { ...slot, shielded: true };
+        }
+      }
+    });
+  };
+  
+  markShielded(playerBoard);
+  markShielded(opponentBoard);
+  
   const playerCharacters: Record<string, number[]> = {};
   const opponentCharacters: Record<string, number[]> = {};
   
@@ -190,7 +207,9 @@ export function checkCancellations(state: GameState): GameState {
   for (const char in playerCharacters) {
     if (playerCharacters[char].length > 1) {
       playerCharacters[char].forEach(i => {
-        if (playerBoard[i]) playerBoard[i] = { ...playerBoard[i]!, cancelled: true };
+        if (playerBoard[i] && !playerBoard[i]!.shielded) {
+          playerBoard[i] = { ...playerBoard[i]!, cancelled: true };
+        }
       });
     }
   }
@@ -198,7 +217,9 @@ export function checkCancellations(state: GameState): GameState {
   for (const char in opponentCharacters) {
     if (opponentCharacters[char].length > 1) {
       opponentCharacters[char].forEach(i => {
-        if (opponentBoard[i]) opponentBoard[i] = { ...opponentBoard[i]!, cancelled: true };
+        if (opponentBoard[i] && !opponentBoard[i]!.shielded) {
+          opponentBoard[i] = { ...opponentBoard[i]!, cancelled: true };
+        }
       });
     }
   }
@@ -206,10 +227,14 @@ export function checkCancellations(state: GameState): GameState {
   for (const char in playerCharacters) {
     if (opponentCharacters[char]) {
       playerCharacters[char].forEach(i => {
-        if (playerBoard[i]) playerBoard[i] = { ...playerBoard[i]!, cancelled: true };
+        if (playerBoard[i] && !playerBoard[i]!.shielded) {
+          playerBoard[i] = { ...playerBoard[i]!, cancelled: true };
+        }
       });
       opponentCharacters[char].forEach(i => {
-        if (opponentBoard[i]) opponentBoard[i] = { ...opponentBoard[i]!, cancelled: true };
+        if (opponentBoard[i] && !opponentBoard[i]!.shielded) {
+          opponentBoard[i] = { ...opponentBoard[i]!, cancelled: true };
+        }
       });
     }
   }
@@ -438,6 +463,68 @@ export function applyPowers(state: GameState): GameState {
         // Last card is position 6 (last slot of round 2)
         if (slot.position === 6) {
           slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
+      // === NEW POSITION-BASED EFFECTS ===
+      
+      // "+X if placed in corner" (slots 0 or 3 in round 1)
+      match = effect.match(/\+(\d+)\s+if\s+(?:placed\s+)?in\s+corner/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        if (slot.position === 0 || slot.position === 3) {
+          slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
+      // "+X if placed in center" (slot 5 in round 2)
+      match = effect.match(/\+(\d+)\s+if\s+(?:placed\s+)?in\s+center/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        if (slot.position === 5) {
+          slot.modifiedPoints += bonus;
+        }
+        continue;
+      }
+      
+      // "+X for each adjacent filled slot" (Anchor effect)
+      match = effect.match(/\+(\d+)\s+for\s+each\s+adjacent\s+filled\s+slot/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        const neighborCount = neighbors.filter(idx => ownBoard[idx] && !ownBoard[idx]!.cancelled).length;
+        slot.modifiedPoints += bonus * neighborCount;
+        continue;
+      }
+      
+      // "Randomly gain +X to +Y points" (Gamble effect)
+      match = effect.match(/randomly\s+gain\s+\+(\d+)\s+to\s+\+(\d+)/);
+      if (match) {
+        const min = parseInt(match[1]);
+        const max = parseInt(match[2]);
+        const randomBonus = Math.floor(Math.random() * (max - min + 1)) + min;
+        slot.modifiedPoints += randomBonus;
+        continue;
+      }
+      
+      // "Copy base points of [type]" or "Copy the base points of another [type]"
+      match = effect.match(/copy\s+(?:the\s+)?base\s+points\s+of\s+(?:another\s+)?(.+)/);
+      if (match) {
+        const target = match[1];
+        const matchingCard = allActiveCards.find(c => c.card.id !== slot.card.id && matchesTarget(c.card, target));
+        if (matchingCard) {
+          slot.modifiedPoints = matchingCard.card.basePoints;
+        }
+        continue;
+      }
+      
+      // "x2 if this is your only non-cancelled card" (Last Stand)
+      match = effect.match(/x2\s+if\s+(?:this\s+is\s+)?(?:your\s+)?only\s+non-cancelled/);
+      if (match) {
+        const ownActiveCards = ownBoard.filter(s => s && !s.cancelled);
+        if (ownActiveCards.length === 1 && ownActiveCards[0]?.card.id === slot.card.id) {
+          slot.modifiedPoints *= 2;
         }
         continue;
       }
@@ -1133,6 +1220,38 @@ export function applyPowers(state: GameState): GameState {
         });
         continue;
       }
+      
+      // === NEW EFFECTS: Sacrifice, Swap ===
+      
+      // "Cancel this card to give +X to all your other cards" (Sacrifice)
+      match = effect.match(/cancel\s+this\s+card\s+to\s+give\s+\+(\d+)\s+to\s+all/);
+      if (match) {
+        const bonus = parseInt(match[1]);
+        sourceSlot.cancelled = true;
+        ownBoard.forEach(slot => {
+          if (slot && !slot.cancelled && slot.card.id !== sourceSlot.card.id) {
+            slot.modifiedPoints += bonus;
+          }
+        });
+        continue;
+      }
+      
+      // "Swap points with neighboring [target]" or "Swap points with a neighboring card"
+      match = effect.match(/swap\s+points\s+with\s+(?:a\s+)?neighboring\s+(.+)?/);
+      if (match) {
+        const target = match[1] || "card";
+        for (const idx of neighbors) {
+          const neighbor = ownBoard[idx];
+          if (neighbor && !neighbor.cancelled && (target === "card" || matchesTarget(neighbor.card, target))) {
+            // Swap the modified points
+            const tempPoints = sourceSlot.modifiedPoints;
+            sourceSlot.modifiedPoints = neighbor.modifiedPoints;
+            neighbor.modifiedPoints = tempPoints;
+            break; // Only swap with first matching neighbor
+          }
+        }
+        continue;
+      }
     }
   };
   
@@ -1290,6 +1409,121 @@ export function applyPowers(state: GameState): GameState {
           // Reset to base points, removing any adjacency bonuses
           oppositeCard.modifiedPoints = oppositeCard.card.basePoints;
         }
+      }
+    }
+    
+    // === NEW SPECIAL EFFECTS ===
+    
+    // "Steal X points from opposing card" or "Steal X points from opposite card"
+    let stealMatch = desc.match(/steal\s+(\d+)\s+points?\s+from\s+oppos(?:ing|ite)\s+card/);
+    if (stealMatch && oppositeCard && !oppositeCard.cancelled && !sourceSlot.shielded) {
+      const stealAmount = parseInt(stealMatch[1]);
+      const actualSteal = Math.min(stealAmount, oppositeCard.modifiedPoints);
+      sourceSlot.modifiedPoints += actualSteal;
+      oppositeCard.modifiedPoints -= actualSteal;
+      oppositeCard.stolenPoints = (oppositeCard.stolenPoints || 0) + actualSteal;
+    }
+    
+    // "Steal X points from each opponent card" or "Steal X points from all opposing cards"
+    stealMatch = desc.match(/steal\s+(\d+)\s+points?\s+from\s+(?:each|all)\s+oppos(?:ing|ent)\s+cards?/);
+    if (stealMatch) {
+      const stealAmount = parseInt(stealMatch[1]);
+      enemyBoard.forEach(slot => {
+        if (slot && !slot.cancelled) {
+          const actualSteal = Math.min(stealAmount, slot.modifiedPoints);
+          sourceSlot.modifiedPoints += actualSteal;
+          slot.modifiedPoints -= actualSteal;
+          slot.stolenPoints = (slot.stolenPoints || 0) + actualSteal;
+        }
+      });
+    }
+    
+    // "Mirror opposing card's effect" or "Copy opposing card's power"
+    if ((desc.includes("mirror") || desc.includes("copy")) && 
+        (desc.includes("opposing") || desc.includes("opposite")) && 
+        desc.includes("effect") || desc.includes("power")) {
+      if (oppositeCard && !oppositeCard.cancelled) {
+        const oppDesc = oppositeCard.card.description.toLowerCase();
+        // Simple implementation: gain the same point modification the opposing card got
+        const oppBonus = oppositeCard.modifiedPoints - oppositeCard.card.basePoints;
+        if (oppBonus > 0) {
+          sourceSlot.modifiedPoints += oppBonus;
+        }
+      }
+    }
+    
+    // "+X for each negative effect on your cards" (Counter effect)
+    const counterMatch = desc.match(/\+(\d+)\s+for\s+each\s+negative\s+effect/);
+    if (counterMatch) {
+      const bonus = parseInt(counterMatch[1]);
+      let negativeCount = 0;
+      ownBoard.forEach(slot => {
+        if (slot && !slot.cancelled) {
+          // Count cards with points below base or with stolen points
+          if (slot.modifiedPoints < slot.card.basePoints || (slot.stolenPoints && slot.stolenPoints > 0)) {
+            negativeCount++;
+          }
+        }
+      });
+      sourceSlot.modifiedPoints += bonus * negativeCount;
+    }
+    
+    // "+X if your total is lower than opponent's" (Underdog effect)
+    const underdogMatch = desc.match(/\+(\d+)\s+if\s+(?:your\s+)?total\s+(?:is\s+)?lower/);
+    if (underdogMatch) {
+      const bonus = parseInt(underdogMatch[1]);
+      const ownTotal = ownBoard.filter(s => s && !s.cancelled).reduce((sum, s) => sum + (s?.modifiedPoints || 0), 0);
+      const enemyTotal = enemyBoard.filter(s => s && !s.cancelled).reduce((sum, s) => sum + (s?.modifiedPoints || 0), 0);
+      if (ownTotal < enemyTotal) {
+        sourceSlot.modifiedPoints += bonus;
+      }
+    }
+    
+    // "x2 if your total is lower than opponent's" (Underdog multiplier)
+    if (desc.includes("x2") && desc.includes("total") && desc.includes("lower")) {
+      const ownTotal = ownBoard.filter(s => s && !s.cancelled).reduce((sum, s) => sum + (s?.modifiedPoints || 0), 0);
+      const enemyTotal = enemyBoard.filter(s => s && !s.cancelled).reduce((sum, s) => sum + (s?.modifiedPoints || 0), 0);
+      if (ownTotal < enemyTotal) {
+        sourceSlot.modifiedPoints *= 2;
+      }
+    }
+    
+    // "Double each neighboring card's effect" (Echo effect)
+    if (desc.includes("double") && desc.includes("neighboring") && desc.includes("effect")) {
+      const neighbors = getNeighborIndices(sourceSlot.position);
+      neighbors.forEach(idx => {
+        const neighbor = ownBoard[idx];
+        if (neighbor && !neighbor.cancelled) {
+          const bonus = neighbor.modifiedPoints - neighbor.card.basePoints;
+          if (bonus > 0) {
+            neighbor.modifiedPoints += bonus; // Double the effect by adding it again
+          }
+        }
+      });
+    }
+    
+    // "+X for each card with a triggered effect" (Amplify effect)
+    const amplifyMatch = desc.match(/\+(\d+)\s+for\s+each\s+card\s+with\s+(?:a\s+)?triggered\s+effect/);
+    if (amplifyMatch) {
+      const bonus = parseInt(amplifyMatch[1]);
+      let effectCount = 0;
+      [...ownBoard, ...enemyBoard].forEach(slot => {
+        if (slot && !slot.cancelled) {
+          const slotDesc = slot.card.description.toLowerCase();
+          // Count cards whose points differ from base (they had an effect trigger)
+          if (slotDesc !== "no power" && slotDesc !== "no powers" && slot.modifiedPoints !== slot.card.basePoints) {
+            effectCount++;
+          }
+        }
+      });
+      sourceSlot.modifiedPoints += bonus * effectCount;
+    }
+    
+    // "Immune to negative effects" or "Cannot receive negative effects"
+    if ((desc.includes("immune to negative") || desc.includes("cannot receive negative")) && !sourceSlot.shielded) {
+      // If this card received any debuffs, restore to base
+      if (sourceSlot.modifiedPoints < sourceSlot.card.basePoints) {
+        sourceSlot.modifiedPoints = sourceSlot.card.basePoints;
       }
     }
   };
