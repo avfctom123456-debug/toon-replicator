@@ -33,11 +33,10 @@ const colorBg: Record<string, string> = {
 interface ClassicCardDisplayProps {
   card: GameCard;
   playerName: string;
-  isOpponent?: boolean;
   customImageUrl?: string | null;
 }
 
-const ClassicCardDisplay = ({ card, playerName, isOpponent, customImageUrl }: ClassicCardDisplayProps) => {
+const ClassicCardDisplay = ({ card, playerName, customImageUrl }: ClassicCardDisplayProps) => {
   const [imageError, setImageError] = useState(false);
   const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const imageUrl = customImageUrl || defaultImageUrl;
@@ -120,11 +119,11 @@ const ClassicCardDisplay = ({ card, playerName, isOpponent, customImageUrl }: Cl
       <div className="mt-3 flex items-center gap-2 bg-gradient-to-b from-[hsl(200,25%,80%)] to-[hsl(200,30%,70%)] rounded-lg px-4 py-2 shadow-md">
         <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
           <span className="text-white font-bold text-sm">
-            {isOpponent ? "C" : playerName[0]?.toUpperCase()}
+            {playerName[0]?.toUpperCase() || "?"}
           </span>
         </div>
         <span className="text-[hsl(212,50%,35%)] font-medium italic">
-          {isOpponent ? "Computer" : playerName}
+          {playerName}
         </span>
       </div>
     </div>
@@ -243,7 +242,7 @@ export const ClassicLoadingScreen = ({
           </div>
 
           {/* Opponent Card */}
-          <ClassicCardDisplay card={opponentCard} playerName={opponentName} isOpponent customImageUrl={getOverride(opponentCard.id)?.custom_image_url} />
+          <ClassicCardDisplay card={opponentCard} playerName={opponentName} customImageUrl={getOverride(opponentCard.id)?.custom_image_url} />
         </div>
 
         {/* Status Button */}
