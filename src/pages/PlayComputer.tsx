@@ -10,6 +10,7 @@ import { CardInfoModal } from "@/components/game/CardInfoModal";
 import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
 import { ClassicGameScreen } from "@/components/game/ClassicGameScreen";
+import { GamblingResult, processGamblingEffect } from "@/components/game/GamblingAnimation";
 import {
   GameState,
   PlacedCard,
@@ -47,6 +48,8 @@ const PlayComputer = () => {
   const [effectAnimations, setEffectAnimations] = useState<number[]>([]);
   const [viewingCard, setViewingCard] = useState<PlacedCard | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [gamblingResult, setGamblingResult] = useState<GamblingResult | null>(null);
+  const [gamblingQueue, setGamblingQueue] = useState<GamblingResult[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -447,6 +450,17 @@ const PlayComputer = () => {
 
   if (!game) return null;
 
+  // Handle gambling animation completion
+  const handleGamblingComplete = useCallback(() => {
+    setGamblingResult(null);
+    // Process next gambling result in queue if any
+    if (gamblingQueue.length > 0) {
+      const [next, ...rest] = gamblingQueue;
+      setGamblingQueue(rest);
+      setTimeout(() => setGamblingResult(next), 100);
+    }
+  }, [gamblingQueue]);
+
   // Classic Game Screen (forced desktop view)
   return (
     <>
@@ -467,6 +481,8 @@ const PlayComputer = () => {
         playerName={profile?.username || "Player"}
         showResultModal={showResultModal}
         onCloseResultModal={() => setShowResultModal(false)}
+        gamblingResult={gamblingResult}
+        onGamblingComplete={handleGamblingComplete}
       />
 
       {/* Card Info Modal */}
