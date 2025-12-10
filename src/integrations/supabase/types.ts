@@ -135,6 +135,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_login_rewards: {
+        Row: {
+          created_at: string
+          day_number: number
+          id: string
+          reward_type: string
+          reward_value: number
+        }
+        Insert: {
+          created_at?: string
+          day_number: number
+          id?: string
+          reward_type: string
+          reward_value: number
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          id?: string
+          reward_type?: string
+          reward_value?: number
+        }
+        Relationships: []
+      }
       decks: {
         Row: {
           card_ids: number[]
@@ -633,6 +657,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_login_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_claim_date: string | null
+          total_claims: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_claim_date?: string | null
+          total_claims?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_claim_date?: string | null
+          total_claims?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -663,6 +717,7 @@ export type Database = {
         Args: { k_factor?: number; loser_elo: number; winner_elo: number }
         Returns: number
       }
+      claim_daily_reward: { Args: never; Returns: Json }
       complete_trade: {
         Args: { p_acceptor_user_card_ids: string[]; p_trade_id: string }
         Returns: Json

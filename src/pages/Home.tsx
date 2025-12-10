@@ -7,6 +7,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PromoCodeRedeemer } from "@/components/PromoCodeRedeemer";
+import { DailyRewardsModal } from "@/components/DailyRewardsModal";
 import { toast } from "sonner";
 import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers } from "lucide-react";
 
@@ -42,11 +43,14 @@ const Home = () => {
     <div className="min-h-screen bg-background flex flex-col items-center px-4 py-6 md:py-8">
       {/* Header with logo and notifications */}
       <div className="w-full max-w-md flex items-center justify-between mb-4">
-        <PromoCodeRedeemer onSuccess={() => window.location.reload()} />
+        <div className="flex gap-2">
+          <DailyRewardsModal />
+          <PromoCodeRedeemer onSuccess={() => window.location.reload()} />
+        </div>
         <img 
           src={gtoonsLogo} 
           alt="gTOONS Remastered" 
-          className="w-48 md:w-64 h-auto"
+          className="w-40 md:w-56 h-auto"
         />
         <NotificationBell />
       </div>

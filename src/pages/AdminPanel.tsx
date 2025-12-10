@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -101,6 +101,13 @@ interface PromoRedemption {
   username?: string;
 }
 
+interface DailyReward {
+  id: string;
+  day_number: number;
+  reward_type: "coins" | "card";
+  reward_value: number;
+}
+
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -158,6 +165,14 @@ export default function AdminPanel() {
   const [promoRedemptions, setPromoRedemptions] = useState<Record<string, PromoRedemption[]>>({});
   const [loadingRedemptions, setLoadingRedemptions] = useState<string | null>(null);
 
+  // Daily rewards
+  const [dailyRewards, setDailyRewards] = useState<DailyReward[]>([]);
+  const [showAddDailyReward, setShowAddDailyReward] = useState(false);
+  const [newDailyDay, setNewDailyDay] = useState(1);
+  const [newDailyRewardType, setNewDailyRewardType] = useState<"coins" | "card">("coins");
+  const [newDailyRewardValue, setNewDailyRewardValue] = useState(50);
+  const [dailyCardSearch, setDailyCardSearch] = useState("");
+
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
 
   useEffect(() => {
@@ -171,6 +186,7 @@ export default function AdminPanel() {
         fetchPacks();
         fetchUsers();
         fetchPromoCodes();
+        fetchDailyRewards();
       }
     }
   }, [user, isAdmin, authLoading, roleLoading, navigate]);
@@ -333,6 +349,78 @@ export default function AdminPanel() {
       }
     }
   };
+
+  const fetchDailyRewards = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("daily_login_rewards")
+        .select("*")
+        .order("day_number", { ascending: true });
+
+      if (error) throw error;
+      setDailyRewards((data || []) as DailyReward[]);
+    } catch (error) {
+      console.error("Error fetching daily rewards:", error);
+    }
+  };
+
+  const handleAddDailyReward = async () => {
+    try {
+      const { error } = await supabase.from("daily_login_rewards").insert({
+        day_number: newDailyDay,
+        reward_type: newDailyRewardType,
+        reward_value: newDailyRewardValue,
+      });
+
+      if (error) throw error;
+
+      toast.success("Daily reward added!");
+      setShowAddDailyReward(false);
+      setNewDailyDay(dailyRewards.length + 1);
+      setNewDailyRewardType("coins");
+      setNewDailyRewardValue(50);
+      fetchDailyRewards();
+    } catch (error) {
+      console.error("Error adding daily reward:", error);
+      toast.error("Failed to add daily reward");
+    }
+  };
+
+  const handleUpdateDailyReward = async (id: string, field: "reward_type" | "reward_value", value: string | number) => {
+    try {
+      const { error } = await supabase
+        .from("daily_login_rewards")
+        .update({ [field]: value })
+        .eq("id", id);
+
+      if (error) throw error;
+      fetchDailyRewards();
+    } catch (error) {
+      console.error("Error updating daily reward:", error);
+      toast.error("Failed to update reward");
+    }
+  };
+
+  const handleDeleteDailyReward = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("daily_login_rewards")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success("Daily reward deleted");
+      fetchDailyRewards();
+    } catch (error) {
+      console.error("Error deleting daily reward:", error);
+      toast.error("Failed to delete reward");
+    }
+  };
+
+  const filteredDailyCards = allCards
+    .filter((c) => c.title.toLowerCase().includes(dailyCardSearch.toLowerCase()))
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .slice(0, 50);
 
   const getUserStats = (userId: string): PlayerStats | null => {
     return playerStats.find((s) => s.user_id === userId) || null;
@@ -760,6 +848,10 @@ export default function AdminPanel() {
             <TabsTrigger value="promos" className="flex items-center gap-2">
               <Ticket className="h-4 w-4" />
               Promo Codes
+            </TabsTrigger>
+            <TabsTrigger value="daily" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Daily Rewards
             </TabsTrigger>
           </TabsList>
 
@@ -1369,6 +1461,162 @@ export default function AdminPanel() {
                     })}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="daily">
+            <Card className="bg-card border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Daily Login Rewards
+                </CardTitle>
+                <Dialog open={showAddDailyReward} onOpenChange={setShowAddDailyReward}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Day
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Daily Reward</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label>Day Number</Label>
+                        <Input
+                          type="number"
+                          value={newDailyDay}
+                          onChange={(e) => setNewDailyDay(parseInt(e.target.value) || 1)}
+                          min={1}
+                        />
+                      </div>
+                      <div>
+                        <Label>Reward Type</Label>
+                        <Select value={newDailyRewardType} onValueChange={(v) => setNewDailyRewardType(v as "coins" | "card")}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="coins">Coins</SelectItem>
+                            <SelectItem value="card">Card</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {newDailyRewardType === "coins" ? (
+                        <div>
+                          <Label>Coin Amount</Label>
+                          <Input
+                            type="number"
+                            value={newDailyRewardValue}
+                            onChange={(e) => setNewDailyRewardValue(parseInt(e.target.value) || 0)}
+                            min={1}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <Label>Search Card</Label>
+                            <Input
+                              value={dailyCardSearch}
+                              onChange={(e) => setDailyCardSearch(e.target.value)}
+                              placeholder="Search by card name..."
+                            />
+                          </div>
+                          <div>
+                            <Label>Select Card</Label>
+                            <Select value={newDailyRewardValue.toString()} onValueChange={(v) => setNewDailyRewardValue(parseInt(v))}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a card" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {filteredDailyCards.map((card) => (
+                                  <SelectItem key={card.id} value={card.id.toString()}>
+                                    #{card.id} - {card.title} ({card.rarity})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                      <Button onClick={handleAddDailyReward} className="w-full">
+                        Add Reward
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {dailyRewards.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">No daily rewards configured yet</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Day</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Reward</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {dailyRewards.map((reward) => {
+                        const card = reward.reward_type === "card" ? getCardById(reward.reward_value) : null;
+                        return (
+                          <TableRow key={reward.id}>
+                            <TableCell>
+                              <Badge variant="outline">Day {reward.day_number}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={reward.reward_type}
+                                onValueChange={(v) => handleUpdateDailyReward(reward.id, "reward_type", v)}
+                              >
+                                <SelectTrigger className="w-24">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="coins">Coins</SelectItem>
+                                  <SelectItem value="card">Card</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              {reward.reward_type === "coins" ? (
+                                <Input
+                                  type="number"
+                                  value={reward.reward_value}
+                                  onChange={(e) => handleUpdateDailyReward(reward.id, "reward_value", parseInt(e.target.value) || 0)}
+                                  className="w-24"
+                                  min={1}
+                                />
+                              ) : (
+                                <span className="text-primary font-medium">
+                                  {card?.title || `Card #${reward.reward_value}`}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteDailyReward(reward.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+                <p className="text-xs text-muted-foreground mt-4">
+                  Rewards cycle after the last day. E.g., with 7 days configured, day 8 gives day 1's reward again.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
