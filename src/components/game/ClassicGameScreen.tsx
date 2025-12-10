@@ -5,6 +5,7 @@ import { ClassicPlayerSidebar } from "./ClassicPlayerSidebar";
 import { ClassicCardPreview } from "./ClassicCardPreview";
 import { ClassicHandGrid } from "./ClassicHandGrid";
 import { ClassicGameResultModal } from "./ClassicGameResultModal";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 type RevealPhase = "placing" | "revealing" | "revealed";
 
@@ -51,6 +52,7 @@ export const ClassicGameScreen = ({
   opponentName = "Computer",
   opponentStatus,
 }: ClassicGameScreenProps) => {
+  const { getOverride } = useCardOverrides();
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -174,29 +176,37 @@ export const ClassicGameScreen = ({
               <div className="flex-1 bg-[hsl(200,25%,78%)] p-4 flex flex-col justify-end">
               {/* Round 2 row (3 slots) - Top */}
                 <div className="flex justify-center gap-4 mb-3">
-                  {[4, 5, 6].map((i) => (
-                    <ClassicBoardSlot
-                      key={`opp-${i}`}
-                      slot={game.opponent.board[i]}
-                      isHidden={isSlotHidden(i, true)}
-                      isRevealing={isSlotRevealing(i, true)}
-                      hasEffect={effectAnimations.includes(i + 100)}
-                      onViewCard={!isSlotHidden(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
-                    />
-                  ))}
+                  {[4, 5, 6].map((i) => {
+                    const cardId = game.opponent.board[i]?.card.id;
+                    return (
+                      <ClassicBoardSlot
+                        key={`opp-${i}`}
+                        slot={game.opponent.board[i]}
+                        isHidden={isSlotHidden(i, true)}
+                        isRevealing={isSlotRevealing(i, true)}
+                        hasEffect={effectAnimations.includes(i + 100)}
+                        onViewCard={!isSlotHidden(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
+                        customImageUrl={cardId ? getOverride(cardId)?.custom_image_url : undefined}
+                      />
+                    );
+                  })}
                 </div>
                 {/* Round 1 row (4 slots) - Bottom */}
                 <div className="flex justify-center gap-4">
-                  {[0, 1, 2, 3].map((i) => (
-                    <ClassicBoardSlot
-                      key={`opp-${i}`}
-                      slot={game.opponent.board[i]}
-                      isHidden={isSlotHidden(i, true)}
-                      isRevealing={isSlotRevealing(i, true)}
-                      hasEffect={effectAnimations.includes(i + 100)}
-                      onViewCard={!isSlotHidden(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
-                    />
-                  ))}
+                  {[0, 1, 2, 3].map((i) => {
+                    const cardId = game.opponent.board[i]?.card.id;
+                    return (
+                      <ClassicBoardSlot
+                        key={`opp-${i}`}
+                        slot={game.opponent.board[i]}
+                        isHidden={isSlotHidden(i, true)}
+                        isRevealing={isSlotRevealing(i, true)}
+                        hasEffect={effectAnimations.includes(i + 100)}
+                        onViewCard={!isSlotHidden(i, true) && game.opponent.board[i] ? () => onViewCard(game.opponent.board[i]) : undefined}
+                        customImageUrl={cardId ? getOverride(cardId)?.custom_image_url : undefined}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 
@@ -236,6 +246,7 @@ export const ClassicGameScreen = ({
                 <div className="flex justify-center gap-4 mb-3">
                   {[0, 1, 2, 3].map((i) => {
                     const isActive = isRound1 && game.player.board[i] === null && revealPhase === "placing";
+                    const cardId = game.player.board[i]?.card.id;
                     return (
                       <ClassicBoardSlot
                         key={`player-${i}`}
@@ -247,6 +258,7 @@ export const ClassicGameScreen = ({
                         isRevealing={isSlotRevealing(i, false)}
                         hasEffect={effectAnimations.includes(i)}
                         onViewCard={!isSlotHidden(i, false) && game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
+                        customImageUrl={cardId ? getOverride(cardId)?.custom_image_url : undefined}
                       />
                     );
                   })}
@@ -255,6 +267,7 @@ export const ClassicGameScreen = ({
                 <div className="flex justify-center gap-4">
                   {[4, 5, 6].map((i) => {
                     const isActive = isRound2 && game.player.board[i] === null && revealPhase === "placing";
+                    const cardId = game.player.board[i]?.card.id;
                     return (
                       <ClassicBoardSlot
                         key={`player-${i}`}
@@ -266,6 +279,7 @@ export const ClassicGameScreen = ({
                         isRevealing={isSlotRevealing(i, false)}
                         hasEffect={effectAnimations.includes(i)}
                         onViewCard={!isSlotHidden(i, false) && game.player.board[i] ? () => onViewCard(game.player.board[i]) : undefined}
+                        customImageUrl={cardId ? getOverride(cardId)?.custom_image_url : undefined}
                       />
                     );
                   })}
