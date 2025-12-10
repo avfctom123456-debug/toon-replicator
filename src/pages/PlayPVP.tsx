@@ -5,6 +5,7 @@ import { useDecks } from "@/hooks/useDecks";
 import { useProfile } from "@/hooks/useProfile";
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { usePlayerStats } from "@/hooks/usePlayerStats";
+import { useCardWins } from "@/hooks/useCardWins";
 import { CardInfoModal } from "@/components/game/CardInfoModal";
 import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
@@ -34,6 +35,7 @@ const PlayPVP = () => {
   const { getDecksWithSlots, loading: decksLoading } = useDecks();
   const { profile, updateCoins, refetchProfile } = useProfile();
   const { updatePvpStats, updateGameStats } = usePlayerStats();
+  const { incrementCardWins } = useCardWins();
   const { 
     status: matchmakingStatus, 
     match, 
@@ -238,6 +240,14 @@ const PlayPVP = () => {
                     updateCoins(newCoins);
                     toast.success(`+${PVP_WIN_COINS} coins for winning!`);
                     setMessage(`You win by ${newState.winMethod}! +${PVP_WIN_COINS} coins`);
+                    
+                    // Track wins with specific cards for achievements
+                    const winningCardIds = newState.player.board
+                      .filter((c): c is PlacedCard => c !== null)
+                      .map(c => c.card.id);
+                    if (winningCardIds.length > 0) {
+                      incrementCardWins(winningCardIds);
+                    }
                   } else if (newState.winner === "opponent") {
                     // Loser updates stats only
                     updatePvpStats(opponentId, user.id, false);
