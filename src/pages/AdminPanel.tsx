@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -93,6 +93,14 @@ interface PromoCode {
   created_at: string;
 }
 
+interface PromoRedemption {
+  id: string;
+  promo_code_id: string;
+  user_id: string;
+  redeemed_at: string;
+  username?: string;
+}
+
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -146,6 +154,9 @@ export default function AdminPanel() {
   const [newPromoExpiresAt, setNewPromoExpiresAt] = useState("");
   const [newPromoMaxUses, setNewPromoMaxUses] = useState<number | "">("");
   const [promoCardSearch, setPromoCardSearch] = useState("");
+  const [expandedPromoId, setExpandedPromoId] = useState<string | null>(null);
+  const [promoRedemptions, setPromoRedemptions] = useState<Record<string, PromoRedemption[]>>({});
+  const [loadingRedemptions, setLoadingRedemptions] = useState<string | null>(null);
 
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
 
@@ -279,6 +290,49 @@ export default function AdminPanel() {
     .filter((c) => c.title.toLowerCase().includes(promoCardSearch.toLowerCase()))
     .sort((a, b) => a.title.localeCompare(b.title))
     .slice(0, 50);
+
+  const fetchPromoRedemptions = async (promoId: string) => {
+    setLoadingRedemptions(promoId);
+    try {
+      const { data: redemptions, error } = await supabase
+        .from("promo_code_redemptions")
+        .select("id, promo_code_id, user_id, redeemed_at")
+        .eq("promo_code_id", promoId)
+        .order("redeemed_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch usernames for redemptions
+      const userIds = redemptions?.map((r) => r.user_id) || [];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username")
+        .in("user_id", userIds);
+
+      const redemptionsWithUsernames = (redemptions || []).map((r) => ({
+        ...r,
+        username: profiles?.find((p) => p.user_id === r.user_id)?.username || "Unknown",
+      }));
+
+      setPromoRedemptions((prev) => ({ ...prev, [promoId]: redemptionsWithUsernames }));
+    } catch (error) {
+      console.error("Error fetching redemptions:", error);
+      toast.error("Failed to fetch redemptions");
+    } finally {
+      setLoadingRedemptions(null);
+    }
+  };
+
+  const togglePromoExpanded = (promoId: string) => {
+    if (expandedPromoId === promoId) {
+      setExpandedPromoId(null);
+    } else {
+      setExpandedPromoId(promoId);
+      if (!promoRedemptions[promoId]) {
+        fetchPromoRedemptions(promoId);
+      }
+    }
+  };
 
   const getUserStats = (userId: string): PlayerStats | null => {
     return playerStats.find((s) => s.user_id === userId) || null;
@@ -1227,49 +1281,48 @@ export default function AdminPanel() {
                 {promoCodes.length === 0 ? (
                   <p className="text-muted-foreground text-center py-4">No promo codes created yet</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Reward</TableHead>
-                        <TableHead>Uses</TableHead>
-                        <TableHead>Expires</TableHead>
-                        <TableHead>Active</TableHead>
-                        <TableHead className="w-12"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {promoCodes.map((promo) => {
-                        const card = promo.reward_type === "card" ? getCardById(promo.reward_value) : null;
-                        const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
-                        return (
-                          <TableRow key={promo.id} className={isExpired ? "opacity-50" : ""}>
-                            <TableCell>
+                  <div className="space-y-2">
+                    {promoCodes.map((promo) => {
+                      const card = promo.reward_type === "card" ? getCardById(promo.reward_value) : null;
+                      const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
+                      const isExpanded = expandedPromoId === promo.id;
+                      const redemptions = promoRedemptions[promo.id] || [];
+
+                      return (
+                        <div key={promo.id} className={`border border-border rounded-lg ${isExpired ? "opacity-50" : ""}`}>
+                          <div className="flex items-center justify-between p-3">
+                            <div className="flex items-center gap-4 flex-wrap">
                               <Badge variant="outline" className="font-mono text-sm">
                                 {promo.code}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {promo.reward_type === "coins" ? (
-                                <span className="text-yellow-500 font-medium">{promo.reward_value} coins</span>
-                              ) : (
-                                <span className="text-primary font-medium">{card?.title || `Card #${promo.reward_value}`}</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {promo.current_uses}{promo.max_uses ? ` / ${promo.max_uses}` : " / ∞"}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {promo.expires_at ? new Date(promo.expires_at).toLocaleString() : "Never"}
-                              {isExpired && <Badge variant="destructive" className="ml-2 text-xs">Expired</Badge>}
-                            </TableCell>
-                            <TableCell>
+                              <span className={promo.reward_type === "coins" ? "text-yellow-500 font-medium" : "text-primary font-medium"}>
+                                {promo.reward_type === "coins" 
+                                  ? `${promo.reward_value} coins` 
+                                  : card?.title || `Card #${promo.reward_value}`}
+                              </span>
+                              <span className="text-muted-foreground text-sm">
+                                {promo.current_uses}{promo.max_uses ? ` / ${promo.max_uses}` : " / ∞"} uses
+                              </span>
+                              <span className="text-muted-foreground text-sm">
+                                {promo.expires_at ? `Expires: ${new Date(promo.expires_at).toLocaleDateString()}` : "Never expires"}
+                              </span>
+                              {isExpired && <Badge variant="destructive" className="text-xs">Expired</Badge>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => togglePromoExpanded(promo.id)}
+                                className="gap-1"
+                              >
+                                <Eye className="h-4 w-4" />
+                                {promo.current_uses}
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
                               <Switch
                                 checked={promo.is_active}
                                 onCheckedChange={() => togglePromoActive(promo)}
                               />
-                            </TableCell>
-                            <TableCell>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1277,12 +1330,44 @@ export default function AdminPanel() {
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="border-t border-border p-3 bg-muted/30">
+                              <h4 className="text-sm font-medium mb-2">Redemptions ({redemptions.length})</h4>
+                              {loadingRedemptions === promo.id ? (
+                                <p className="text-muted-foreground text-sm">Loading...</p>
+                              ) : redemptions.length === 0 ? (
+                                <p className="text-muted-foreground text-sm">No redemptions yet</p>
+                              ) : (
+                                <div className="max-h-48 overflow-y-auto">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>User</TableHead>
+                                        <TableHead>Redeemed At</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {redemptions.map((r) => (
+                                        <TableRow key={r.id}>
+                                          <TableCell className="font-medium">{r.username}</TableCell>
+                                          <TableCell className="text-muted-foreground">
+                                            {new Date(r.redeemed_at).toLocaleString()}
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </CardContent>
             </Card>
