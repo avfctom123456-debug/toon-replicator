@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, Check, Trash2, Gavel, AlertTriangle, Trophy, X } from "lucide-react";
+import { Bell, Check, Trash2, Gavel, AlertTriangle, Trophy, X, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -17,6 +17,8 @@ const notificationIcons: Record<string, React.ReactNode> = {
   auction_lost: <Gavel className="h-4 w-4 text-muted-foreground" />,
   auction_sold: <Trophy className="h-4 w-4 text-green-500" />,
   auction_expired: <Gavel className="h-4 w-4 text-muted-foreground" />,
+  trade_accepted: <ArrowRightLeft className="h-4 w-4 text-emerald-500" />,
+  trade_completed: <ArrowRightLeft className="h-4 w-4 text-teal-500" />,
 };
 
 const notificationColors: Record<string, string> = {
@@ -25,6 +27,8 @@ const notificationColors: Record<string, string> = {
   auction_lost: "border-l-muted",
   auction_sold: "border-l-green-500",
   auction_expired: "border-l-muted",
+  trade_accepted: "border-l-emerald-500",
+  trade_completed: "border-l-teal-500",
 };
 
 export function NotificationBell() {
