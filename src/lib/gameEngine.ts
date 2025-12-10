@@ -21,6 +21,8 @@ export interface PlacedCard {
   shielded?: boolean; // Immune to cancellation and negative effects
   stolenPoints?: number; // Points stolen from this card
   countsAsAllColors?: boolean; // This card counts as all colors for color condition
+  convertedColors?: string[]; // Colors this card has been converted to
+  swappedPosition?: number; // Original position if swapped
 }
 
 export interface PlayerState {
@@ -40,6 +42,9 @@ export interface GameState {
   winner: "player" | "opponent" | "tie" | null;
   winMethod: "color" | "points" | null;
   round2FlipIndex: number;
+  // Global effect modifiers
+  overrideMainColors?: string[]; // Changed by "Change color condition" effects
+  reverseScoring?: boolean; // If true, lowest total wins
 }
 
 const allCards = cardsData as GameCard[];
@@ -1639,7 +1644,70 @@ export function applyPowers(state: GameState): GameState {
     // "Negate the color bonus this round" - cancel color counting for this slot
     if (desc.includes("negate") && desc.includes("color bonus")) {
       // Mark own slot as not counting for colors (handled in scoring)
-      sourceSlot.countsAsAllColors = false; // Will be checked specially in scoring
+      sourceSlot.countsAsAllColors = false;
+    }
+    
+    // "Change the color condition to [color]" - modifies mainColors for scoring
+    const changeColorMatch = desc.match(/change\s+(?:the\s+)?color\s+condition\s+to\s+(\w+)/);
+    if (changeColorMatch) {
+      const newColor = changeColorMatch[1].toUpperCase();
+      // This will be applied to the state during final scoring
+      (sourceSlot as any).changesColorConditionTo = newColor;
+    }
+    
+    // "Convert all [colorA] cards to [colorB]" - changes card colors
+    const convertMatch = desc.match(/convert\s+all\s+(\w+)\s+(?:cards?\s+)?to\s+(\w+)/);
+    if (convertMatch) {
+      const fromColor = convertMatch[1].toUpperCase();
+      const toColor = convertMatch[2].toUpperCase();
+      [...ownBoard, ...enemyBoard].forEach(slot => {
+        if (slot && !slot.cancelled) {
+          if (slot.card.colors.includes(fromColor)) {
+            slot.convertedColors = slot.convertedColors || [...slot.card.colors];
+            slot.convertedColors = slot.convertedColors.filter(c => c !== fromColor);
+            if (!slot.convertedColors.includes(toColor)) {
+              slot.convertedColors.push(toColor);
+            }
+          }
+        }
+      });
+    }
+    
+    // "Swap board positions with opposite card" - physically swap positions
+    if (desc.includes("swap") && desc.includes("position") && (desc.includes("opposite") || desc.includes("opposing"))) {
+      if (oppositeCard && !oppositeCard.cancelled && !oppositeCard.shielded) {
+        // Swap the modifiedPoints and card references conceptually
+        // Store original positions for tracking
+        const tempPoints = sourceSlot.modifiedPoints;
+        const tempCard = sourceSlot.card;
+        sourceSlot.swappedPosition = oppositeCard.position;
+        oppositeCard.swappedPosition = sourceSlot.position;
+        // Note: actual board position swap would need more complex handling
+        // For simplicity, we swap the point values which achieves similar effect
+        sourceSlot.modifiedPoints = oppositeCard.modifiedPoints;
+        oppositeCard.modifiedPoints = tempPoints;
+      }
+    }
+    
+    // "Reverse scoring - lowest total wins this round"
+    if (desc.includes("reverse") && desc.includes("scoring") && desc.includes("lowest")) {
+      // Mark for reverse scoring - handled in determineWinner
+      (sourceSlot as any).triggersReverseScoring = true;
+    }
+    
+    // "If this card wins its matchup, give +X to next card" (Chain effect)
+    const chainMatch = desc.match(/if\s+this\s+card\s+wins.*\+(\d+)\s+to\s+next/);
+    if (chainMatch && oppositeCard) {
+      const bonus = parseInt(chainMatch[1]);
+      // Check if this card wins against opposite
+      if (!sourceSlot.cancelled && !oppositeCard.cancelled && 
+          sourceSlot.modifiedPoints > oppositeCard.modifiedPoints) {
+        // Give bonus to next card (next position on own board)
+        const nextIdx = sourceSlot.position + 1;
+        if (nextIdx < ownBoard.length && ownBoard[nextIdx] && !ownBoard[nextIdx]!.cancelled) {
+          ownBoard[nextIdx]!.modifiedPoints += bonus;
+        }
+      }
     }
   };
   
@@ -1896,8 +1964,8 @@ export function calculateScores(state: GameState): GameState {
         return;
       }
       
-      // Get base colors
-      const colors = new Set(slot.card.colors);
+      // Get colors - use converted colors if they exist, otherwise base colors
+      const colors = new Set(slot.convertedColors || slot.card.colors);
       
       // Add colors from neighbor effects (like Green Lantern)
       const neighborAddedColors = neighborOverrides.get(pos) || [];
@@ -1938,13 +2006,30 @@ export function calculateScores(state: GameState): GameState {
 }
 
 export function determineWinner(state: GameState): GameState {
-  const { player, opponent, mainColors } = state;
+  const { player, opponent } = state;
   
-  if (mainColors.length >= 2) {
+  // Check for reverse scoring effect
+  let reverseScoring = state.reverseScoring || false;
+  [...state.player.board, ...state.opponent.board].forEach(slot => {
+    if (slot && !slot.cancelled && (slot as any).triggersReverseScoring) {
+      reverseScoring = true;
+    }
+  });
+  
+  // Check for color condition changes
+  let effectiveMainColors = state.overrideMainColors || state.mainColors;
+  [...state.player.board, ...state.opponent.board].forEach(slot => {
+    if (slot && !slot.cancelled && (slot as any).changesColorConditionTo) {
+      const newColor = (slot as any).changesColorConditionTo;
+      effectiveMainColors = [newColor];
+    }
+  });
+  
+  if (effectiveMainColors.length >= 2) {
     let playerWinsAllColors = true;
     let opponentWinsAllColors = true;
     
-    for (const color of mainColors) {
+    for (const color of effectiveMainColors) {
       if ((player.colorCounts[color] || 0) <= (opponent.colorCounts[color] || 0)) {
         playerWinsAllColors = false;
       }
@@ -1961,10 +2046,21 @@ export function determineWinner(state: GameState): GameState {
     }
   }
   
-  if (player.totalPoints > opponent.totalPoints) {
-    return { ...state, winner: "player", winMethod: "points" };
-  } else if (opponent.totalPoints > player.totalPoints) {
-    return { ...state, winner: "opponent", winMethod: "points" };
+  // Points comparison - respect reverse scoring
+  if (reverseScoring) {
+    // Lowest total wins
+    if (player.totalPoints < opponent.totalPoints) {
+      return { ...state, winner: "player", winMethod: "points", reverseScoring: true };
+    } else if (opponent.totalPoints < player.totalPoints) {
+      return { ...state, winner: "opponent", winMethod: "points", reverseScoring: true };
+    }
+  } else {
+    // Normal scoring - highest total wins
+    if (player.totalPoints > opponent.totalPoints) {
+      return { ...state, winner: "player", winMethod: "points" };
+    } else if (opponent.totalPoints > player.totalPoints) {
+      return { ...state, winner: "opponent", winMethod: "points" };
+    }
   }
   
   return { ...state, winner: "tie", winMethod: "points" };
