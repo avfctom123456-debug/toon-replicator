@@ -15,11 +15,12 @@ export interface ChallengeInvite {
   challenger_username?: string;
 }
 
-export const useChallenges = () => {
+export const useChallenges = (onChallengeAccepted?: (matchId: string) => void) => {
   const { user } = useAuth();
   const [incomingChallenges, setIncomingChallenges] = useState<ChallengeInvite[]>([]);
   const [outgoingChallenges, setOutgoingChallenges] = useState<ChallengeInvite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [acceptedMatchId, setAcceptedMatchId] = useState<string | null>(null);
 
   const fetchChallenges = useCallback(async () => {
     if (!user) {
@@ -75,7 +76,30 @@ export const useChallenges = () => {
       .channel("challenges-changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "challenge_invites" },
+        { event: "UPDATE", schema: "public", table: "challenge_invites" },
+        async (payload) => {
+          const updated = payload.new as ChallengeInvite;
+          // If this is our outgoing challenge that was just accepted
+          if (
+            user &&
+            updated.challenger_id === user.id &&
+            updated.status === "accepted" &&
+            updated.match_id
+          ) {
+            setAcceptedMatchId(updated.match_id);
+            onChallengeAccepted?.(updated.match_id);
+          }
+          fetchChallenges();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "challenge_invites" },
+        () => fetchChallenges()
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "challenge_invites" },
         () => fetchChallenges()
       )
       .subscribe();
@@ -83,7 +107,7 @@ export const useChallenges = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchChallenges]);
+  }, [fetchChallenges, user, onChallengeAccepted]);
 
   const sendChallenge = async (friendUserId: string, deckCardIds: number[]) => {
     if (!user) return null;
@@ -107,18 +131,58 @@ export const useChallenges = () => {
     return data;
   };
 
-  const acceptChallenge = async (challengeId: string) => {
-    const { error } = await supabase
-      .from("challenge_invites")
-      .update({ status: "accepted" })
-      .eq("id", challengeId);
+  const acceptChallenge = async (challengeId: string, accepterDeckCardIds: number[]): Promise<{ success: boolean; matchId?: string }> => {
+    if (!user) return { success: false };
 
-    if (error) {
-      console.error("Error accepting challenge:", error);
-      return false;
+    // Get the challenge details first
+    const { data: challenge, error: fetchError } = await supabase
+      .from("challenge_invites")
+      .select("*")
+      .eq("id", challengeId)
+      .single();
+
+    if (fetchError || !challenge) {
+      console.error("Error fetching challenge:", fetchError);
+      return { success: false };
     }
 
-    return true;
+    // Create the match
+    const { data: match, error: matchError } = await supabase
+      .from("matches")
+      .insert({
+        player1_id: challenge.challenger_id,
+        player2_id: user.id,
+        player1_deck: challenge.challenger_deck,
+        player2_deck: accepterDeckCardIds,
+        phase: "loading",
+        game_state: {},
+        current_turn: challenge.challenger_id,
+      })
+      .select()
+      .single();
+
+    if (matchError || !match) {
+      console.error("Error creating match:", matchError);
+      return { success: false };
+    }
+
+    // Update the challenge with the match ID and status
+    const { error: updateError } = await supabase
+      .from("challenge_invites")
+      .update({ 
+        status: "accepted",
+        match_id: match.id 
+      })
+      .eq("id", challengeId);
+
+    if (updateError) {
+      console.error("Error updating challenge:", updateError);
+      // Try to clean up the match we created
+      await supabase.from("matches").delete().eq("id", match.id);
+      return { success: false };
+    }
+
+    return { success: true, matchId: match.id };
   };
 
   const declineChallenge = async (challengeId: string) => {
@@ -153,6 +217,7 @@ export const useChallenges = () => {
     incomingChallenges,
     outgoingChallenges,
     loading,
+    acceptedMatchId,
     sendChallenge,
     acceptChallenge,
     declineChallenge,

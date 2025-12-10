@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,14 @@ const Friends = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { friends, pendingRequests, loading: friendsLoading, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, isFriend } = useFriends();
-  const { incomingChallenges, outgoingChallenges, sendChallenge, acceptChallenge, declineChallenge, cancelChallenge } = useChallenges();
+  
+  // Handle challenge accepted - navigate to match
+  const handleChallengeAccepted = useCallback((matchId: string) => {
+    toast.success("Your challenge was accepted! Starting match...");
+    navigate(`/play-pvp?matchId=${matchId}`);
+  }, [navigate]);
+  
+  const { incomingChallenges, outgoingChallenges, sendChallenge, acceptChallenge, declineChallenge, cancelChallenge } = useChallenges(handleChallengeAccepted);
   const { decks } = useDecks();
   const [selectedChallengerDeckId, setSelectedChallengerDeckId] = useState<string | null>(null);
   
@@ -139,10 +146,10 @@ const Friends = () => {
       return;
     }
     
-    const success = await acceptChallenge(challengeId);
-    if (success) {
-      toast.success(`Challenge from ${username} accepted! Match starting...`);
-      // TODO: Navigate to match when match creation is implemented
+    const result = await acceptChallenge(challengeId, deck.card_ids);
+    if (result.success && result.matchId) {
+      toast.success(`Challenge from ${username} accepted! Starting match...`);
+      navigate(`/play-pvp?matchId=${result.matchId}`);
     } else {
       toast.error("Failed to accept challenge");
     }

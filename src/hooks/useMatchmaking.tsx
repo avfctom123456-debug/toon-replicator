@@ -150,6 +150,37 @@ export function useMatchmaking() {
     setSearchTime(0);
   }, []);
 
+  const joinMatch = useCallback(async (matchIdToJoin: string) => {
+    if (!user) {
+      setError('Must be logged in');
+      return false;
+    }
+
+    // Fetch the match to verify user is a participant
+    const { data: matchData, error: matchError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('id', matchIdToJoin)
+      .single();
+
+    if (matchError || !matchData) {
+      console.error('Error fetching match:', matchError);
+      setError('Match not found');
+      return false;
+    }
+
+    // Verify user is a participant
+    if (matchData.player1_id !== user.id && matchData.player2_id !== user.id) {
+      setError('You are not a participant in this match');
+      return false;
+    }
+
+    setMatchId(matchIdToJoin);
+    setMatch(matchData as Match);
+    setStatus('matched');
+    return true;
+  }, [user]);
+
   const updateGameState = useCallback(async (gameState: Record<string, unknown>) => {
     if (!matchId || !user) return;
     
@@ -180,6 +211,7 @@ export function useMatchmaking() {
     searchTime,
     joinQueue,
     leaveQueue,
+    joinMatch,
     updateGameState,
     setReady,
     isPlayer1: match?.player1_id === user?.id,
