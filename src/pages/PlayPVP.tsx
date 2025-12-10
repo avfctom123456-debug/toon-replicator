@@ -350,29 +350,35 @@ const PlayPVP = () => {
     if (!matchId || !game || gamePhase !== "playing" || !waitingForOpponent || revealPhase !== "placing") return;
 
     let hasStartedReveal = false;
-    const isRound1 = game.phase === "round1-place";
-    console.log(`[PvP Sync] Starting wait for opponent - Round ${isRound1 ? 1 : 2}`);
+    
+    // Determine round from current game phase - recalculate fresh each poll
+    const getCurrentRound = () => game.phase === "round1-place" ? 1 : 2;
+    console.log(`[PvP Sync] Starting wait for opponent - Round ${getCurrentRound()}`);
 
     const checkAndStartReveal = async (matchData: typeof match) => {
       if (!matchData || hasStartedReveal) return false;
       
+      // ALWAYS recalculate round from latest game state
+      const currentRound = getCurrentRound();
+      const isRound1 = currentRound === 1;
+      
       const opponentReady = isPlayer1 ? matchData.player2_ready : matchData.player1_ready;
       const myReady = isPlayer1 ? matchData.player1_ready : matchData.player2_ready;
       
-      console.log(`[PvP Sync] Check reveal - Round ${isRound1 ? 1 : 2}, myReady: ${myReady}, opponentReady: ${opponentReady}`);
+      console.log(`[PvP Sync] Check reveal - Round ${currentRound}, myReady: ${myReady}, opponentReady: ${opponentReady}, phase: ${game.phase}`);
       
-      // CRITICAL: Both players must be ready - prevents stale data issues
+      // CRITICAL: Both players must be ready
       if (!opponentReady || !myReady) {
         console.log(`[PvP Sync] Not both ready yet - waiting`);
         return false;
       }
       
-      // Get opponent's board from game_state
+      // Get boards from game_state
       const gameStateData = matchData.game_state as Record<string, unknown>;
       const opponentBoard = gameStateData?.[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
       const myBoard = gameStateData?.[isPlayer1 ? 'player1_board' : 'player2_board'] as (PlacedCard | null)[] | undefined;
       
-      // Validate BOTH players have placed cards for the current round
+      // Validate BOTH players have placed cards for the CURRENT round
       const requiredSlots = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
       const hasValidOpponentBoard = opponentBoard && 
         Array.isArray(opponentBoard) && 
@@ -381,9 +387,11 @@ const PlayPVP = () => {
         Array.isArray(myBoard) && 
         requiredSlots.every(slot => myBoard[slot] !== null && myBoard[slot] !== undefined);
       
+      console.log(`[PvP Sync] Round ${currentRound} board check - requiredSlots: ${JSON.stringify(requiredSlots)}, opponent valid: ${hasValidOpponentBoard}, my valid: ${hasValidMyBoard}`);
+      
       if (hasValidOpponentBoard && hasValidMyBoard) {
         hasStartedReveal = true;
-        console.log(`[PvP Sync] Both players ready with valid boards, starting Round ${isRound1 ? 1 : 2} reveal`);
+        console.log(`[PvP Sync] ✓ Both players ready with valid boards, starting Round ${currentRound} reveal`);
         
         setGame(prev => {
           if (!prev) return prev;
@@ -415,33 +423,14 @@ const PlayPVP = () => {
         
         return true;
       } else {
-        console.log(`[PvP Sync] Boards not valid for Round ${isRound1 ? 1 : 2} - opponent: ${hasValidOpponentBoard}, mine: ${hasValidMyBoard}`);
+        console.log(`[PvP Sync] Boards not valid for Round ${currentRound}`);
+        if (opponentBoard) console.log(`[PvP Sync] Opponent board slots:`, requiredSlots.map(s => opponentBoard[s] ? 'filled' : 'empty'));
+        if (myBoard) console.log(`[PvP Sync] My board slots:`, requiredSlots.map(s => myBoard[s] ? 'filled' : 'empty'));
         return false;
       }
     };
 
-    // Immediately fetch fresh state (don't rely on potentially stale realtime data)
-    const fetchAndCheck = async () => {
-      const { data: freshMatch } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('id', matchId)
-        .single();
-      
-      if (freshMatch && !hasStartedReveal) {
-        await checkAndStartReveal(freshMatch as typeof match);
-      }
-    };
-    
-    // Do immediate fetch first
-    fetchAndCheck();
-
-    // Also check realtime subscription data
-    if (match && !hasStartedReveal) {
-      checkAndStartReveal(match);
-    }
-
-    // Poll every 500ms for faster sync
+    // Poll every 500ms - always fetch fresh data
     const pollInterval = setInterval(async () => {
       if (hasStartedReveal) {
         clearInterval(pollInterval);
@@ -461,6 +450,19 @@ const PlayPVP = () => {
         }
       }
     }, 500);
+    
+    // Do immediate check on mount
+    (async () => {
+      const { data: freshMatch } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
+      
+      if (freshMatch && !hasStartedReveal) {
+        await checkAndStartReveal(freshMatch as typeof match);
+      }
+    })();
 
     return () => clearInterval(pollInterval);
   }, [matchId, match, game, isPlayer1, waitingForOpponent, revealPhase, performReveal, gamePhase]);
