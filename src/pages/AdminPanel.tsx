@@ -68,7 +68,7 @@ interface UserProfile {
 
 interface UserRole {
   user_id: string;
-  role: "admin" | "user";
+  role: "admin" | "user" | "moderator";
 }
 
 interface PlayerStats {
@@ -491,7 +491,7 @@ export default function AdminPanel() {
     return playerStats.find((s) => s.user_id === userId) || null;
   };
 
-  const getUserRole = (userId: string): "admin" | "user" => {
+  const getUserRole = (userId: string): "admin" | "user" | "moderator" => {
     const role = userRoles.find((r) => r.user_id === userId);
     return role?.role || "user";
   };
