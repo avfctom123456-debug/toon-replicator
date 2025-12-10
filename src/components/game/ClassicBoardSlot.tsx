@@ -39,6 +39,7 @@ interface ClassicBoardSlotProps {
   isHidden?: boolean;
   isRevealing?: boolean;
   hasEffect?: boolean;
+  customImageUrl?: string | null;
 }
 
 export const ClassicBoardSlot = ({
@@ -50,6 +51,7 @@ export const ClassicBoardSlot = ({
   isHidden = false,
   isRevealing = false,
   hasEffect = false,
+  customImageUrl,
 }: ClassicBoardSlotProps) => {
   const [imageError, setImageError] = useState(false);
   const slotSize = "w-20 h-20";
@@ -57,8 +59,8 @@ export const ClassicBoardSlot = ({
   if (slot) {
     const bgColor = colorBg[slot.card.colors?.[0]] || "bg-gray-500";
     const borderColor = colorBorder[slot.card.colors?.[0]] || "border-gray-400";
-    const imageUrl = `${IMAGE_BASE_URL}/${slot.card.id}.jpg`;
-
+    const defaultImageUrl = `${IMAGE_BASE_URL}/${slot.card.id}.jpg`;
+    const imageUrl = customImageUrl || defaultImageUrl;
     // Hidden card (face down with GToons logo)
     if (isHidden) {
       return (
