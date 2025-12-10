@@ -361,21 +361,29 @@ const PlayPVP = () => {
       
       console.log(`[PvP Sync] Check reveal - Round ${isRound1 ? 1 : 2}, myReady: ${myReady}, opponentReady: ${opponentReady}`);
       
-      if (!opponentReady) return false;
+      // CRITICAL: Both players must be ready - prevents stale data issues
+      if (!opponentReady || !myReady) {
+        console.log(`[PvP Sync] Not both ready yet - waiting`);
+        return false;
+      }
       
       // Get opponent's board from game_state
       const gameStateData = matchData.game_state as Record<string, unknown>;
       const opponentBoard = gameStateData?.[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
+      const myBoard = gameStateData?.[isPlayer1 ? 'player1_board' : 'player2_board'] as (PlacedCard | null)[] | undefined;
       
-      // Validate opponent has actually placed cards for the current round
+      // Validate BOTH players have placed cards for the current round
       const requiredSlots = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
       const hasValidOpponentBoard = opponentBoard && 
         Array.isArray(opponentBoard) && 
         requiredSlots.every(slot => opponentBoard[slot] !== null && opponentBoard[slot] !== undefined);
+      const hasValidMyBoard = myBoard && 
+        Array.isArray(myBoard) && 
+        requiredSlots.every(slot => myBoard[slot] !== null && myBoard[slot] !== undefined);
       
-      if (hasValidOpponentBoard) {
+      if (hasValidOpponentBoard && hasValidMyBoard) {
         hasStartedReveal = true;
-        console.log(`[PvP Sync] Both players ready, starting Round ${isRound1 ? 1 : 2} reveal. Opponent board:`, opponentBoard);
+        console.log(`[PvP Sync] Both players ready with valid boards, starting Round ${isRound1 ? 1 : 2} reveal`);
         
         setGame(prev => {
           if (!prev) return prev;
@@ -407,7 +415,7 @@ const PlayPVP = () => {
         
         return true;
       } else {
-        console.log(`[PvP Sync] Opponent ready but board not valid for Round ${isRound1 ? 1 : 2}:`, opponentBoard);
+        console.log(`[PvP Sync] Boards not valid for Round ${isRound1 ? 1 : 2} - opponent: ${hasValidOpponentBoard}, mine: ${hasValidMyBoard}`);
         return false;
       }
     };
