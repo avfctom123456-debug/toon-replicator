@@ -32,7 +32,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <div className="min-h-screen w-full flex justify-center bg-background">
-            <div className="w-full max-w-7xl">
+            <div className="w-full lg:max-w-7xl">
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
