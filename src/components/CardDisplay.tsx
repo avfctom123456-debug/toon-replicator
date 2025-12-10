@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
@@ -155,9 +157,11 @@ interface FullCardProps {
   card: CardData;
   onClose?: () => void;
   customImageUrl?: string | null;
+  isWishlisted?: boolean;
+  onToggleWishlist?: () => void;
 }
 
-export const FullCard = ({ card, onClose, customImageUrl }: FullCardProps) => {
+export const FullCard = ({ card, onClose, customImageUrl, isWishlisted, onToggleWishlist }: FullCardProps) => {
   const [imageError, setImageError] = useState(false);
   const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const imageUrl = customImageUrl || defaultImageUrl;
@@ -223,13 +227,27 @@ export const FullCard = ({ card, onClose, customImageUrl }: FullCardProps) => {
             </span>
           </div>
 
-          {/* Close Button */}
-          <button 
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors mt-2"
-          >
-            Close
-          </button>
+          {/* Actions */}
+          <div className="flex gap-2 mt-2">
+            {onToggleWishlist && (
+              <Button
+                variant={isWishlisted ? "default" : "outline"}
+                size="sm"
+                onClick={onToggleWishlist}
+                className="gap-2"
+              >
+                <Heart className={`w-4 h-4 ${isWishlisted ? "fill-current" : ""}`} />
+                {isWishlisted ? "Wishlisted" : "Add to Wishlist"}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          </div>
         </div>
       </div>
     </div>
