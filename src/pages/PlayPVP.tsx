@@ -567,6 +567,85 @@ const PlayPVP = () => {
     refetchProfile();
   }, [leaveQueue, refetchProfile]);
 
+  // Handle gambling animation completion - MUST be before early returns
+  const handleGamblingComplete = useCallback(() => {
+    setGamblingResult(null);
+    if (gamblingQueue.length > 0) {
+      const [next, ...rest] = gamblingQueue;
+      setGamblingQueue(rest);
+      setTimeout(() => setGamblingResult(next), 100);
+    }
+  }, [gamblingQueue]);
+
+  // Handle choice effect selection - MUST be before early returns
+  const handleChoiceSelect = useCallback((choice: string) => {
+    if (!game || !choiceData) return;
+    
+    setGame(prev => {
+      if (!prev) return prev;
+      
+      const board = choiceData.isPlayer ? [...prev.player.board] : [...prev.opponent.board];
+      const card = board[choiceData.cardPosition];
+      
+      if (card) {
+        card.choiceResolved = true;
+        card.chosenEffect = choice;
+        
+        if (choice.startsWith('flat:')) {
+          const bonus = parseInt(choice.split(':')[1]);
+          card.modifiedPoints += bonus;
+        } else if (choice.startsWith('self:')) {
+          const bonus = parseInt(choice.split(':')[1]);
+          card.modifiedPoints += bonus;
+        } else if (choice.startsWith('opposite:')) {
+          const penalty = parseInt(choice.split(':')[1]);
+          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
+          const oppositeCard = oppositeBoard[choiceData.cardPosition];
+          if (oppositeCard && !oppositeCard.shielded) {
+            oppositeCard.modifiedPoints += penalty;
+          }
+        } else if (choice === 'cancel-opposite') {
+          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
+          const oppositeCard = oppositeBoard[choiceData.cardPosition];
+          if (oppositeCard && !oppositeCard.shielded) {
+            oppositeCard.cancelled = true;
+          }
+        } else if (choice === 'double-self') {
+          card.modifiedPoints *= 2;
+        }
+      }
+      
+      if (choiceData.isPlayer) {
+        return { ...prev, player: { ...prev.player, board } };
+      } else {
+        return { ...prev, opponent: { ...prev.opponent, board: board as (PlacedCard | null)[] } };
+      }
+    });
+    
+    setChoiceData(null);
+    
+    if (pendingChoiceCards.length > 0 && game) {
+      const [next, ...rest] = pendingChoiceCards;
+      setPendingChoiceCards(rest);
+      
+      const board = next.isPlayer ? game.player.board : game.opponent.board;
+      const card = board[next.position];
+      if (card) {
+        const parsed = parseChoiceEffect(card.card.description || '', card.card.title, next.position, next.isPlayer);
+        if (parsed) {
+          setTimeout(() => setChoiceData(parsed), 100);
+        }
+      }
+    }
+  }, [game, choiceData, pendingChoiceCards]);
+
+  // Determine opponent status for UI
+  const getOpponentStatus = (): "placing" | "ready" | null => {
+    if (!match || revealPhase !== "placing") return null;
+    const opponentReady = isPlayer1 ? match.player2_ready : match.player1_ready;
+    return opponentReady ? "ready" : "placing";
+  };
+
   if (authLoading || decksLoading) {
     return (
       <div className="min-h-screen bg-[hsl(210,50%,15%)] flex items-center justify-center">
@@ -657,85 +736,6 @@ const PlayPVP = () => {
   }
 
   if (!game) return null;
-
-  // Determine opponent status for UI
-  const getOpponentStatus = (): "placing" | "ready" | null => {
-    if (!match || revealPhase !== "placing") return null;
-    const opponentReady = isPlayer1 ? match.player2_ready : match.player1_ready;
-    return opponentReady ? "ready" : "placing";
-  };
-
-  // Handle gambling animation completion
-  const handleGamblingComplete = useCallback(() => {
-    setGamblingResult(null);
-    if (gamblingQueue.length > 0) {
-      const [next, ...rest] = gamblingQueue;
-      setGamblingQueue(rest);
-      setTimeout(() => setGamblingResult(next), 100);
-    }
-  }, [gamblingQueue]);
-
-  // Handle choice effect selection
-  const handleChoiceSelect = useCallback((choice: string) => {
-    if (!game || !choiceData) return;
-    
-    setGame(prev => {
-      if (!prev) return prev;
-      
-      const board = choiceData.isPlayer ? [...prev.player.board] : [...prev.opponent.board];
-      const card = board[choiceData.cardPosition];
-      
-      if (card) {
-        card.choiceResolved = true;
-        card.chosenEffect = choice;
-        
-        if (choice.startsWith('flat:')) {
-          const bonus = parseInt(choice.split(':')[1]);
-          card.modifiedPoints += bonus;
-        } else if (choice.startsWith('self:')) {
-          const bonus = parseInt(choice.split(':')[1]);
-          card.modifiedPoints += bonus;
-        } else if (choice.startsWith('opposite:')) {
-          const penalty = parseInt(choice.split(':')[1]);
-          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
-          const oppositeCard = oppositeBoard[choiceData.cardPosition];
-          if (oppositeCard && !oppositeCard.shielded) {
-            oppositeCard.modifiedPoints += penalty;
-          }
-        } else if (choice === 'cancel-opposite') {
-          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
-          const oppositeCard = oppositeBoard[choiceData.cardPosition];
-          if (oppositeCard && !oppositeCard.shielded) {
-            oppositeCard.cancelled = true;
-          }
-        } else if (choice === 'double-self') {
-          card.modifiedPoints *= 2;
-        }
-      }
-      
-      if (choiceData.isPlayer) {
-        return { ...prev, player: { ...prev.player, board } };
-      } else {
-        return { ...prev, opponent: { ...prev.opponent, board: board as (PlacedCard | null)[] } };
-      }
-    });
-    
-    setChoiceData(null);
-    
-    if (pendingChoiceCards.length > 0) {
-      const [next, ...rest] = pendingChoiceCards;
-      setPendingChoiceCards(rest);
-      
-      const board = next.isPlayer ? game.player.board : game.opponent.board;
-      const card = board[next.position];
-      if (card) {
-        const parsed = parseChoiceEffect(card.card.description || '', card.card.title, next.position, next.isPlayer);
-        if (parsed) {
-          setTimeout(() => setChoiceData(parsed), 100);
-        }
-      }
-    }
-  }, [game, choiceData, pendingChoiceCards]);
 
   return (
     <>
