@@ -6,18 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Gamepad2, Sparkles } from "lucide-react";
+import { Gamepad2, Sparkles, KeyRound, ArrowLeft } from "lucide-react";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
 
+type AuthMode = "login" | "signup" | "forgot";
+
 const Auth = () => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const isLogin = authMode === "login";
+  const isForgot = authMode === "forgot";
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -50,7 +55,7 @@ const Auth = () => {
       return false;
     }
 
-    if (!isLogin && !username.trim()) {
+    if (authMode === "signup" && !username.trim()) {
       toast.error("Please enter a username");
       return false;
     }
@@ -58,8 +63,41 @@ const Auth = () => {
     return true;
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      emailSchema.parse(email);
+    } catch {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Password reset link sent! Check your email.");
+      setAuthMode("login");
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      toast.error(error.message || "Failed to send reset link");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isForgot) {
+      return handleForgotPassword(e);
+    }
     
     if (!validateInputs()) return;
     
@@ -87,7 +125,7 @@ const Auth = () => {
         if (error) {
           if (error.message.includes("already registered")) {
             toast.error("This email is already registered. Please sign in.");
-            setIsLogin(true);
+            setAuthMode("login");
             return;
           }
           throw error;
@@ -138,24 +176,40 @@ const Auth = () => {
         <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-2xl p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-6">
+            {isForgot && (
+              <button
+                type="button"
+                onClick={() => setAuthMode("login")}
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground text-sm mb-4 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to sign in
+              </button>
+            )}
             <div className="inline-flex items-center justify-center gap-2 mb-2">
-              {isLogin ? (
+              {isForgot ? (
+                <KeyRound className="w-6 h-6 text-accent" />
+              ) : isLogin ? (
                 <Gamepad2 className="w-6 h-6 text-primary" />
               ) : (
                 <Sparkles className="w-6 h-6 text-accent" />
               )}
               <h2 className="text-2xl font-bold text-foreground">
-                {isLogin ? "Welcome Back" : "Join the Game"}
+                {isForgot ? "Reset Password" : isLogin ? "Welcome Back" : "Join the Game"}
               </h2>
             </div>
             <p className="text-muted-foreground text-sm">
-              {isLogin ? "Sign in to continue your adventure" : "Create your account to start playing"}
+              {isForgot 
+                ? "Enter your email and we'll send you a reset link" 
+                : isLogin 
+                  ? "Sign in to continue your adventure" 
+                  : "Create your account to start playing"}
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleAuth} className="flex flex-col gap-4">
-            {!isLogin && (
+            {authMode === "signup" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground/80">Username</label>
                 <Input
@@ -163,7 +217,7 @@ const Auth = () => {
                   placeholder="Choose a username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  required={!isLogin}
+                  required={authMode === "signup"}
                   className="bg-background/50 border-border/50 focus:border-primary transition-colors"
                 />
               </div>
@@ -181,20 +235,32 @@ const Auth = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground/80">Password</label>
-              <Input
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-background/50 border-border/50 focus:border-primary transition-colors"
-              />
-            </div>
+            {!isForgot && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground/80">Password</label>
+                <Input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="bg-background/50 border-border/50 focus:border-primary transition-colors"
+                />
+              </div>
+            )}
+
+            {isLogin && !isForgot && (
+              <button
+                type="button"
+                onClick={() => setAuthMode("forgot")}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors text-right"
+              >
+                Forgot password?
+              </button>
+            )}
 
             <Button 
-              type="submit" 
+              type="submit"
               disabled={loading}
               className="w-full mt-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
@@ -203,6 +269,8 @@ const Auth = () => {
                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   Loading...
                 </span>
+              ) : isForgot ? (
+                "Send Reset Link"
               ) : isLogin ? (
                 "Sign In"
               ) : (
@@ -212,19 +280,21 @@ const Auth = () => {
           </form>
 
           {/* Toggle */}
-          <div className="mt-6 pt-6 border-t border-border/30 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-            >
-              {isLogin ? (
-                <>Don't have an account? <span className="text-primary font-medium">Sign up</span></>
-              ) : (
-                <>Already have an account? <span className="text-primary font-medium">Sign in</span></>
-              )}
-            </button>
-          </div>
+          {!isForgot && (
+            <div className="mt-6 pt-6 border-t border-border/30 text-center">
+              <button
+                type="button"
+                onClick={() => setAuthMode(isLogin ? "signup" : "login")}
+                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+              >
+                {isLogin ? (
+                  <>Don't have an account? <span className="text-primary font-medium">Sign up</span></>
+                ) : (
+                  <>Already have an account? <span className="text-primary font-medium">Sign in</span></>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Features hint */}
