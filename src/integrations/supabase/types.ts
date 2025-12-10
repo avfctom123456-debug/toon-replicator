@@ -588,6 +588,173 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_matches: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          match_id: string | null
+          match_number: number
+          player1_id: string | null
+          player1_score: number | null
+          player2_id: string | null
+          player2_score: number | null
+          round: number
+          scheduled_at: string | null
+          status: string
+          tournament_id: string
+          winner_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          match_number: number
+          player1_id?: string | null
+          player1_score?: number | null
+          player2_id?: string | null
+          player2_score?: number | null
+          round: number
+          scheduled_at?: string | null
+          status?: string
+          tournament_id: string
+          winner_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          match_number?: number
+          player1_id?: string | null
+          player1_score?: number | null
+          player2_id?: string | null
+          player2_score?: number | null
+          round?: number
+          scheduled_at?: string | null
+          status?: string
+          tournament_id?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_participants: {
+        Row: {
+          deck_card_ids: number[]
+          eliminated: boolean
+          eliminated_at: string | null
+          id: string
+          joined_at: string
+          placement: number | null
+          prize_won: number | null
+          seed: number | null
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          deck_card_ids?: number[]
+          eliminated?: boolean
+          eliminated_at?: string | null
+          id?: string
+          joined_at?: string
+          placement?: number | null
+          prize_won?: number | null
+          seed?: number | null
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          deck_card_ids?: number[]
+          eliminated?: boolean
+          eliminated_at?: string | null
+          id?: string
+          joined_at?: string
+          placement?: number | null
+          prize_won?: number | null
+          seed?: number | null
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          bracket_type: string
+          created_at: string
+          created_by: string
+          current_participants: number
+          current_round: number
+          description: string | null
+          entry_fee: number
+          id: string
+          max_participants: number
+          name: string
+          prize_pool: number
+          starts_at: string
+          status: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          bracket_type?: string
+          created_at?: string
+          created_by: string
+          current_participants?: number
+          current_round?: number
+          description?: string | null
+          entry_fee?: number
+          id?: string
+          max_participants?: number
+          name: string
+          prize_pool?: number
+          starts_at: string
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          bracket_type?: string
+          created_at?: string
+          created_by?: string
+          current_participants?: number
+          current_round?: number
+          description?: string | null
+          entry_fee?: number
+          id?: string
+          max_participants?: number
+          name?: string
+          prize_pool?: number
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           completed_by: string | null
@@ -760,11 +927,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_tournament: {
+        Args: { p_deck_card_ids: number[]; p_tournament_id: string }
+        Returns: Json
+      }
+      leave_tournament: { Args: { p_tournament_id: string }; Returns: Json }
       place_bid: {
         Args: { p_auction_id: string; p_bid_amount: number }
         Returns: Json
       }
       redeem_promo_code: { Args: { p_code: string }; Returns: Json }
+      start_tournament: { Args: { p_tournament_id: string }; Returns: Json }
       update_cpu_win: { Args: { p_user_id: string }; Returns: undefined }
       update_pvp_stats: {
         Args: { p_is_draw?: boolean; p_loser_id: string; p_winner_id: string }

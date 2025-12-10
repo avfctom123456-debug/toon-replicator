@@ -20,6 +20,8 @@ import CardCollection from "./pages/CardCollection";
 import CardEditor from "./pages/CardEditor";
 import CardCreator from "./pages/CardCreator";
 import Leaderboard from "./pages/Leaderboard";
+import Tournaments from "./pages/Tournaments";
+import TournamentView from "./pages/TournamentView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +52,8 @@ const App = () => (
                 <Route path="/card-creator" element={<CardCreator />} />
                 <Route path="/collection" element={<CardCollection />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/tournaments" element={<Tournaments />} />
+                <Route path="/tournament/:id" element={<TournamentView />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>

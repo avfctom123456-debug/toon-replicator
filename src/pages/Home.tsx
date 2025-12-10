@@ -140,16 +140,27 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Leaderboard */}
-      <div className="w-full max-w-md mb-4">
-        <Button 
-          variant="menu"
-          onClick={() => navigate("/leaderboard")}
-          className="w-full h-14 flex items-center justify-center gap-2"
-        >
-          <Trophy className="h-5 w-5" />
-          <span>Leaderboard</span>
-        </Button>
+      {/* Compete Section */}
+      <div className="w-full max-w-md space-y-3 mb-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Compete</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/leaderboard")}
+            className="h-16 flex items-center justify-center gap-2"
+          >
+            <Trophy className="h-5 w-5" />
+            <span>Leaderboard</span>
+          </Button>
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/tournaments")}
+            className="h-16 flex items-center justify-center gap-2"
+          >
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            <span>Tournaments</span>
+          </Button>
+        </div>
       </div>
 
       {/* Admin Panel */}
