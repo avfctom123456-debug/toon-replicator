@@ -906,6 +906,7 @@ export type Database = {
         Returns: number
       }
       claim_daily_reward: { Args: never; Returns: Json }
+      complete_tournament: { Args: { p_tournament_id: string }; Returns: Json }
       complete_trade: {
         Args: { p_acceptor_user_card_ids: string[]; p_trade_id: string }
         Returns: Json
