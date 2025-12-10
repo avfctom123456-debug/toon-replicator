@@ -1,4 +1,7 @@
+import { Link } from 'react-router-dom';
+import { Eye } from 'lucide-react';
 import { TournamentMatch } from '@/hooks/useTournaments';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface TournamentBracketProps {
@@ -7,11 +10,15 @@ interface TournamentBracketProps {
 
 const MatchCard = ({ match }: { match: TournamentMatch }) => {
   const isCompleted = match.status === 'completed';
+  const isInProgress = match.status === 'in_progress' && match.match_id;
   const player1Won = isCompleted && match.winner_id === match.player1_id;
   const player2Won = isCompleted && match.winner_id === match.player2_id;
 
   return (
-    <div className="bg-muted/30 border border-border/50 rounded-lg p-2 min-w-[160px]">
+    <div className={cn(
+      "bg-muted/30 border rounded-lg p-2 min-w-[160px]",
+      isInProgress ? "border-yellow-500/50 bg-yellow-500/5" : "border-border/50"
+    )}>
       <div 
         className={cn(
           "flex items-center justify-between p-2 rounded mb-1 transition-colors",
@@ -36,8 +43,19 @@ const MatchCard = ({ match }: { match: TournamentMatch }) => {
         </span>
         {isCompleted && <span className="text-xs ml-2">{match.player2_score}</span>}
       </div>
-      <div className="text-xs text-center mt-1 text-muted-foreground">
-        Match {match.match_number}
+      
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-xs text-muted-foreground">
+          Match {match.match_number}
+        </span>
+        {isInProgress && match.match_id && (
+          <Link to={`/spectate/${match.match_id}`}>
+            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-yellow-500 hover:text-yellow-400">
+              <Eye className="w-3 h-3 mr-1" />
+              Watch
+            </Button>
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ import CardCreator from "./pages/CardCreator";
 import Leaderboard from "./pages/Leaderboard";
 import Tournaments from "./pages/Tournaments";
 import TournamentView from "./pages/TournamentView";
+import SpectatorView from "./components/tournament/SpectatorView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/tournaments" element={<Tournaments />} />
                 <Route path="/tournament/:id" element={<TournamentView />} />
+                <Route path="/spectate/:matchId" element={<SpectatorView />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
