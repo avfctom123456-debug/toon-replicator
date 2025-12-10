@@ -6,6 +6,7 @@ import { ClassicCardPreview } from "./ClassicCardPreview";
 import { ClassicHandGrid } from "./ClassicHandGrid";
 import { ClassicGameResultModal } from "./ClassicGameResultModal";
 import { EffectIndicators } from "./EffectIndicators";
+import { GamblingAnimation, GamblingResult } from "./GamblingAnimation";
 import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 type RevealPhase = "placing" | "revealing" | "revealed";
@@ -32,6 +33,8 @@ interface ClassicGameScreenProps {
   opponentName?: string;
   opponentStatus?: OpponentStatus;
   waitingForOpponent?: boolean;
+  gamblingResult?: GamblingResult | null;
+  onGamblingComplete?: () => void;
 }
 
 export const ClassicGameScreen = ({
@@ -54,6 +57,8 @@ export const ClassicGameScreen = ({
   opponentName = "Computer",
   opponentStatus,
   waitingForOpponent = false,
+  gamblingResult,
+  onGamblingComplete,
 }: ClassicGameScreenProps) => {
   const { getOverride } = useCardOverrides();
   const [scale, setScale] = useState(1);
@@ -342,6 +347,14 @@ export const ClassicGameScreen = ({
         onReview={() => onCloseResultModal?.()}
         reverseScoring={game.reverseScoring}
       />
+
+      {/* Gambling Animation */}
+      {gamblingResult && onGamblingComplete && (
+        <GamblingAnimation
+          result={gamblingResult}
+          onComplete={onGamblingComplete}
+        />
+      )}
     </div>
   );
 };
