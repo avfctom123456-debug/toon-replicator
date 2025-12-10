@@ -4,6 +4,7 @@ import cardsData from "@/data/cards.json";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useProfile } from "@/hooks/useProfile";
+import { usePlayerStats } from "@/hooks/usePlayerStats";
 import { CardInfoModal } from "@/components/game/CardInfoModal";
 import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
@@ -29,6 +30,7 @@ const PlayComputer = () => {
   const { user, loading: authLoading } = useAuth();
   const { getDecksWithSlots, loading: decksLoading } = useDecks();
   const { profile } = useProfile();
+  const { updateCpuWin, updateGameStats } = usePlayerStats();
   
   const [gamePhase, setGamePhase] = useState<GamePhase>("deck-select");
   const [selectedDeck, setSelectedDeck] = useState<number[] | null>(null);
@@ -186,6 +188,25 @@ const PlayComputer = () => {
                 setGame({ ...newState, phase: "game-over" });
                 setRevealPhase("revealed");
                 setShowResultModal(true);
+                
+                // Track achievements when game ends
+                const playerScore = newState.player.totalPoints;
+                const opponentScore = newState.opponent.totalPoints;
+                const isColorWin = newState.winMethod === "color";
+                const isPerfectWin = newState.winner === "player" && opponentScore === 0;
+                
+                // Update game stats for achievements
+                updateGameStats({
+                  score: playerScore,
+                  isColorWin: newState.winner === "player" && isColorWin,
+                  isPerfectWin,
+                });
+                
+                // Track CPU win if player won
+                if (newState.winner === "player") {
+                  updateCpuWin();
+                }
+                
                 if (newState.winner === "player") {
                   setMessage(`You win by ${newState.winMethod}!`);
                 } else if (newState.winner === "opponent") {

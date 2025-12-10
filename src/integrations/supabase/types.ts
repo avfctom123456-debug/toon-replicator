@@ -1002,6 +1002,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_coins_earned: {
+        Args: { p_coins: number; p_user_id: string }
+        Returns: undefined
+      }
       calculate_elo_change: {
         Args: { k_factor?: number; loser_elo: number; winner_elo: number }
         Returns: number
@@ -1033,6 +1037,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_color_wins: { Args: { p_user_id: string }; Returns: undefined }
+      increment_packs_opened: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      increment_perfect_wins: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       join_tournament: {
         Args: { p_deck_card_ids: number[]; p_tournament_id: string }
         Returns: Json
@@ -1049,6 +1062,10 @@ export type Database = {
         Returns: undefined
       }
       update_cpu_win: { Args: { p_user_id: string }; Returns: undefined }
+      update_highest_score: {
+        Args: { p_score: number; p_user_id: string }
+        Returns: undefined
+      }
       update_pvp_stats: {
         Args: { p_is_draw?: boolean; p_loser_id: string; p_winner_id: string }
         Returns: undefined

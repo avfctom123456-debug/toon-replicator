@@ -112,7 +112,22 @@ export function usePacks() {
         if (coinError) throw coinError;
 
         // Increment packs_opened in player_stats
-        await supabase.rpc('increment_packs_opened', { p_user_id: user.id });
+        const { data: currentStats } = await supabase
+          .from("player_stats")
+          .select("packs_opened")
+          .eq("user_id", user.id)
+          .single();
+        
+        if (currentStats) {
+          await supabase
+            .from("player_stats")
+            .update({ packs_opened: (currentStats.packs_opened || 0) + 1 })
+            .eq("user_id", user.id);
+        } else {
+          await supabase
+            .from("player_stats")
+            .insert({ user_id: user.id, packs_opened: 1 });
+        }
 
         // Add cards to user's collection
         for (const cardId of drawnCards) {
