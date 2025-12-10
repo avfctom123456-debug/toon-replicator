@@ -18,6 +18,10 @@ export interface PlayerStats {
   highest_score: number;
   color_wins: number;
   perfect_wins: number;
+  total_card_plays: number;
+  total_card_buffs: number;
+  total_card_cancels: number;
+  total_adjacency_plays: number;
   created_at: string;
   updated_at: string;
 }
@@ -94,17 +98,21 @@ export const usePlayerStats = () => {
     score?: number;
     isColorWin?: boolean;
     isPerfectWin?: boolean;
+    cardPlays?: number;
+    cardBuffs?: number;
+    cardCancels?: number;
+    adjacencyPlays?: number;
   }) => {
     if (!user) return false;
 
-    const updates: Record<string, unknown> = {};
-    
     // Get current stats
     const { data: currentStats } = await supabase
       .from("player_stats")
-      .select("highest_score, color_wins, perfect_wins")
+      .select("highest_score, color_wins, perfect_wins, total_card_plays, total_card_buffs, total_card_cancels, total_adjacency_plays")
       .eq("user_id", user.id)
       .single();
+
+    const updates: Record<string, unknown> = {};
 
     if (options.score !== undefined) {
       const currentHighest = currentStats?.highest_score || 0;
@@ -119,6 +127,22 @@ export const usePlayerStats = () => {
 
     if (options.isPerfectWin) {
       updates.perfect_wins = (currentStats?.perfect_wins || 0) + 1;
+    }
+
+    if (options.cardPlays) {
+      updates.total_card_plays = (currentStats?.total_card_plays || 0) + options.cardPlays;
+    }
+
+    if (options.cardBuffs) {
+      updates.total_card_buffs = (currentStats?.total_card_buffs || 0) + options.cardBuffs;
+    }
+
+    if (options.cardCancels) {
+      updates.total_card_cancels = (currentStats?.total_card_cancels || 0) + options.cardCancels;
+    }
+
+    if (options.adjacencyPlays) {
+      updates.total_adjacency_plays = (currentStats?.total_adjacency_plays || 0) + options.adjacencyPlays;
     }
 
     if (Object.keys(updates).length > 0) {
