@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, X, Copy, Download, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, X, Copy, Download, Upload, Trash2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -62,125 +68,125 @@ const colorBg: Record<string, string> = {
   WHITE: "bg-white border border-gray-300",
 };
 
-// Common power patterns for cards - organized by category
+// Common power patterns for cards - organized by category with descriptions
 const POWER_PATTERNS = [
   // No Power
-  { label: "No Power", template: "No power", category: "basic" },
+  { label: "No Power", template: "No power", category: "basic", description: "Card has no special ability", example: "A vanilla card with just base points" },
   
   // Self-Modifying: Conditional Bonuses
-  { label: "+X if [Card] in play", template: "+{points} if any {cardName} is in play", category: "conditional" },
-  { label: "+X if [A] and [B] both in play", template: "+{points} if {cardA} and {cardB} are both in play", category: "conditional" },
-  { label: "+X if next to [Card]", template: "+{points} if next to any {cardName}", category: "conditional" },
-  { label: "+X if adjacent to [Type]", template: "+{points} if adjacent to a {type}", category: "conditional" },
-  { label: "+X if played in 2nd round", template: "+{points} if played in the 2nd round", category: "conditional" },
-  { label: "+X if played first in first round", template: "+{points} if played first in the first round", category: "conditional" },
-  { label: "+X if played as last card", template: "+{points} if played as the last card", category: "conditional" },
-  { label: "+X if other [Type] in play", template: "+{points} if any other {type} is in play", category: "conditional" },
+  { label: "+X if [Card] in play", template: "+{points} if any {cardName} is in play", category: "conditional", description: "Gains bonus points when a specific card is played by either player", example: "+3 if any Batman is in play" },
+  { label: "+X if [A] and [B] both in play", template: "+{points} if {cardA} and {cardB} are both in play", category: "conditional", description: "Requires two specific cards to be in play for bonus", example: "+5 if Superman and Batman are both in play" },
+  { label: "+X if next to [Card]", template: "+{points} if next to any {cardName}", category: "conditional", description: "Gains bonus when placed adjacent to a specific card", example: "+4 if next to any Robin" },
+  { label: "+X if adjacent to [Type]", template: "+{points} if adjacent to a {type}", category: "conditional", description: "Bonus when next to cards of a specific type", example: "+2 if adjacent to a HERO" },
+  { label: "+X if played in 2nd round", template: "+{points} if played in the 2nd round", category: "conditional", description: "Only gains bonus when used in round 2", example: "+6 if played in the 2nd round" },
+  { label: "+X if played first in first round", template: "+{points} if played first in the first round", category: "conditional", description: "Must be the first card placed in round 1", example: "+3 if played first in the first round" },
+  { label: "+X if played as last card", template: "+{points} if played as the last card", category: "conditional", description: "Bonus applies to the 7th card placed", example: "+5 if played as the last card" },
+  { label: "+X if other [Type] in play", template: "+{points} if any other {type} is in play", category: "conditional", description: "Needs another card of same type on the board", example: "+3 if any other VILLAIN is in play" },
   
   // Self-Modifying: Multipliers
-  { label: "x2 if [Card] in play", template: "x2 if {cardName} is in play", category: "multiplier" },
-  { label: "x2 if next to [Card]", template: "x2 if next to any {cardName}", category: "multiplier" },
-  { label: "x3 if next to [Type]", template: "x3 if next to another {type}", category: "multiplier" },
-  { label: "x2 if opposite is [Color]", template: "x2 if opposite card is {color}", category: "multiplier" },
-  { label: "x2 if [A] or [B] in play", template: "x2 if {cardA} or {cardB} is in play", category: "multiplier" },
+  { label: "x2 if [Card] in play", template: "x2 if {cardName} is in play", category: "multiplier", description: "Doubles this card's points when specific card exists", example: "x2 if Joker is in play" },
+  { label: "x2 if next to [Card]", template: "x2 if next to any {cardName}", category: "multiplier", description: "Doubles points when adjacent to specific card", example: "x2 if next to any Wonder Woman" },
+  { label: "x3 if next to [Type]", template: "x3 if next to another {type}", category: "multiplier", description: "Triples points when next to matching type", example: "x3 if next to another ANIMAL" },
+  { label: "x2 if opposite is [Color]", template: "x2 if opposite card is {color}", category: "multiplier", description: "Doubles when facing a card of specific color", example: "x2 if opposite card is RED" },
+  { label: "x2 if [A] or [B] in play", template: "x2 if {cardA} or {cardB} is in play", category: "multiplier", description: "Doubles if either of two specific cards exist", example: "x2 if SpongeBob or Patrick is in play" },
   
   // Self-Modifying: Count-Based
-  { label: "+X for each [Type]", template: "+{points} for each {type} in play", category: "counting" },
-  { label: "+X for each other [Type]", template: "+{points} for each other {type} in play", category: "counting" },
-  { label: "+X for each neighboring [Type]", template: "+{points} for each neighboring {type}", category: "counting" },
-  { label: "+X for each [Type] opponent", template: "+{points} for each {type} opponent", category: "counting" },
-  { label: "-X for each opponent [Type]", template: "-{points} for each opponent {type}", category: "counting" },
+  { label: "+X for each [Type]", template: "+{points} for each {type} in play", category: "counting", description: "Scales with total count of a type on both boards", example: "+1 for each FEMALE in play" },
+  { label: "+X for each other [Type]", template: "+{points} for each other {type} in play", category: "counting", description: "Counts others of same type, excluding self", example: "+2 for each other JEDI in play" },
+  { label: "+X for each neighboring [Type]", template: "+{points} for each neighboring {type}", category: "counting", description: "Only counts adjacent cards of type", example: "+3 for each neighboring CLONE" },
+  { label: "+X for each [Type] opponent", template: "+{points} for each {type} opponent", category: "counting", description: "Counts only opponent's cards of type", example: "+2 for each SITH opponent" },
+  { label: "-X for each opponent [Type]", template: "-{points} for each opponent {type}", category: "counting", description: "Loses points for each opponent card of type", example: "-1 for each opponent HERO" },
   
   // Buff Other Cards
-  { label: "+X to neighboring cards", template: "+{points} to neighboring cards", category: "buff" },
-  { label: "+X to all [Color] cards", template: "+{points} to all {color} cards", category: "buff" },
-  { label: "+X to all [Group] members", template: "+{points} to all {group} members", category: "buff" },
-  { label: "+X to each [Type]", template: "+{points} to each {type}", category: "buff" },
-  { label: "x2 to neighboring [Type]", template: "x2 to each neighboring {type}", category: "buff" },
-  { label: "+X to cards with lower base", template: "+{points} to each own card with lower base value", category: "buff" },
+  { label: "+X to neighboring cards", template: "+{points} to neighboring cards", category: "buff", description: "Buffs all adjacent friendly cards", example: "+2 to neighboring cards" },
+  { label: "+X to all [Color] cards", template: "+{points} to all {color} cards", category: "buff", description: "Buffs all friendly cards of a color", example: "+1 to all BLUE cards" },
+  { label: "+X to all [Group] members", template: "+{points} to all {group} members", category: "buff", description: "Buffs cards from same franchise group", example: "+2 to all TEEN TITANS members" },
+  { label: "+X to each [Type]", template: "+{points} to each {type}", category: "buff", description: "Buffs all friendly cards of a type", example: "+1 to each PRINCESS" },
+  { label: "x2 to neighboring [Type]", template: "x2 to each neighboring {type}", category: "buff", description: "Doubles adjacent cards of specific type", example: "x2 to each neighboring MINION" },
+  { label: "+X to cards with lower base", template: "+{points} to each own card with lower base value", category: "buff", description: "Buffs your weaker cards", example: "+2 to each own card with lower base value" },
   
   // Debuff Opponents
-  { label: "-X to opposite card", template: "-{points} to opposite card", category: "debuff" },
-  { label: "-X to opposing [Type]", template: "-{points} to each opposing {type}", category: "debuff" },
-  { label: "-X to opposing if not [Type]", template: "-{points} to opposite card if not a {type}", category: "debuff" },
-  { label: "-X to opposing higher base", template: "-{points} to each opposing card with higher base value", category: "debuff" },
-  { label: "-X to each [Type]", template: "-{points} to each {type}", category: "debuff" },
+  { label: "-X to opposite card", template: "-{points} to opposite card", category: "debuff", description: "Reduces the opposing card's points", example: "-3 to opposite card" },
+  { label: "-X to opposing [Type]", template: "-{points} to each opposing {type}", category: "debuff", description: "Weakens all opponent cards of a type", example: "-2 to each opposing VILLAIN" },
+  { label: "-X to opposing if not [Type]", template: "-{points} to opposite card if not a {type}", category: "debuff", description: "Debuff only if opponent isn't specific type", example: "-4 to opposite card if not a HERO" },
+  { label: "-X to opposing higher base", template: "-{points} to each opposing card with higher base value", category: "debuff", description: "Targets strong opponent cards", example: "-2 to each opposing card with higher base value" },
+  { label: "-X to each [Type]", template: "-{points} to each {type}", category: "debuff", description: "Reduces all cards of a type (both players)", example: "-1 to each MONSTER" },
   
   // Special/Complex (existing)
-  { label: "Cancels opposite [Type]", template: "Cancels opposite card if it is a {type}", category: "special" },
-  { label: "All [Type] get +X per [Target]", template: "All {type} get +{points} for each {target} in play", category: "special" },
-  { label: "+X to [Card] if adjacent to [Card]", template: "+{points} to {cardA} if adjacent to {cardB}", category: "special" },
+  { label: "Cancels opposite [Type]", template: "Cancels opposite card if it is a {type}", category: "special", description: "Nullifies opposing card if it matches type", example: "Cancels opposite card if it is a DROID" },
+  { label: "All [Type] get +X per [Target]", template: "All {type} get +{points} for each {target} in play", category: "special", description: "Complex scaling buff for a type", example: "All SAIYAN get +1 for each NAMEKIAN in play" },
+  { label: "+X to [Card] if adjacent to [Card]", template: "+{points} to {cardA} if adjacent to {cardB}", category: "special", description: "Conditional buff to specific card pair", example: "+3 to Shaggy if adjacent to Scooby" },
   
   // === NEW EFFECTS ===
   
   // Defensive Effects
-  { label: "Cannot be cancelled (Shield)", template: "Cannot be cancelled", category: "defensive" },
-  { label: "Immune to cancellation", template: "Immune to cancellation and negative effects", category: "defensive" },
-  { label: "Immune to negative effects", template: "Immune to negative effects", category: "defensive" },
-  { label: "Shielded", template: "Shielded - this card cannot be cancelled", category: "defensive" },
+  { label: "Cannot be cancelled (Shield)", template: "Cannot be cancelled", category: "defensive", description: "Immune to cancel effects", example: "This card cannot be cancelled by any effect" },
+  { label: "Immune to cancellation", template: "Immune to cancellation and negative effects", category: "defensive", description: "Full protection from all negative effects", example: "Completely protected from debuffs and cancels" },
+  { label: "Immune to negative effects", template: "Immune to negative effects", category: "defensive", description: "Can't receive point reductions", example: "Debuffs don't affect this card" },
+  { label: "Shielded", template: "Shielded - this card cannot be cancelled", category: "defensive", description: "Alternative shield wording", example: "Shielded - this card cannot be cancelled" },
   
   // Steal Effects
-  { label: "Steal X from opposite", template: "Steal {points} points from opposing card", category: "steal" },
-  { label: "Steal X from all opponents", template: "Steal {points} points from all opposing cards", category: "steal" },
-  { label: "Steal buff from opposite", template: "Steal random buff from opposite toon", category: "steal" },
-  { label: "Steal effect from opposite", template: "Steal the effect from opposite card", category: "steal" },
+  { label: "Steal X from opposite", template: "Steal {points} points from opposing card", category: "steal", description: "Takes points from opposing card and adds to self", example: "Steal 3 points from opposing card" },
+  { label: "Steal X from all opponents", template: "Steal {points} points from all opposing cards", category: "steal", description: "Drains points from every opponent card", example: "Steal 1 point from all opposing cards" },
+  { label: "Steal buff from opposite", template: "Steal random buff from opposite toon", category: "steal", description: "Takes a positive effect from opponent", example: "Steal random buff from opposite toon" },
+  { label: "Steal effect from opposite", template: "Steal the effect from opposite card", category: "steal", description: "Copies and removes opponent's ability", example: "Copy opponent's power and negate theirs" },
   
   // Double Effects
-  { label: "Double effect to the left", template: "Double the effect of the card to the left", category: "amplify" },
-  { label: "Double effect to the right", template: "Double the effect of the card to the right", category: "amplify" },
+  { label: "Double effect to the left", template: "Double the effect of the card to the left", category: "amplify", description: "Amplifies adjacent left card's power", example: "If left card gives +2, it now gives +4" },
+  { label: "Double effect to the right", template: "Double the effect of the card to the right", category: "amplify", description: "Amplifies adjacent right card's power", example: "If right card gives +3, it now gives +6" },
   
   // Random Cancel
-  { label: "Cancel random opponent", template: "Cancel a random opponent's gtoon", category: "special" },
+  { label: "Cancel random opponent", template: "Cancel a random opponent's gtoon", category: "special", description: "Randomly nullifies one opponent card", example: "One random opponent card scores 0" },
   
   // Swap/Copy Effects
-  { label: "Swap points with neighbor", template: "Swap points with a neighboring card", category: "swap" },
-  { label: "Swap points with [Type]", template: "Swap points with neighboring {type}", category: "swap" },
-  { label: "Copy base points of [Type]", template: "Copy the base points of another {type}", category: "swap" },
-  { label: "Mirror opposing effect", template: "Mirror opposing card's effect", category: "swap" },
+  { label: "Swap points with neighbor", template: "Swap points with a neighboring card", category: "swap", description: "Exchange point values with adjacent card", example: "If you have 3 and neighbor has 7, swap them" },
+  { label: "Swap points with [Type]", template: "Swap points with neighboring {type}", category: "swap", description: "Point swap only with specific type neighbor", example: "Swap points with neighboring HERO" },
+  { label: "Copy base points of [Type]", template: "Copy the base points of another {type}", category: "swap", description: "Match base points of another card of type", example: "Copy the base points of another SAIYAN" },
+  { label: "Mirror opposing effect", template: "Mirror opposing card's effect", category: "swap", description: "Use opponent's ability against them", example: "If opposite has +3 buff, you get +3 too" },
   
   // Position-Based Effects
-  { label: "+X if in corner", template: "+{points} if placed in corner", category: "position" },
-  { label: "+X if in center", template: "+{points} if placed in center", category: "position" },
-  { label: "+X per adjacent filled slot", template: "+{points} for each adjacent filled slot", category: "position" },
+  { label: "+X if in corner", template: "+{points} if placed in corner", category: "position", description: "Bonus for corner slot placement", example: "+4 if placed in corner" },
+  { label: "+X if in center", template: "+{points} if placed in center", category: "position", description: "Bonus for center slot placement", example: "+3 if placed in center" },
+  { label: "+X per adjacent filled slot", template: "+{points} for each adjacent filled slot", category: "position", description: "Scales with neighboring card count", example: "+1 for each adjacent filled slot" },
   
   // Underdog/Comeback Effects
-  { label: "+X if total lower (Underdog)", template: "+{points} if your total is lower than opponent's", category: "underdog" },
-  { label: "x2 if total lower", template: "x2 if your total is lower than opponent's", category: "underdog" },
-  { label: "x2 if only non-cancelled (Last Stand)", template: "x2 if this is your only non-cancelled card", category: "underdog" },
+  { label: "+X if total lower (Underdog)", template: "+{points} if your total is lower than opponent's", category: "underdog", description: "Bonus when losing before this card", example: "+5 if your total is lower than opponent's" },
+  { label: "x2 if total lower", template: "x2 if your total is lower than opponent's", category: "underdog", description: "Doubles when behind in score", example: "Double points when losing" },
+  { label: "x2 if only non-cancelled (Last Stand)", template: "x2 if this is your only non-cancelled card", category: "underdog", description: "Doubles if all other cards cancelled", example: "Last card standing gets doubled" },
   
   // Random/Gamble Effects
-  { label: "Random +1 to +5", template: "Randomly gain +1 to +5 points", category: "random" },
-  { label: "Random +1 to +10", template: "Randomly gain +1 to +10 points", category: "random" },
-  { label: "Random +5 to +15", template: "Randomly gain +5 to +15 points", category: "random" },
+  { label: "Random +1 to +5", template: "Randomly gain +1 to +5 points", category: "random", description: "RNG bonus in small range", example: "Might get +1, +2, +3, +4, or +5" },
+  { label: "Random +1 to +10", template: "Randomly gain +1 to +10 points", category: "random", description: "RNG bonus in medium range", example: "Could get anywhere from +1 to +10" },
+  { label: "Random +5 to +15", template: "Randomly gain +5 to +15 points", category: "random", description: "High-risk high-reward RNG", example: "Guaranteed +5, up to +15 possible" },
   
   // Sacrifice/Chain Effects
-  { label: "Sacrifice for +X to all", template: "Cancel this card to give +{points} to all your other cards", category: "chain" },
-  { label: "Double neighbor effects (Echo)", template: "Double each neighboring card's effect", category: "chain" },
-  { label: "+X per triggered effect (Amplify)", template: "+{points} for each card with a triggered effect", category: "chain" },
-  { label: "+X per negative on your cards (Counter)", template: "+{points} for each negative effect on your cards", category: "chain" },
+  { label: "Sacrifice for +X to all", template: "Cancel this card to give +{points} to all your other cards", category: "chain", description: "Sacrifice self to buff team", example: "Cancel this card to give +2 to all your other cards" },
+  { label: "Double neighbor effects (Echo)", template: "Double each neighboring card's effect", category: "chain", description: "Amplifies both adjacent cards", example: "Both neighbors have their effects doubled" },
+  { label: "+X per triggered effect (Amplify)", template: "+{points} for each card with a triggered effect", category: "chain", description: "Scales with active effects count", example: "+1 for each card with a triggered effect" },
+  { label: "+X per negative on your cards (Counter)", template: "+{points} for each negative effect on your cards", category: "chain", description: "Gets stronger from debuffs", example: "+2 for each negative effect on your cards" },
   
   // Color Manipulation Effects
-  { label: "Change color condition to [Color]", template: "Change the color condition to {color}", category: "color" },
-  { label: "Counts as all colors", template: "This card counts as all colors", category: "color" },
-  { label: "Convert [Color] to [Color]", template: "Convert all {colorA} cards to {colorB}", category: "color" },
-  { label: "Negate color bonus", template: "Negate the color bonus this round", category: "color" },
+  { label: "Change color condition to [Color]", template: "Change the color condition to {color}", category: "color", description: "Alters the round's winning color", example: "Change the color condition to BLUE" },
+  { label: "Counts as all colors", template: "This card counts as all colors", category: "color", description: "Wild card for color bonus", example: "Always gets color bonus regardless of condition" },
+  { label: "Convert [Color] to [Color]", template: "Convert all {colorA} cards to {colorB}", category: "color", description: "Mass color change effect", example: "Convert all RED cards to BLUE" },
+  { label: "Negate color bonus", template: "Negate the color bonus this round", category: "color", description: "No one gets color points this round", example: "Color matching gives no bonus" },
   
   // Hand/Resource Effects
-  { label: "+X per card in hand", template: "+{points} for each card still in your hand", category: "resource" },
-  { label: "+X per opponent card in hand", template: "+{points} for each card in opponent's hand", category: "resource" },
+  { label: "+X per card in hand", template: "+{points} for each card still in your hand", category: "resource", description: "Rewards holding cards", example: "+1 for each card still in your hand" },
+  { label: "+X per opponent card in hand", template: "+{points} for each card in opponent's hand", category: "resource", description: "Scales with opponent's unplayed cards", example: "+2 for each card in opponent's hand" },
   
   // Advanced Position Effects
-  { label: "Swap positions with opposite", template: "Swap board positions with opposite card", category: "position" },
-  { label: "Move to empty slot", template: "Move this card to an empty slot", category: "position" },
+  { label: "Swap positions with opposite", template: "Swap board positions with opposite card", category: "position", description: "Exchange slots with opposing card", example: "Your card and opposite card swap places" },
+  { label: "Move to empty slot", template: "Move this card to an empty slot", category: "position", description: "Relocate to unfilled position", example: "Can move to any empty board slot" },
   
   // Win Condition Manipulation
-  { label: "Reverse scoring this round", template: "Reverse scoring - lowest total wins this round", category: "special" },
-  { label: "Lock this slot", template: "Lock this slot - this card cannot be affected", category: "defensive" },
+  { label: "Reverse scoring this round", template: "Reverse scoring - lowest total wins this round", category: "special", description: "Inverts win condition for the round", example: "Player with lower score wins instead" },
+  { label: "Lock this slot", template: "Lock this slot - this card cannot be affected", category: "defensive", description: "Complete slot immunity", example: "Nothing can target this card position" },
   
   // Echo/Chain Effects
-  { label: "Echo base to neighbors", template: "Copy this card's base points to neighboring cards", category: "chain" },
-  { label: "Chain +X on win", template: "If this card wins its matchup, give +{points} to next card", category: "chain" },
-  { label: "Sabotage all opponents", template: "Reduce all opponent cards by {points} points", category: "debuff" },
+  { label: "Echo base to neighbors", template: "Copy this card's base points to neighboring cards", category: "chain", description: "Neighbors get this card's base as bonus", example: "If base is 5, neighbors get +5" },
+  { label: "Chain +X on win", template: "If this card wins its matchup, give +{points} to next card", category: "chain", description: "Victory bonus passes to next slot", example: "If this card wins its matchup, give +3 to next card" },
+  { label: "Sabotage all opponents", template: "Reduce all opponent cards by {points} points", category: "debuff", description: "Mass opponent debuff", example: "Reduce all opponent cards by 2 points" },
 ];
 
 const COMMON_GROUPS = [
@@ -212,6 +218,20 @@ export default function CardCreator() {
   const [currentCard, setCurrentCard] = useState<Omit<CardData, "id">>(emptyCard);
   const [newGroup, setNewGroup] = useState("");
   const [nextId, setNextId] = useState(1000); // Start custom cards at ID 1000
+  const [effectSearch, setEffectSearch] = useState("");
+
+  // Filter power patterns based on search
+  const filteredPatterns = useMemo(() => {
+    if (!effectSearch.trim()) return POWER_PATTERNS;
+    const search = effectSearch.toLowerCase();
+    return POWER_PATTERNS.filter(
+      (p) =>
+        p.label.toLowerCase().includes(search) ||
+        p.description.toLowerCase().includes(search) ||
+        p.example.toLowerCase().includes(search) ||
+        p.category.toLowerCase().includes(search)
+    );
+  }, [effectSearch]);
 
   const addCard = () => {
     if (!currentCard.title) {
@@ -527,297 +547,457 @@ export default function CardCreator() {
                 rows={3}
               />
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground font-medium">Quick patterns (click to apply):</p>
-                
-                {/* Conditional Bonuses */}
-                <div className="space-y-1">
-                  <p className="text-xs text-primary">Conditional (+X if...)</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "conditional").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground font-medium">Quick patterns (click to apply):</p>
+                  <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Search effects..."
+                      value={effectSearch}
+                      onChange={(e) => setEffectSearch(e.target.value)}
+                      className="h-7 pl-7 text-xs"
+                    />
                   </div>
+                  {effectSearch && (
+                    <span className="text-xs text-muted-foreground">
+                      {filteredPatterns.length} results
+                    </span>
+                  )}
                 </div>
                 
-                {/* Multipliers */}
-                <div className="space-y-1">
-                  <p className="text-xs text-orange-400">Multipliers (x2, x3...)</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "multiplier").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Counting */}
-                <div className="space-y-1">
-                  <p className="text-xs text-yellow-400">Count-Based (+X for each...)</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "counting").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Buffs */}
-                <div className="space-y-1">
-                  <p className="text-xs text-green-400">Buff Others (+X to...)</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "buff").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Debuffs */}
-                <div className="space-y-1">
-                  <p className="text-xs text-red-400">Debuff Opponents (-X to...)</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "debuff").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Special */}
-                <div className="space-y-1">
-                  <p className="text-xs text-purple-400">Special / Complex</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "special" || p.category === "basic").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* NEW EFFECT CATEGORIES */}
-                
-                {/* Defensive */}
-                <div className="space-y-1">
-                  <p className="text-xs text-cyan-400">🛡️ Defensive (Shield, Immunity)</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "defensive").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Steal */}
-                <div className="space-y-1">
-                  <p className="text-xs text-rose-400">💀 Steal Effects</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "steal").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Swap/Copy */}
-                <div className="space-y-1">
-                  <p className="text-xs text-indigo-400">🔄 Swap / Copy / Mirror</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "swap").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Position */}
-                <div className="space-y-1">
-                  <p className="text-xs text-teal-400">📍 Position-Based</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "position").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Underdog */}
-                <div className="space-y-1">
-                  <p className="text-xs text-amber-400">🔥 Underdog / Comeback</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "underdog").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Random */}
-                <div className="space-y-1">
-                  <p className="text-xs text-emerald-400">🎲 Random / Gamble</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "random").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Chain/Combo */}
-                <div className="space-y-1">
-                  <p className="text-xs text-fuchsia-400">⚡ Chain / Combo Effects</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "chain").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Color Manipulation */}
-                <div className="space-y-1">
-                  <p className="text-xs text-pink-400">🎨 Color Manipulation</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "color").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7 border-pink-500/30 hover:bg-pink-500/10"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Resource Effects */}
-                <div className="space-y-1">
-                  <p className="text-xs text-lime-400">📦 Resource / Hand Effects</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "resource").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7 border-lime-500/30 hover:bg-lime-500/10"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Amplify Effects */}
-                <div className="space-y-1">
-                  <p className="text-xs text-sky-400">🔊 Amplify / Double Effects</p>
-                  <div className="flex flex-wrap gap-1">
-                    {POWER_PATTERNS.filter(p => p.category === "amplify").map((pattern) => (
-                      <Button
-                        key={pattern.label}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7 border-sky-500/30 hover:bg-sky-500/10"
-                        onClick={() => applyPowerPattern(pattern.template)}
-                      >
-                        {pattern.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                <TooltipProvider delayDuration={200}>
+                  {/* Search Results Mode */}
+                  {effectSearch ? (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Search Results</p>
+                      <div className="flex flex-wrap gap-1">
+                        {filteredPatterns.map((pattern) => (
+                          <Tooltip key={pattern.label}>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-7"
+                                onClick={() => applyPowerPattern(pattern.template)}
+                              >
+                                {pattern.label}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs">
+                              <p className="font-medium">{pattern.description}</p>
+                              <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                        {filteredPatterns.length === 0 && (
+                          <p className="text-xs text-muted-foreground">No effects found matching "{effectSearch}"</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Conditional Bonuses */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-primary">Conditional (+X if...)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "conditional").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Multipliers */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-orange-400">Multipliers (x2, x3...)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "multiplier").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Counting */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-yellow-400">Count-Based (+X for each...)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "counting").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Buffs */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-green-400">Buff Others (+X to...)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "buff").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Debuffs */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-red-400">Debuff Opponents (-X to...)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "debuff").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Special */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-purple-400">Special / Complex</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "special" || p.category === "basic").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Defensive */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-cyan-400">🛡️ Defensive (Shield, Immunity)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "defensive").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Steal */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-rose-400">💀 Steal Effects</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "steal").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Swap/Copy */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-indigo-400">🔄 Swap / Copy / Mirror</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "swap").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Position */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-teal-400">📍 Position-Based</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "position").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Underdog */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-amber-400">🔥 Underdog / Comeback</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "underdog").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Random */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-emerald-400">🎲 Random / Gamble</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "random").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Chain/Combo */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-fuchsia-400">⚡ Chain / Combo Effects</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "chain").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Color Manipulation */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-pink-400">🎨 Color Manipulation</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "color").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-pink-500/30 hover:bg-pink-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Resource Effects */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-lime-400">📦 Resource / Hand Effects</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "resource").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-lime-500/30 hover:bg-lime-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Amplify Effects */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-sky-400">🔊 Amplify / Double Effects</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "amplify").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-sky-500/30 hover:bg-sky-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </TooltipProvider>
               </div>
             </div>
 
