@@ -16,7 +16,7 @@ import { MiniCard, CardChip } from "@/components/MiniCard";
 import { toast } from "sonner";
 import { 
   ArrowLeft, Coins, ArrowRightLeft, Plus, Gavel, Clock, 
-  TrendingUp, User, History
+  TrendingUp, User, History, ExternalLink
 } from "lucide-react";
 import { AuctionBidHistoryModal } from "@/components/trade/AuctionBidHistoryModal";
 import {
@@ -667,6 +667,15 @@ export default function TradeBoard() {
                                 </button>
                               }
                             />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 w-full"
+                              onClick={() => navigate(`/auction/${auction.id}`)}
+                            >
+                              <ExternalLink className="mr-2 h-3 w-3" />
+                              Open Auction
+                            </Button>
                           </div>
                         </div>
 
