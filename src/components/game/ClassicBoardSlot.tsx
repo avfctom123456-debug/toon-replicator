@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PlacedCard } from "@/lib/gameEngine";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
+import { CardEffectBadge } from "./EffectIndicators";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
@@ -124,6 +125,8 @@ export const ClassicBoardSlot = ({
             {pointsDiff > 0 ? `+${pointsDiff}` : pointsDiff}
           </div>
         )}
+        {/* Special effect badges */}
+        <CardEffectBadge slot={slot} />
       </div>
     );
   }
