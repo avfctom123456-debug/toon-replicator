@@ -20,6 +20,7 @@ export interface PlacedCard {
   position: number;
   shielded?: boolean; // Immune to cancellation and negative effects
   stolenPoints?: number; // Points stolen from this card
+  countsAsAllColors?: boolean; // This card counts as all colors for color condition
 }
 
 export interface PlayerState {
@@ -1584,6 +1585,62 @@ export function applyPowers(state: GameState): GameState {
         sourceSlot.modifiedPoints = sourceSlot.card.basePoints;
       }
     }
+    
+    // "+X for each card still in your hand" (Resource effect)
+    const handMatch = desc.match(/\+(\d+)\s+for\s+each\s+card\s+(?:still\s+)?in\s+(?:your\s+)?hand/);
+    if (handMatch) {
+      const bonus = parseInt(handMatch[1]);
+      const playedCount = ownBoard.filter(s => s !== null).length;
+      const cardsInHand = 7 - playedCount; // Max 7 cards in deck
+      sourceSlot.modifiedPoints += bonus * cardsInHand;
+    }
+    
+    // "+X for each card in opponent's hand"
+    const oppHandMatch = desc.match(/\+(\d+)\s+for\s+each\s+card\s+in\s+opponent'?s?\s+hand/);
+    if (oppHandMatch) {
+      const bonus = parseInt(oppHandMatch[1]);
+      const oppPlayedCount = enemyBoard.filter(s => s !== null).length;
+      const oppCardsInHand = 7 - oppPlayedCount;
+      sourceSlot.modifiedPoints += bonus * oppCardsInHand;
+    }
+    
+    // "Copy this card's base points to neighboring cards" (Echo Base)
+    if (desc.includes("copy") && desc.includes("base points") && desc.includes("neighbor")) {
+      const neighbors = getNeighborIndices(sourceSlot.position);
+      neighbors.forEach(idx => {
+        const neighbor = ownBoard[idx];
+        if (neighbor && !neighbor.cancelled) {
+          neighbor.modifiedPoints = sourceSlot.card.basePoints;
+        }
+      });
+    }
+    
+    // "Reduce all opponent cards by X points" (Sabotage)
+    const sabotageMatch = desc.match(/reduce\s+all\s+opponent\s+cards?\s+by\s+(\d+)/);
+    if (sabotageMatch) {
+      const penalty = parseInt(sabotageMatch[1]);
+      enemyBoard.forEach(slot => {
+        if (slot && !slot.cancelled && !slot.shielded) {
+          slot.modifiedPoints -= penalty;
+        }
+      });
+    }
+    
+    // "Lock this slot" - mark as super shielded (cannot be affected at all)
+    if (desc.includes("lock this slot") || desc.includes("cannot be affected")) {
+      sourceSlot.shielded = true;
+    }
+    
+    // "This card counts as all colors" - wild card for color conditions
+    if (desc.includes("counts as all colors") || desc.includes("count as all colors")) {
+      sourceSlot.countsAsAllColors = true;
+    }
+    
+    // "Negate the color bonus this round" - cancel color counting for this slot
+    if (desc.includes("negate") && desc.includes("color bonus")) {
+      // Mark own slot as not counting for colors (handled in scoring)
+      sourceSlot.countsAsAllColors = false; // Will be checked specially in scoring
+    }
   };
   
   // Fourth pass: Handle round-specific effects
@@ -1830,6 +1887,14 @@ export function calculateScores(state: GameState): GameState {
     board.forEach((slot, pos) => {
       if (!slot || slot.cancelled) return;
       totalPoints += slot.modifiedPoints;
+      
+      // Check if card counts as all colors
+      if (slot.countsAsAllColors) {
+        mainColors.forEach(color => {
+          colorCounts[color] = (colorCounts[color] || 0) + 1;
+        });
+        return;
+      }
       
       // Get base colors
       const colors = new Set(slot.card.colors);

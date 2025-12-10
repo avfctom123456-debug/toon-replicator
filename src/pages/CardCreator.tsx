@@ -158,6 +158,29 @@ const POWER_PATTERNS = [
   { label: "Double neighbor effects (Echo)", template: "Double each neighboring card's effect", category: "chain" },
   { label: "+X per triggered effect (Amplify)", template: "+{points} for each card with a triggered effect", category: "chain" },
   { label: "+X per negative on your cards (Counter)", template: "+{points} for each negative effect on your cards", category: "chain" },
+  
+  // Color Manipulation Effects
+  { label: "Change color condition to [Color]", template: "Change the color condition to {color}", category: "color" },
+  { label: "Counts as all colors", template: "This card counts as all colors", category: "color" },
+  { label: "Convert [Color] to [Color]", template: "Convert all {colorA} cards to {colorB}", category: "color" },
+  { label: "Negate color bonus", template: "Negate the color bonus this round", category: "color" },
+  
+  // Hand/Resource Effects
+  { label: "+X per card in hand", template: "+{points} for each card still in your hand", category: "resource" },
+  { label: "+X per opponent card in hand", template: "+{points} for each card in opponent's hand", category: "resource" },
+  
+  // Advanced Position Effects
+  { label: "Swap positions with opposite", template: "Swap board positions with opposite card", category: "position" },
+  { label: "Move to empty slot", template: "Move this card to an empty slot", category: "position" },
+  
+  // Win Condition Manipulation
+  { label: "Reverse scoring this round", template: "Reverse scoring - lowest total wins this round", category: "special" },
+  { label: "Lock this slot", template: "Lock this slot - this card cannot be affected", category: "defensive" },
+  
+  // Echo/Chain Effects
+  { label: "Echo base to neighbors", template: "Copy this card's base points to neighboring cards", category: "chain" },
+  { label: "Chain +X on win", template: "If this card wins its matchup, give +{points} to next card", category: "chain" },
+  { label: "Sabotage all opponents", template: "Reduce all opponent cards by {points} points", category: "debuff" },
 ];
 
 const COMMON_GROUPS = [
