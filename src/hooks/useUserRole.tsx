@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-type AppRole = "admin" | "user";
+type AppRole = "admin" | "user" | "moderator";
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -37,10 +37,12 @@ export function useUserRole() {
   }, [fetchRoles]);
 
   const isAdmin = roles.includes("admin");
+  const isModerator = roles.includes("moderator");
 
   return {
     roles,
     isAdmin,
+    isModerator,
     loading,
     refetch: fetchRoles,
   };
