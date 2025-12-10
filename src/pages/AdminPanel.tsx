@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -81,6 +81,18 @@ interface PlayerStats {
   best_win_streak: number;
 }
 
+interface PromoCode {
+  id: string;
+  code: string;
+  reward_type: "card" | "coins";
+  reward_value: number;
+  expires_at: string | null;
+  is_active: boolean;
+  max_uses: number | null;
+  current_uses: number;
+  created_at: string;
+}
+
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -125,6 +137,16 @@ export default function AdminPanel() {
   const [loadingUserCards, setLoadingUserCards] = useState(false);
   const [removingCards, setRemovingCards] = useState(false);
 
+  // Promo codes
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
+  const [showCreatePromo, setShowCreatePromo] = useState(false);
+  const [newPromoCode, setNewPromoCode] = useState("");
+  const [newPromoRewardType, setNewPromoRewardType] = useState<"card" | "coins">("coins");
+  const [newPromoRewardValue, setNewPromoRewardValue] = useState(100);
+  const [newPromoExpiresAt, setNewPromoExpiresAt] = useState("");
+  const [newPromoMaxUses, setNewPromoMaxUses] = useState<number | "">("");
+  const [promoCardSearch, setPromoCardSearch] = useState("");
+
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
 
   useEffect(() => {
@@ -137,6 +159,7 @@ export default function AdminPanel() {
       } else {
         fetchPacks();
         fetchUsers();
+        fetchPromoCodes();
       }
     }
   }, [user, isAdmin, authLoading, roleLoading, navigate]);
@@ -175,6 +198,87 @@ export default function AdminPanel() {
       setLoadingUsers(false);
     }
   };
+
+  const fetchPromoCodes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPromoCodes((data || []) as PromoCode[]);
+    } catch (error) {
+      console.error("Error fetching promo codes:", error);
+    }
+  };
+
+  const handleCreatePromoCode = async () => {
+    if (!newPromoCode.trim()) {
+      toast.error("Please enter a promo code");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("promo_codes").insert({
+        code: newPromoCode.trim().toUpperCase(),
+        reward_type: newPromoRewardType,
+        reward_value: newPromoRewardValue,
+        expires_at: newPromoExpiresAt || null,
+        max_uses: newPromoMaxUses === "" ? null : newPromoMaxUses,
+      });
+
+      if (error) throw error;
+
+      toast.success("Promo code created!");
+      setShowCreatePromo(false);
+      setNewPromoCode("");
+      setNewPromoRewardType("coins");
+      setNewPromoRewardValue(100);
+      setNewPromoExpiresAt("");
+      setNewPromoMaxUses("");
+      fetchPromoCodes();
+    } catch (error) {
+      console.error("Error creating promo code:", error);
+      toast.error("Failed to create promo code");
+    }
+  };
+
+  const togglePromoActive = async (promo: PromoCode) => {
+    try {
+      const { error } = await supabase
+        .from("promo_codes")
+        .update({ is_active: !promo.is_active })
+        .eq("id", promo.id);
+
+      if (error) throw error;
+      fetchPromoCodes();
+    } catch (error) {
+      console.error("Error toggling promo:", error);
+      toast.error("Failed to update promo code");
+    }
+  };
+
+  const deletePromoCode = async (promoId: string) => {
+    try {
+      const { error } = await supabase
+        .from("promo_codes")
+        .delete()
+        .eq("id", promoId);
+
+      if (error) throw error;
+      toast.success("Promo code deleted");
+      fetchPromoCodes();
+    } catch (error) {
+      console.error("Error deleting promo code:", error);
+      toast.error("Failed to delete promo code");
+    }
+  };
+
+  const filteredPromoCards = allCards
+    .filter((c) => c.title.toLowerCase().includes(promoCardSearch.toLowerCase()))
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .slice(0, 50);
 
   const getUserStats = (userId: string): PlayerStats | null => {
     return playerStats.find((s) => s.user_id === userId) || null;
@@ -599,6 +703,10 @@ export default function AdminPanel() {
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
+            <TabsTrigger value="promos" className="flex items-center gap-2">
+              <Ticket className="h-4 w-4" />
+              Promo Codes
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="packs">
@@ -1007,6 +1115,174 @@ export default function AdminPanel() {
                       </TableBody>
                     </Table>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="promos">
+            <Card className="bg-card border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Ticket className="h-5 w-5" />
+                  Promo Codes
+                </CardTitle>
+                <Dialog open={showCreatePromo} onOpenChange={setShowCreatePromo}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Promo
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Promo Code</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label>Promo Code</Label>
+                        <Input
+                          value={newPromoCode}
+                          onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                          placeholder="GTOONS2024"
+                          className="uppercase"
+                          maxLength={20}
+                        />
+                      </div>
+                      <div>
+                        <Label>Reward Type</Label>
+                        <Select value={newPromoRewardType} onValueChange={(v) => setNewPromoRewardType(v as "card" | "coins")}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="coins">Coins</SelectItem>
+                            <SelectItem value="card">Card</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {newPromoRewardType === "coins" ? (
+                        <div>
+                          <Label>Coin Amount</Label>
+                          <Input
+                            type="number"
+                            value={newPromoRewardValue}
+                            onChange={(e) => setNewPromoRewardValue(parseInt(e.target.value) || 0)}
+                            min={1}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <Label>Search Card</Label>
+                            <Input
+                              value={promoCardSearch}
+                              onChange={(e) => setPromoCardSearch(e.target.value)}
+                              placeholder="Search by card name..."
+                            />
+                          </div>
+                          <div>
+                            <Label>Select Card</Label>
+                            <Select value={newPromoRewardValue.toString()} onValueChange={(v) => setNewPromoRewardValue(parseInt(v))}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a card" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {filteredPromoCards.map((card) => (
+                                  <SelectItem key={card.id} value={card.id.toString()}>
+                                    #{card.id} - {card.title} ({card.rarity})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <Label>Expires At (optional)</Label>
+                        <Input
+                          type="datetime-local"
+                          value={newPromoExpiresAt}
+                          onChange={(e) => setNewPromoExpiresAt(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Max Uses (leave empty for unlimited)</Label>
+                        <Input
+                          type="number"
+                          value={newPromoMaxUses}
+                          onChange={(e) => setNewPromoMaxUses(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                          min={1}
+                          placeholder="Unlimited"
+                        />
+                      </div>
+                      <Button onClick={handleCreatePromoCode} className="w-full" disabled={!newPromoCode.trim()}>
+                        Create Promo Code
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {promoCodes.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">No promo codes created yet</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Reward</TableHead>
+                        <TableHead>Uses</TableHead>
+                        <TableHead>Expires</TableHead>
+                        <TableHead>Active</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {promoCodes.map((promo) => {
+                        const card = promo.reward_type === "card" ? getCardById(promo.reward_value) : null;
+                        const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
+                        return (
+                          <TableRow key={promo.id} className={isExpired ? "opacity-50" : ""}>
+                            <TableCell>
+                              <Badge variant="outline" className="font-mono text-sm">
+                                {promo.code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {promo.reward_type === "coins" ? (
+                                <span className="text-yellow-500 font-medium">{promo.reward_value} coins</span>
+                              ) : (
+                                <span className="text-primary font-medium">{card?.title || `Card #${promo.reward_value}`}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {promo.current_uses}{promo.max_uses ? ` / ${promo.max_uses}` : " / ∞"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {promo.expires_at ? new Date(promo.expires_at).toLocaleString() : "Never"}
+                              {isExpired && <Badge variant="destructive" className="ml-2 text-xs">Expired</Badge>}
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={promo.is_active}
+                                onCheckedChange={() => togglePromoActive(promo)}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deletePromoCode(promo.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 )}
               </CardContent>
             </Card>
