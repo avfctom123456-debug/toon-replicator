@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -116,6 +116,14 @@ export default function AdminPanel() {
   const [giveCardsQuantity, setGiveCardsQuantity] = useState(1);
   const [giveCardsSearch, setGiveCardsSearch] = useState("");
   const [givingCards, setGivingCards] = useState(false);
+
+  // Remove cards form
+  const [showRemoveCards, setShowRemoveCards] = useState(false);
+  const [removeCardsUserId, setRemoveCardsUserId] = useState("");
+  const [removeCardsUserCards, setRemoveCardsUserCards] = useState<{ id: string; card_id: number; quantity: number }[]>([]);
+  const [removeCardsSearch, setRemoveCardsSearch] = useState("");
+  const [loadingUserCards, setLoadingUserCards] = useState(false);
+  const [removingCards, setRemovingCards] = useState(false);
 
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
 
@@ -329,6 +337,81 @@ export default function AdminPanel() {
       setGivingCards(false);
     }
   };
+
+  const openRemoveCardsDialog = async (userId: string) => {
+    setRemoveCardsUserId(userId);
+    setRemoveCardsSearch("");
+    setShowRemoveCards(true);
+    setLoadingUserCards(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("user_cards")
+        .select("id, card_id, quantity")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      setRemoveCardsUserCards(data || []);
+    } catch (error) {
+      console.error("Error fetching user cards:", error);
+      toast.error("Failed to fetch user cards");
+    } finally {
+      setLoadingUserCards(false);
+    }
+  };
+
+  const handleRemoveCard = async (userCardId: string, cardId: number, currentQuantity: number, removeAll: boolean = false) => {
+    setRemovingCards(true);
+    try {
+      const card = getCardById(cardId);
+      const username = users.find((u) => u.user_id === removeCardsUserId)?.username;
+
+      if (removeAll || currentQuantity <= 1) {
+        // Delete the entire record
+        const { error } = await supabase
+          .from("user_cards")
+          .delete()
+          .eq("id", userCardId);
+
+        if (error) throw error;
+        toast.success(`Removed all ${card?.title || "card"} from ${username}`);
+      } else {
+        // Reduce quantity by 1
+        const { error } = await supabase
+          .from("user_cards")
+          .update({ quantity: currentQuantity - 1 })
+          .eq("id", userCardId);
+
+        if (error) throw error;
+        toast.success(`Removed 1x ${card?.title || "card"} from ${username}`);
+      }
+
+      // Refresh the user cards list
+      const { data, error } = await supabase
+        .from("user_cards")
+        .select("id, card_id, quantity")
+        .eq("user_id", removeCardsUserId);
+
+      if (error) throw error;
+      setRemoveCardsUserCards(data || []);
+    } catch (error) {
+      console.error("Error removing card:", error);
+      toast.error("Failed to remove card");
+    } finally {
+      setRemovingCards(false);
+    }
+  };
+
+  const filteredRemoveCards = removeCardsUserCards
+    .filter((uc) => {
+      const card = getCardById(uc.card_id);
+      return card?.title.toLowerCase().includes(removeCardsSearch.toLowerCase());
+    })
+    .sort((a, b) => {
+      const cardA = getCardById(a.card_id);
+      const cardB = getCardById(b.card_id);
+      return (cardA?.title || "").localeCompare(cardB?.title || "");
+    });
 
   const fetchPacks = async () => {
     const { data, error } = await supabase
@@ -880,14 +963,22 @@ export default function AdminPanel() {
                                 {new Date(u.created_at).toLocaleDateString()}
                               </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => openGiveCardsDialog(u.user_id)}
                                   >
                                     <Gift className="h-4 w-4 mr-1" />
-                                    Give Cards
+                                    Give
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openRemoveCardsDialog(u.user_id)}
+                                  >
+                                    <Minus className="h-4 w-4 mr-1" />
+                                    Remove
                                   </Button>
                                   <Button
                                     variant={isUserAdmin ? "destructive" : "outline"}
@@ -899,12 +990,12 @@ export default function AdminPanel() {
                                     {isUserAdmin ? (
                                       <>
                                         <ShieldOff className="h-4 w-4 mr-1" />
-                                        Remove
+                                        Revoke
                                       </>
                                     ) : (
                                       <>
                                         <Shield className="h-4 w-4 mr-1" />
-                                        Make Admin
+                                        Admin
                                       </>
                                     )}
                                   </Button>
@@ -970,6 +1061,73 @@ export default function AdminPanel() {
               >
                 {givingCards ? "Giving..." : "Give Cards"}
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Remove Cards Dialog */}
+        <Dialog open={showRemoveCards} onOpenChange={setShowRemoveCards}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                Remove Cards from {users.find((u) => u.user_id === removeCardsUserId)?.username}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Search Card</Label>
+                <Input
+                  value={removeCardsSearch}
+                  onChange={(e) => setRemoveCardsSearch(e.target.value)}
+                  placeholder="Search by card name..."
+                />
+              </div>
+              {loadingUserCards ? (
+                <p className="text-muted-foreground text-center py-4">Loading cards...</p>
+              ) : filteredRemoveCards.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  {removeCardsSearch ? "No matching cards found" : "User has no cards"}
+                </p>
+              ) : (
+                <div className="max-h-80 overflow-y-auto space-y-2">
+                  {filteredRemoveCards.map((uc) => {
+                    const card = getCardById(uc.card_id);
+                    return (
+                      <div
+                        key={uc.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border"
+                      >
+                        <div>
+                          <p className="font-medium">{card?.title || `Card #${uc.card_id}`}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Qty: {uc.quantity} • {card?.rarity}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveCard(uc.id, uc.card_id, uc.quantity, false)}
+                            disabled={removingCards}
+                          >
+                            <Minus className="h-4 w-4 mr-1" />
+                            -1
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemoveCard(uc.id, uc.card_id, uc.quantity, true)}
+                            disabled={removingCards}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            All
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
