@@ -159,6 +159,27 @@ const POWER_PATTERNS = [
   { label: "Random +1 to +10", template: "Randomly gain +1 to +10 points", category: "random", description: "RNG bonus in medium range", example: "Could get anywhere from +1 to +10" },
   { label: "Random +5 to +15", template: "Randomly gain +5 to +15 points", category: "random", description: "High-risk high-reward RNG", example: "Guaranteed +5, up to +15 possible" },
   
+  // Coin Flip Effects
+  { label: "Coin Flip: +X or -X", template: "Coin flip: +{points} or -{points}", category: "gamble", description: "50/50 chance to gain or lose points", example: "Coin flip: +5 or -5" },
+  { label: "Coin Flip: x2 or x0", template: "Coin flip: double points or zero points", category: "gamble", description: "All or nothing coin flip", example: "Heads doubles, tails scores 0" },
+  { label: "Coin Flip: +X or cancel", template: "Coin flip: +{points} or cancel this card", category: "gamble", description: "Win big or get cancelled", example: "Coin flip: +8 or cancel this card" },
+  { label: "Coin Flip: buff or debuff", template: "Coin flip: +{points} to all your cards or -{points} to all your cards", category: "gamble", description: "Team-wide coin flip effect", example: "Coin flip: +2 to all or -2 to all" },
+  { label: "Coin Flip: steal or give", template: "Coin flip: steal {points} from opposite or give {points} to opposite", category: "gamble", description: "Risky steal attempt", example: "Coin flip: steal 4 or give 4 to opponent" },
+  
+  // Dice Roll Effects
+  { label: "Dice Roll: +1 to +6", template: "Dice roll: gain +1 to +6 points", category: "gamble", description: "Classic D6 roll for bonus points", example: "Roll a die, get that many points" },
+  { label: "Dice Roll: -3 to +6", template: "Dice roll: gain -3 to +6 points (1-3 negative, 4-6 positive)", category: "gamble", description: "Risky D6 with negative outcomes", example: "Roll 1-3 loses points, 4-6 gains" },
+  { label: "Dice Roll: multiplier", template: "Dice roll: multiply base points by 0 to 3", category: "gamble", description: "Roll determines your multiplier", example: "Roll 1=x0, 2=x0.5, 3=x1, 4=x1.5, 5=x2, 6=x3" },
+  { label: "Dice Roll: effect roulette", template: "Dice roll: 1=cancel, 2=-5, 3=0, 4=+3, 5=+6, 6=+10", category: "gamble", description: "Each number triggers different effect", example: "Various outcomes based on roll" },
+  { label: "Dice Roll: target", template: "Dice roll: if 4+, +{points} to opposite; if 3-, -{points} to self", category: "gamble", description: "Risky attack that can backfire", example: "High roll buffs opponent, low roll hurts you" },
+  { label: "Double Dice: difference", template: "Roll 2 dice: gain the difference as points (can be 0-5)", category: "gamble", description: "Two dice, gain the difference", example: "Roll 6 and 2 = +4 points" },
+  
+  // High Stakes Gambles
+  { label: "All-In Flip", template: "Coin flip: x3 points or cancel all your cards", category: "gamble", description: "Ultimate high stakes gamble", example: "Triple or lose everything" },
+  { label: "Lucky 7", template: "Roll 2 dice: if total is 7, +15 points; otherwise -3", category: "gamble", description: "Chase the lucky 7", example: "Hit 7 for jackpot, miss for penalty" },
+  { label: "Snake Eyes", template: "Roll 2 dice: if double 1s, cancel opposite; otherwise no effect", category: "gamble", description: "Rare but powerful cancel", example: "1/36 chance to cancel opponent" },
+  { label: "Boxcars", template: "Roll 2 dice: if double 6s, +20 points; otherwise lose 1 point per pip shown", category: "gamble", description: "Chase double sixes", example: "Double 6s = +20, else lose roll total" },
+  
   // Sacrifice/Chain Effects
   { label: "Sacrifice for +X to all", template: "Cancel this card to give +{points} to all your other cards", category: "chain", description: "Sacrifice self to buff team", example: "Cancel this card to give +2 to all your other cards" },
   { label: "Double neighbor effects (Echo)", template: "Double each neighboring card's effect", category: "chain", description: "Amplifies both adjacent cards", example: "Both neighbors have their effects doubled" },
@@ -882,6 +903,31 @@ export default function CardCreator() {
                                   variant="outline"
                                   size="sm"
                                   className="text-xs h-7"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Gambling - Coin Flip & Dice Roll */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-yellow-500">🎰 Gambling (Coin Flip & Dice Roll)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "gamble").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-yellow-500/30 hover:bg-yellow-500/10"
                                   onClick={() => applyPowerPattern(pattern.template)}
                                 >
                                   {pattern.label}
