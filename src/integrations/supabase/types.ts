@@ -177,6 +177,33 @@ export type Database = {
         }
         Relationships: []
       }
+      card_wins: {
+        Row: {
+          card_id: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          wins: number
+        }
+        Insert: {
+          card_id: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          wins?: number
+        }
+        Update: {
+          card_id?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          wins?: number
+        }
+        Relationships: []
+      }
       daily_login_rewards: {
         Row: {
           created_at: string
@@ -1048,6 +1075,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_card_wins: {
+        Args: { p_card_ids: number[]; p_user_id: string }
+        Returns: undefined
       }
       increment_color_wins: { Args: { p_user_id: string }; Returns: undefined }
       increment_packs_opened: {
