@@ -6,17 +6,15 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAuctionBids, Auction, AuctionBid } from "@/hooks/useAuctions";
 import { useCardOverrides } from "@/hooks/useCardOverrides";
 import { getCardById } from "@/lib/gameEngine";
-import { MiniCard } from "@/components/MiniCard";
-import { UrgentCountdown } from "@/components/auction/UrgentCountdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { 
-  ArrowLeft, Coins, TrendingUp, User, Send, Eye,
-  Gavel, MessageCircle
+  ArrowLeft, Coins, Send, Gavel
 } from "lucide-react";
+
+const IMAGE_BASE_URL = "https://dlgjmqnjzepntvfeqfcx.supabase.co/storage/v1/object/public/card-images";
 
 interface ChatMessage {
   id: string;
@@ -24,13 +22,6 @@ interface ChatMessage {
   username: string;
   message: string;
   timestamp: number;
-}
-
-interface Viewer {
-  odlfjasfd: string;
-  odl_user_id: string;
-  username: string;
-  online_at: string;
 }
 
 export default function AuctionView() {
@@ -43,7 +34,6 @@ export default function AuctionView() {
   
   const [auction, setAuction] = useState<Auction | null>(null);
   const [loading, setLoading] = useState(true);
-  const [bidAmount, setBidAmount] = useState(0);
   const [now, setNow] = useState(Date.now());
   
   // Chat state
@@ -106,11 +96,6 @@ export default function AuctionView() {
       copy_number: copyNumber,
     });
 
-    // Set initial bid amount
-    const minBid = data.current_bid > 0 
-      ? Math.ceil(data.current_bid * 1.05) 
-      : data.starting_bid;
-    setBidAmount(minBid);
     setLoading(false);
   }, [id, navigate]);
 
@@ -187,24 +172,16 @@ export default function AuctionView() {
     }
   }, [chatMessages]);
 
-  const formatTimeLeft = (endsAt: string) => {
+  const getTimeComponents = (endsAt: string) => {
     const endTime = new Date(endsAt).getTime();
-    const diff = endTime - now;
+    const diff = Math.max(0, endTime - now);
     
-    if (diff <= 0) return "Ended";
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`;
-    }
-    return `${minutes}m ${seconds}s`;
-  };
-
-  const isAuctionEnded = (endsAt: string) => {
-    return new Date(endsAt).getTime() <= now;
+    return { days, hours, minutes, seconds, ended: diff <= 0 };
   };
 
   const handlePlaceBid = async () => {
@@ -214,14 +191,9 @@ export default function AuctionView() {
       ? Math.ceil(auction.current_bid * 1.05)
       : auction.starting_bid;
 
-    if (bidAmount < minBid) {
-      toast.error(`Minimum bid is ${minBid} coins`);
-      return;
-    }
-
     const { data, error } = await supabase.rpc("place_bid", {
       p_auction_id: id,
-      p_bid_amount: bidAmount,
+      p_bid_amount: minBid,
     });
 
     if (error) {
@@ -232,7 +204,7 @@ export default function AuctionView() {
 
     const result = data as { success: boolean; error?: string };
     if (result.success) {
-      toast.success(`Bid of ${bidAmount} coins placed!`);
+      toast.success(`Bid of ${minBid} coins placed!`);
       refetchProfile();
       fetchAuction();
     } else {
@@ -286,8 +258,8 @@ export default function AuctionView() {
 
   if (loading || !auction) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-foreground">Loading auction...</div>
+      <div className="min-h-screen bg-gradient-to-br from-[hsl(200,60%,20%)] via-[hsl(210,50%,25%)] to-[hsl(220,40%,15%)] flex items-center justify-center">
+        <div className="text-white text-xl font-bold">Loading auction...</div>
       </div>
     );
   }
@@ -300,223 +272,310 @@ export default function AuctionView() {
 
   const isOwner = auction.user_id === user?.id;
   const isHighestBidder = auction.highest_bidder_id === user?.id;
-  const ended = isAuctionEnded(auction.ends_at);
+  const time = getTimeComponents(auction.ends_at);
   const minBid = auction.current_bid > 0 
     ? Math.ceil(auction.current_bid * 1.05)
     : auction.starting_bid;
+  const currentBid = auction.current_bid > 0 ? auction.current_bid : auction.starting_bid;
+
+  const customImageUrl = getOverride(auction.card_id)?.custom_image_url;
+  const imageUrl = customImageUrl || `${IMAGE_BASE_URL}/${card.id}.jpg`;
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[hsl(200,60%,20%)] via-[hsl(210,50%,25%)] to-[hsl(220,40%,15%)] p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => navigate("/trade-board")}>
+        <div className="flex items-center justify-between mb-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate("/trade-board")}
+            className="text-white hover:bg-white/10"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Trade Board
+            BACK TO AUCTIONS
           </Button>
-          <div className="flex items-center gap-3 text-foreground">
-            <div className="flex items-center gap-2">
-              <Coins className="h-5 w-5 text-yellow-500" />
-              <span className="font-bold">{profile?.coins || 0}</span>
+          
+          {/* Time Remaining */}
+          <div className="bg-gradient-to-b from-[hsl(200,40%,35%)] to-[hsl(210,50%,25%)] rounded-lg px-4 py-2 border border-[hsl(200,50%,40%)]">
+            <div className="text-[hsl(200,20%,70%)] text-xs text-center mb-1 font-semibold">TIME REMAINING:</div>
+            <div className="flex gap-2">
+              <div className="text-center">
+                <div className="bg-[hsl(0,70%,50%)] text-white font-bold text-xl px-3 py-1 rounded min-w-[40px]">
+                  {String(time.days).padStart(2, '0')}
+                </div>
+                <div className="text-[hsl(200,20%,60%)] text-[10px] mt-1">DAY</div>
+              </div>
+              <div className="text-white text-xl font-bold self-start mt-1">:</div>
+              <div className="text-center">
+                <div className="bg-[hsl(0,70%,50%)] text-white font-bold text-xl px-3 py-1 rounded min-w-[40px]">
+                  {String(time.hours).padStart(2, '0')}
+                </div>
+                <div className="text-[hsl(200,20%,60%)] text-[10px] mt-1">HRS</div>
+              </div>
+              <div className="text-white text-xl font-bold self-start mt-1">:</div>
+              <div className="text-center">
+                <div className="bg-[hsl(0,70%,50%)] text-white font-bold text-xl px-3 py-1 rounded min-w-[40px]">
+                  {String(time.minutes).padStart(2, '0')}
+                </div>
+                <div className="text-[hsl(200,20%,60%)] text-[10px] mt-1">MIN</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Auction Info */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Card Display */}
-                  <div className="flex-shrink-0 flex justify-center">
-                    <MiniCard card={card} size="md" copyNumber={auction.copy_number} customImageUrl={getOverride(auction.card_id)?.custom_image_url} />
-                  </div>
-
-                  {/* Auction Details */}
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <h1 className="text-2xl font-bold text-foreground">
-                        {card.title}
-                        {auction.copy_number && (
-                          <span className={`ml-2 text-lg ${
-                            auction.copy_number <= 10 ? "text-yellow-500" :
-                            auction.copy_number <= 50 ? "text-gray-400" : "text-muted-foreground"
-                          }`}>
-                            #{auction.copy_number}
-                          </span>
-                        )}
-                      </h1>
-                      <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                        <User className="h-4 w-4" />
-                        Seller: {auction.seller_username}
-                      </div>
-                    </div>
-
-                    {/* Timer */}
-                    <UrgentCountdown endsAt={auction.ends_at} now={now} />
-
-                    {/* Current Bid */}
-                    <div className="bg-background/50 rounded-lg p-4">
-                      <div className="text-sm text-muted-foreground mb-1">Current Bid</div>
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-6 w-6 text-green-500" />
-                        <span className="text-3xl font-bold text-yellow-500">
-                          {auction.current_bid > 0 ? auction.current_bid : auction.starting_bid}
-                        </span>
-                        <Coins className="h-6 w-6 text-yellow-500" />
-                      </div>
-                      {auction.highest_bidder_username && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          Highest bidder: <span className={isHighestBidder ? "text-green-500 font-bold" : ""}>
-                            {auction.highest_bidder_username}
-                            {isHighestBidder && " (You!)"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bid Actions */}
-                    {!ended && !isOwner && (
-                      <Button 
-                        onClick={handlePlaceBid}
-                        className="w-full"
-                        size="lg"
-                      >
-                        <Gavel className="mr-2 h-5 w-5" />
-                        Place Bid: {minBid} coins
-                      </Button>
-                    )}
-
-                    {isOwner && ended && (
-                      <Button onClick={handleEndAuction} className="w-full">
-                        Finalize Auction
-                      </Button>
-                    )}
-
-                    {ended && isHighestBidder && !isOwner && (
-                      <div className="text-center text-green-500 font-bold py-4 bg-green-500/10 rounded-lg">
-                        You won! Waiting for seller to finalize.
-                      </div>
-                    )}
-                  </div>
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-[1fr,auto,280px] gap-4">
+          {/* Left Panel - Bid Info */}
+          <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,35%,75%)] rounded-lg p-4 shadow-lg">
+            <div className="space-y-4">
+              {/* High Bidder */}
+              <div className="bg-white/60 rounded p-3">
+                <div className="text-[hsl(210,30%,30%)] text-xs font-semibold mb-1">HIGH BIDDER:</div>
+                <div className="text-[hsl(210,80%,40%)] font-bold text-lg">
+                  {auction.highest_bidder_username || "No bids yet"}
+                  {isHighestBidder && <span className="text-green-600 ml-2">(YOU!)</span>}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Bid History */}
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Bid History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {bids.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">No bids yet</p>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {bids.map((bid, index) => (
-                      <div 
-                        key={bid.id}
-                        className={`flex items-center justify-between p-3 rounded-lg ${
-                          index === 0 ? "bg-green-500/10 border border-green-500/30" : "bg-background/50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className={bid.user_id === user?.id ? "text-primary font-bold" : ""}>
-                            {bid.username}
-                          </span>
-                          {index === 0 && <span className="text-xs text-green-500">(Highest)</span>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-bold text-yellow-500">{bid.bid_amount}</span>
-                          <Coins className="h-4 w-4 text-yellow-500" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              {/* Current High Bid */}
+              <div className="bg-white/60 rounded p-3">
+                <div className="text-[hsl(210,30%,30%)] text-xs font-semibold mb-1">CURRENT HIGH BID:</div>
+                <div className="text-[hsl(210,80%,40%)] font-bold text-xl flex items-center gap-2">
+                  {currentBid.toLocaleString()} POINTS
+                </div>
+              </div>
+
+              {/* Starting Price */}
+              <div className="bg-white/60 rounded p-3">
+                <div className="text-[hsl(210,30%,30%)] text-xs font-semibold mb-1">STARTING PRICE:</div>
+                <div className="text-[hsl(210,80%,40%)] font-bold">
+                  {auction.starting_bid.toLocaleString()} POINTS
+                </div>
+              </div>
+
+              {/* Seller */}
+              <div className="bg-white/60 rounded p-3">
+                <div className="text-[hsl(210,30%,30%)] text-xs font-semibold mb-1">SELLER:</div>
+                <div className="text-[hsl(210,80%,40%)] font-bold uppercase">
+                  {auction.seller_username}
+                </div>
+              </div>
+
+              {/* Bid Button */}
+              {!time.ended && !isOwner && (
+                <Button 
+                  onClick={handlePlaceBid}
+                  className="w-full bg-gradient-to-r from-[hsl(30,90%,50%)] to-[hsl(40,95%,55%)] hover:from-[hsl(30,90%,45%)] hover:to-[hsl(40,95%,50%)] text-white font-bold text-lg py-6 rounded-lg shadow-lg border-2 border-[hsl(30,80%,40%)]"
+                >
+                  <Gavel className="mr-2 h-5 w-5" />
+                  BID NOW {minBid.toLocaleString()} POINTS
+                </Button>
+              )}
+
+              {isOwner && time.ended && (
+                <Button 
+                  onClick={handleEndAuction} 
+                  className="w-full bg-green-600 hover:bg-green-700 font-bold py-4"
+                >
+                  Finalize Auction
+                </Button>
+              )}
+
+              {time.ended && isHighestBidder && !isOwner && (
+                <div className="text-center text-green-700 font-bold py-4 bg-green-200 rounded-lg">
+                  🎉 You won! Waiting for seller to finalize.
+                </div>
+              )}
+
+              {time.ended && !isHighestBidder && !isOwner && (
+                <div className="text-center text-red-700 font-bold py-4 bg-red-200 rounded-lg">
+                  Auction Ended
+                </div>
+              )}
+
+              {/* Help Link */}
+              <button className="text-[hsl(210,80%,40%)] text-sm underline hover:no-underline w-full text-center">
+                HELP
+              </button>
+            </div>
           </div>
 
-          {/* Sidebar: Viewers & Chat */}
-          <div className="space-y-6">
-            {/* Viewers */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Eye className="h-4 w-4" />
-                  Watching ({viewers.size})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
+          {/* Center - Card Display */}
+          <div className="flex flex-col items-center justify-center">
+            {/* Card with concentric circles background */}
+            <div className="relative w-[280px] h-[280px] md:w-[340px] md:h-[340px] rounded-lg overflow-hidden border-4 border-[hsl(200,50%,40%)] shadow-2xl">
+              {/* Concentric circles background */}
+              <div className="absolute inset-0 bg-gradient-radial from-black via-[hsl(10,80%,30%)] to-[hsl(15,90%,45%)]" 
+                style={{
+                  background: `
+                    radial-gradient(circle at center, 
+                      black 0%, 
+                      black 15%, 
+                      hsl(10, 80%, 25%) 20%,
+                      hsl(10, 85%, 35%) 30%,
+                      hsl(15, 90%, 40%) 40%,
+                      hsl(20, 90%, 45%) 50%,
+                      hsl(15, 85%, 40%) 60%,
+                      hsl(10, 80%, 35%) 70%,
+                      hsl(10, 75%, 30%) 80%,
+                      hsl(5, 70%, 25%) 90%,
+                      hsl(0, 65%, 20%) 100%
+                    )
+                  `
+                }}
+              />
+              
+              {/* Card Image */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <img 
+                  src={imageUrl}
+                  alt={card.title}
+                  className="w-[140px] h-[140px] md:w-[180px] md:h-[180px] rounded-full object-cover border-4 border-black shadow-2xl"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Card Name */}
+            <div className="mt-4 bg-gradient-to-r from-[hsl(350,80%,55%)] to-[hsl(20,85%,55%)] px-6 py-3 rounded-lg shadow-lg">
+              <div className="text-[hsl(200,20%,90%)] text-xs font-semibold mb-1">CARD NAME:</div>
+              <div className="text-white font-bold text-xl uppercase tracking-wide">
+                {card.title}
+                {auction.copy_number && (
+                  <span className={`ml-2 ${
+                    auction.copy_number <= 10 ? "text-yellow-300" :
+                    auction.copy_number <= 50 ? "text-gray-300" : "text-white/70"
+                  }`}>
+                    #{auction.copy_number}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Info icon */}
+            <button className="mt-2 w-8 h-8 rounded-full bg-[hsl(210,80%,50%)] text-white flex items-center justify-center font-bold text-lg shadow-lg hover:bg-[hsl(210,80%,45%)]">
+              i
+            </button>
+          </div>
+
+          {/* Right Panel - Viewers & Chat */}
+          <div className="flex flex-col gap-4 max-h-[600px]">
+            {/* Who's Here */}
+            <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,35%,75%)] rounded-lg overflow-hidden shadow-lg flex-shrink-0">
+              <div className="bg-gradient-to-r from-[hsl(200,40%,60%)] to-[hsl(210,45%,55%)] px-3 py-2 flex items-center gap-2">
+                <div className="w-6 h-6 bg-pink-400 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">👤</span>
+                </div>
+                <span className="text-white font-bold text-sm">WHO'S HERE</span>
+                <span className="ml-auto bg-[hsl(210,50%,40%)] text-white px-2 py-0.5 rounded text-xs font-bold">
+                  {viewers.size}
+                </span>
+              </div>
+              <ScrollArea className="h-[120px]">
+                <div className="p-2 space-y-1">
                   {Array.from(viewers.entries()).map(([userId, viewer]) => (
                     <div 
                       key={userId}
-                      className={`px-3 py-1 rounded-full text-sm ${
+                      className={`px-2 py-1 rounded text-sm font-medium ${
                         userId === user?.id 
-                          ? "bg-primary/20 text-primary" 
-                          : "bg-background/50 text-foreground"
+                          ? "bg-[hsl(210,80%,50%)] text-white" 
+                          : "text-[hsl(210,80%,40%)] hover:bg-white/50"
                       }`}
                     >
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse" />
                       {viewer.username}
                       {userId === user?.id && " (you)"}
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </ScrollArea>
+            </div>
 
             {/* Chat */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <MessageCircle className="h-4 w-4" />
-                  Live Chat
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-80 px-4" ref={chatScrollRef}>
-                  {chatMessages.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8 text-sm">
-                      No messages yet. Start the conversation!
-                    </p>
-                  ) : (
-                    <div className="space-y-3 py-2">
-                      {chatMessages.map((msg) => (
-                        <div key={msg.id} className="text-sm">
-                          <span className={`font-bold ${
-                            msg.userId === user?.id ? "text-primary" : "text-foreground"
-                          }`}>
-                            {msg.username}:
-                          </span>
-                          <span className="text-muted-foreground ml-2">{msg.message}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-                <div className="flex gap-2 p-4 border-t border-border">
+            <div className="bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,35%,75%)] rounded-lg overflow-hidden shadow-lg flex-1 flex flex-col min-h-[300px]">
+              {/* Chat Messages */}
+              <ScrollArea className="flex-1 p-3" ref={chatScrollRef}>
+                {chatMessages.length === 0 ? (
+                  <p className="text-[hsl(210,30%,50%)] text-center py-4 text-sm italic">
+                    No messages yet...
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {chatMessages.map((msg) => (
+                      <div key={msg.id} className="text-sm">
+                        <span className={`font-bold ${
+                          msg.userId === user?.id ? "text-[hsl(210,80%,50%)]" : "text-[hsl(210,80%,40%)]"
+                        }`}>
+                          {msg.username}:
+                        </span>
+                        <span className="text-[hsl(210,30%,30%)] ml-2">{msg.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+
+              {/* Chat Input */}
+              <div className="p-2 bg-white/30 border-t border-[hsl(200,30%,70%)]">
+                <div className="text-[hsl(210,30%,40%)] text-xs mb-1 font-semibold">SELECT A MESSAGE TO CHAT</div>
+                <div className="flex gap-2">
                   <Input
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
                     onKeyDown={(e) => e.key === "Enter" && sendChatMessage()}
-                    className="flex-1"
+                    placeholder="Type message..."
+                    className="flex-1 bg-white border-[hsl(200,30%,60%)] text-[hsl(210,30%,20%)] text-sm"
                   />
-                  <Button size="icon" onClick={sendChatMessage} disabled={!newMessage.trim()}>
-                    <Send className="h-4 w-4" />
+                  <Button 
+                    onClick={sendChatMessage}
+                    size="sm"
+                    className="bg-[hsl(210,80%,50%)] hover:bg-[hsl(210,80%,45%)] text-white font-bold px-4"
+                  >
+                    SEND
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Bid History below */}
+        <div className="mt-4 bg-gradient-to-b from-[hsl(200,30%,85%)] to-[hsl(200,35%,75%)] rounded-lg p-4 shadow-lg">
+          <div className="text-[hsl(210,30%,30%)] font-bold mb-3">BID HISTORY ({bids.length} bids)</div>
+          {bids.length === 0 ? (
+            <p className="text-[hsl(210,30%,50%)] text-center py-4">No bids yet</p>
+          ) : (
+            <div className="grid gap-2 max-h-48 overflow-y-auto">
+              {bids.slice(0, 10).map((bid, index) => (
+                <div 
+                  key={bid.id}
+                  className={`flex items-center justify-between px-3 py-2 rounded ${
+                    index === 0 
+                      ? "bg-yellow-200 border border-yellow-400" 
+                      : "bg-white/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`font-bold w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                      index === 0 ? "bg-yellow-500 text-white" : "bg-[hsl(210,30%,70%)] text-white"
+                    }`}>
+                      {index === 0 ? "👑" : index + 1}
+                    </span>
+                    <span className={`font-medium ${
+                      bid.user_id === user?.id ? "text-[hsl(210,80%,50%)]" : "text-[hsl(210,30%,30%)]"
+                    }`}>
+                      {bid.username}
+                      {bid.user_id === user?.id && " (you)"}
+                    </span>
+                  </div>
+                  <span className="font-bold text-[hsl(210,80%,40%)]">
+                    {bid.bid_amount.toLocaleString()} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
