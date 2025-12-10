@@ -372,9 +372,6 @@ export default function AuctionView() {
                           </span>
                         </div>
                       )}
-                      <div className="text-xs text-muted-foreground mt-2">
-                        Minimum next bid: {minBid} coins (+5%)
-                      </div>
                     </div>
 
                     {/* Bid Actions */}
