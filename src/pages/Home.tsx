@@ -45,15 +45,15 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center px-4 py-6 md:py-8">
       {/* Header with logo and notifications */}
-      <div className="w-full max-w-md flex items-center justify-between mb-4">
-        <div className="flex gap-2">
+      <div className="w-full max-w-md flex items-center justify-between gap-2 mb-4">
+        <div className="flex gap-1 shrink-0">
           <DailyRewardsModal />
           <PromoCodeRedeemer onSuccess={() => window.location.reload()} />
         </div>
         <img 
           src={gtoonsLogo} 
           alt="gTOONS Remastered" 
-          className="w-40 md:w-56 h-auto"
+          className="w-28 sm:w-40 md:w-56 h-auto shrink-0"
         />
         <NotificationBell />
       </div>
