@@ -1,10 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
-import { Trophy, Users, Coins, Clock, ArrowLeft } from 'lucide-react';
+import { Trophy, Users, Coins, Clock, ArrowLeft, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useTournamentDetails } from '@/hooks/useTournaments';
+import { useTournamentDetails, useTournaments } from '@/hooks/useTournaments';
 import { TournamentBracket } from '@/components/tournament/TournamentBracket';
+import { useUserRole } from '@/hooks/useUserRole';
 import { format } from 'date-fns';
 
 const statusColors: Record<string, string> = {
@@ -17,6 +18,8 @@ const statusColors: Record<string, string> = {
 const TournamentView = () => {
   const { id } = useParams<{ id: string }>();
   const { tournament, participants, matches } = useTournamentDetails(id || '');
+  const { completeTournament } = useTournaments();
+  const { isAdmin } = useUserRole();
 
   if (!tournament) {
     return (
@@ -92,6 +95,58 @@ const TournamentView = () => {
                   </div>
                 )}
               </div>
+
+              {/* Admin Complete Button */}
+              {isAdmin && tournament.status === 'active' && (
+                <div className="pt-4 border-t border-border/50">
+                  <Button
+                    onClick={() => completeTournament.mutate(tournament.id)}
+                    disabled={completeTournament.isPending}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700"
+                  >
+                    <Award className="w-4 h-4 mr-2" />
+                    {completeTournament.isPending ? 'Distributing Prizes...' : 'Complete & Distribute Prizes'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    Awards 50% / 30% / 20% to 1st, 2nd, 3rd place
+                  </p>
+                </div>
+              )}
+
+              {/* Prize Winners */}
+              {tournament.status === 'completed' && (
+                <div className="pt-4 border-t border-border/50">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-yellow-500" />
+                    Prize Winners
+                  </h3>
+                  <div className="space-y-2">
+                    {participants
+                      .filter(p => p.placement && p.placement <= 3)
+                      .sort((a, b) => (a.placement || 0) - (b.placement || 0))
+                      .map(p => (
+                        <div 
+                          key={p.id}
+                          className={`flex items-center justify-between p-2 rounded-lg ${
+                            p.placement === 1 ? 'bg-yellow-500/20' :
+                            p.placement === 2 ? 'bg-gray-400/20' :
+                            'bg-amber-700/20'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">
+                              {p.placement === 1 ? '🥇' : p.placement === 2 ? '🥈' : '🥉'}
+                            </span>
+                            <span className="font-medium">{p.username}</span>
+                          </div>
+                          <span className="text-yellow-500 font-bold">
+                            +{p.prize_won} coins
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               {/* Participants List */}
               <div className="pt-4 border-t border-border/50">

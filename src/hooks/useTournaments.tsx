@@ -183,6 +183,31 @@ export const useTournaments = () => {
     },
   });
 
+  const completeTournament = useMutation({
+    mutationFn: async (tournamentId: string) => {
+      const { data, error } = await supabase.rpc('complete_tournament', {
+        p_tournament_id: tournamentId,
+      });
+      
+      if (error) throw error;
+      const result = data as { success: boolean; error?: string; winner_id?: string; prizes?: Record<string, number> };
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+      queryClient.invalidateQueries({ queryKey: ['tournament-participants'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast({ 
+        title: 'Tournament completed!', 
+        description: `Prizes distributed: 1st: ${data.prizes?.['1st']}, 2nd: ${data.prizes?.['2nd']}, 3rd: ${data.prizes?.['3rd']} coins` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Failed to complete', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const isJoined = (tournamentId: string) => {
     return myParticipations.some(p => p.tournament_id === tournamentId);
   };
@@ -195,6 +220,7 @@ export const useTournaments = () => {
     leaveTournament,
     createTournament,
     startTournament,
+    completeTournament,
     isJoined,
   };
 };
