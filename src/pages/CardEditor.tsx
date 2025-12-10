@@ -59,14 +59,17 @@ export default function CardEditor() {
   const [saving, setSaving] = useState(false);
 
   const filteredCards = useMemo(() => {
-    if (!searchQuery) return allCards.slice(0, 50);
-    const query = searchQuery.toLowerCase();
-    return allCards.filter(
-      (card) =>
-        card.title.toLowerCase().includes(query) ||
-        card.character.toLowerCase().includes(query) ||
-        card.id.toString() === query
-    );
+    let cards = [...allCards].sort((a, b) => a.title.localeCompare(b.title));
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      cards = cards.filter(
+        (card) =>
+          card.title.toLowerCase().includes(query) ||
+          card.character.toLowerCase().includes(query) ||
+          card.id.toString() === query
+      );
+    }
+    return cards;
   }, [searchQuery]);
 
   const selectCard = (card: CardData) => {
