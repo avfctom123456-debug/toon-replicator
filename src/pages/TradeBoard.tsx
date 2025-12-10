@@ -492,254 +492,262 @@ export default function TradeBoard() {
             )}
           </TabsContent>
 
-          {/* AUCTIONS TAB */}
+          {/* AUCTIONS TAB - ORBIT STYLE */}
           <TabsContent value="auctions" className="space-y-4">
-            <div className="flex justify-end">
-              <Dialog open={showAuctionDialog} onOpenChange={setShowAuctionDialog}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Gavel className="mr-2 h-4 w-4" />
-                    Create Auction
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create Auction</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <Label>Card to Auction (select specific copy)</Label>
-                      <Select value={auctionUserCardId} onValueChange={setAuctionUserCardId}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select a card copy" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ownedCardsWithCopies.map((card) => (
-                            <SelectItem key={card.userCardId} value={card.userCardId}>
-                              <span className="flex items-center gap-2">
+            {/* Orbit-style header */}
+            <div 
+              className="rounded-lg p-4"
+              style={{
+                background: 'linear-gradient(135deg, #1a5a6a 0%, #2a7a8a 25%, #3a8a9a 50%, #2a7a8a 75%, #1a5a6a 100%)'
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  {/* Planet icon */}
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg relative">
+                    <div className="absolute w-14 h-3 border-2 border-cyan-300 rounded-full -rotate-12 opacity-60"></div>
+                    <div className="w-5 h-5 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full"></div>
+                  </div>
+                  <div>
+                    <div className="text-cyan-200 font-bold text-xs tracking-wide">GET CARDS</div>
+                    <div className="text-white font-black text-xl tracking-wider" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
+                      AUCTIONS
+                    </div>
+                  </div>
+                </div>
+                
+                <Dialog open={showAuctionDialog} onOpenChange={setShowAuctionDialog}>
+                  <DialogTrigger asChild>
+                    <button className="bg-gradient-to-b from-[#ff8833] to-[#cc5500] hover:from-[#ffaa55] hover:to-[#dd6600] text-white font-bold text-sm py-2 px-4 rounded-lg shadow-lg border-2 border-[#aa4400]">
+                      START AUCTION
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] border-[#3388bb]">
+                    <DialogHeader>
+                      <DialogTitle className="text-[#2266aa] font-black">CREATE AUCTION</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label className="text-[#4a6a7a] font-bold text-sm">Card to Auction</Label>
+                        <Select value={auctionUserCardId} onValueChange={setAuctionUserCardId}>
+                          <SelectTrigger className="mt-1 bg-white/70 border-[#8aa8b8]">
+                            <SelectValue placeholder="Select a card copy" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ownedCardsWithCopies.map((card) => (
+                              <SelectItem key={card.userCardId} value={card.userCardId}>
+                                <span className="flex items-center gap-2">
+                                  {card.title}
+                                  {card.copyNumber && (
+                                    <span className={`text-xs ${
+                                      card.copyNumber <= 10 ? "text-yellow-500 font-bold" :
+                                      card.copyNumber <= 50 ? "text-gray-400" : "text-muted-foreground"
+                                    }`}>
+                                      #{card.copyNumber}
+                                    </span>
+                                  )}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {auctionUserCardId && (
+                          <div className="mt-2 flex justify-center">
+                            {(() => {
+                              const selectedCard = ownedCardsWithCopies.find(c => c.userCardId === auctionUserCardId);
+                              return selectedCard ? (
+                                <MiniCard card={selectedCard} size="md" copyNumber={selectedCard.copyNumber} customImageUrl={getOverride(selectedCard.id)?.custom_image_url} />
+                              ) : null;
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-[#4a6a7a] font-bold text-sm">Starting Bid (points)</Label>
+                        <Input
+                          type="number"
+                          value={startingBid}
+                          onChange={(e) => setStartingBid(Math.max(1, parseInt(e.target.value) || 1))}
+                          min={1}
+                          className="mt-1 bg-white/70 border-[#8aa8b8]"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[#4a6a7a] font-bold text-sm">Duration</Label>
+                        <Select 
+                          value={auctionDuration.toString()} 
+                          onValueChange={(v) => setAuctionDuration(parseInt(v))}
+                        >
+                          <SelectTrigger className="mt-1 bg-white/70 border-[#8aa8b8]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="15">15 minutes</SelectItem>
+                            <SelectItem value="30">30 minutes</SelectItem>
+                            <SelectItem value="60">1 hour</SelectItem>
+                            <SelectItem value="180">3 hours</SelectItem>
+                            <SelectItem value="720">12 hours</SelectItem>
+                            <SelectItem value="1440">24 hours</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <button 
+                        onClick={handleCreateAuction} 
+                        className="w-full bg-gradient-to-b from-[#ff8833] to-[#cc5500] hover:from-[#ffaa55] hover:to-[#dd6600] text-white font-bold py-3 rounded-lg border-2 border-[#aa4400] disabled:opacity-50"
+                        disabled={!auctionUserCardId}
+                      >
+                        START AUCTION
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Auction List */}
+              {auctionsLoading ? (
+                <div className="text-center text-cyan-200 py-8">Loading auctions...</div>
+              ) : auctions.length === 0 ? (
+                <div className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg p-8 text-center">
+                  <p className="text-[#4a6a7a] font-semibold">No active auctions. Start one now!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {auctions.map((auction) => {
+                    const card = getCardById(auction.card_id);
+                    if (!card) return null;
+                    
+                    const isOwner = auction.user_id === user.id;
+                    const isHighestBidder = auction.highest_bidder_id === user.id;
+                    const ended = isAuctionEnded(auction.ends_at);
+                    const currentBid = auction.current_bid > 0 ? auction.current_bid : auction.starting_bid;
+                    const imageUrl = getOverride(auction.card_id)?.custom_image_url || `https://dlgjmqnjzepntvfeqfcx.supabase.co/storage/v1/object/public/card-images/${card.id}.jpg`;
+
+                    // Get time components
+                    const endTime = new Date(auction.ends_at).getTime();
+                    const diff = Math.max(0, endTime - now);
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    return (
+                      <div 
+                        key={auction.id} 
+                        className={`bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg overflow-hidden ${
+                          isHighestBidder ? "ring-2 ring-green-400" : ""
+                        }`}
+                      >
+                        {/* Card display with concentric circles */}
+                        <div className="grid grid-cols-[1fr,200px] gap-0">
+                          {/* Left side - Card image */}
+                          <div 
+                            className="h-[160px] relative cursor-pointer"
+                            onClick={() => navigate(`/auction/${auction.id}`)}
+                            style={{
+                              background: `radial-gradient(circle at center, 
+                                #000000 0%, 
+                                #000000 15%, 
+                                #661111 20%,
+                                #882222 25%,
+                                #aa3333 30%,
+                                #cc4444 35%,
+                                #dd5544 40%,
+                                #ee6644 45%,
+                                #ff7755 50%,
+                                #ee6644 55%,
+                                #dd5544 60%,
+                                #cc4444 65%,
+                                #aa3333 70%
+                              )`
+                            }}
+                          >
+                            {/* Card Name - Top Left */}
+                            <div className="absolute top-2 left-2 bg-gradient-to-r from-[#cc3344] via-[#dd5544] to-[#ee7744] rounded px-2 py-1 border border-[#aa2233]">
+                              <div className="text-white font-black text-sm uppercase truncate max-w-[200px]" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
                                 {card.title}
-                                {card.copyNumber && (
-                                  <span className={`text-xs ${
-                                    card.copyNumber <= 10 ? "text-yellow-500 font-bold" :
-                                    card.copyNumber <= 50 ? "text-gray-400" : "text-muted-foreground"
+                                {auction.copy_number && (
+                                  <span className={`ml-1 ${
+                                    auction.copy_number <= 10 ? "text-yellow-300" :
+                                    auction.copy_number <= 50 ? "text-gray-300" : "text-white/70"
                                   }`}>
-                                    #{card.copyNumber}
+                                    #{auction.copy_number}
                                   </span>
                                 )}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {auctionUserCardId && (
-                        <div className="mt-2 flex justify-center">
-                          {(() => {
-                            const selectedCard = ownedCardsWithCopies.find(c => c.userCardId === auctionUserCardId);
-                            return selectedCard ? (
-                              <div className="flex flex-col items-center gap-1">
-                                <MiniCard card={selectedCard} size="md" copyNumber={selectedCard.copyNumber} customImageUrl={getOverride(selectedCard.id)?.custom_image_url} />
                               </div>
-                            ) : null;
-                          })()}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <Label>Starting Bid (coins)</Label>
-                      <Input
-                        type="number"
-                        value={startingBid}
-                        onChange={(e) => setStartingBid(Math.max(1, parseInt(e.target.value) || 1))}
-                        min={1}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Duration</Label>
-                      <Select 
-                        value={auctionDuration.toString()} 
-                        onValueChange={(v) => setAuctionDuration(parseInt(v))}
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15 minutes</SelectItem>
-                          <SelectItem value="30">30 minutes</SelectItem>
-                          <SelectItem value="60">1 hour</SelectItem>
-                          <SelectItem value="180">3 hours</SelectItem>
-                          <SelectItem value="720">12 hours</SelectItem>
-                          <SelectItem value="1440">24 hours</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={handleCreateAuction} className="w-full" disabled={!auctionUserCardId}>
-                      Start Auction
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                            </div>
 
-            {auctionsLoading ? (
-              <div className="text-center text-muted-foreground py-8">Loading auctions...</div>
-            ) : auctions.length === 0 ? (
-              <Card className="bg-card border-border">
-                <CardContent className="py-8 text-center">
-                  <p className="text-muted-foreground">No active auctions. Start one now!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {auctions.map((auction) => {
-                  const card = getCardById(auction.card_id);
-                  if (!card) return null;
-                  
-                  const isOwner = auction.user_id === user.id;
-                  const isHighestBidder = auction.highest_bidder_id === user.id;
-                  const ended = isAuctionEnded(auction.ends_at);
-                  const minBid = auction.current_bid > 0 
-                    ? auction.current_bid + auction.min_increment 
-                    : auction.starting_bid;
-                  const currentBidAmount = bidAmounts[auction.id] || minBid;
+                            {/* Card Image - Centered */}
+                            <div className="w-full h-full flex items-center justify-center">
+                              <img 
+                                src={imageUrl}
+                                alt={card.title}
+                                className="max-w-[40%] max-h-[80%] object-contain drop-shadow-lg"
+                                style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.8))' }}
+                              />
+                            </div>
 
-                  return (
-                    <Card 
-                      key={auction.id} 
-                      className={`bg-card border-border relative overflow-hidden ${
-                        ended ? "opacity-75" : ""
-                      } ${isHighestBidder ? "ring-2 ring-green-500" : ""}`}
-                    >
-                      {ended && (
-                        <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
-                          <span className="text-lg font-bold text-muted-foreground">ENDED</span>
-                        </div>
-                      )}
-                      <CardContent className="p-4">
-                        <div className="flex gap-4">
-                          {/* Card Image */}
-                          <div className="flex-shrink-0">
-                            <MiniCard card={card} size="md" copyNumber={auction.copy_number} customImageUrl={getOverride(auction.card_id)?.custom_image_url} />
-                          </div>
-                          
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-foreground truncate">
-                              {card.title}
-                              {auction.copy_number && (
-                                <span className={`ml-1 text-sm ${
-                                  auction.copy_number <= 10 ? "text-yellow-500" :
-                                  auction.copy_number <= 50 ? "text-gray-400" : "text-muted-foreground"
-                                }`}>
-                                  #{auction.copy_number}
-                                </span>
-                              )}
-                            </h3>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                              <User className="h-3 w-3" />
-                              {auction.seller_username}
-                            </div>
-                            
-                            {/* Timer */}
-                            <div className={`flex items-center gap-1 text-sm mt-2 ${
-                              ended ? "text-red-500" : "text-orange-500"
-                            }`}>
-                              <Clock className="h-4 w-4" />
-                              {formatTimeLeft(auction.ends_at)}
-                            </div>
-                            
-                            {/* Current Bid */}
-                            <div className="flex items-center gap-1 mt-2">
-                              <TrendingUp className="h-4 w-4 text-green-500" />
-                              <span className="text-lg font-bold text-yellow-500">
-                                {auction.current_bid > 0 ? auction.current_bid : auction.starting_bid}
-                              </span>
-                              <Coins className="h-4 w-4 text-yellow-500" />
-                            </div>
-                            {auction.highest_bidder_username && (
-                              <div className="text-xs text-muted-foreground">
-                                Highest: {auction.highest_bidder_username}
-                                {isHighestBidder && <span className="text-green-500 ml-1">(You!)</span>}
+                            {ended && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span className="text-white font-black text-2xl">ENDED</span>
                               </div>
                             )}
-                            <AuctionBidHistoryModal 
-                              auction={auction} 
-                              trigger={
-                                <button className="flex items-center gap-1 text-xs text-primary hover:underline mt-1">
-                                  <History className="h-3 w-3" />
-                                  View bid history
-                                </button>
-                              }
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mt-2 w-full"
+                          </div>
+
+                          {/* Right side - Info */}
+                          <div className="p-3 flex flex-col justify-between">
+                            {/* Timer */}
+                            <div className="flex gap-1 justify-center">
+                              <div className="text-center">
+                                <div className="bg-[#cc3333] text-white font-bold text-sm px-1.5 py-0.5 rounded min-w-[24px]">
+                                  {String(hours).padStart(2, '0')}
+                                </div>
+                                <div className="text-[#5a7a8a] text-[8px]">HRS</div>
+                              </div>
+                              <span className="text-[#5a7a8a] font-bold">:</span>
+                              <div className="text-center">
+                                <div className="bg-[#cc3333] text-white font-bold text-sm px-1.5 py-0.5 rounded min-w-[24px]">
+                                  {String(minutes).padStart(2, '0')}
+                                </div>
+                                <div className="text-[#5a7a8a] text-[8px]">MIN</div>
+                              </div>
+                              <span className="text-[#5a7a8a] font-bold">:</span>
+                              <div className="text-center">
+                                <div className="bg-[#cc3333] text-white font-bold text-sm px-1.5 py-0.5 rounded min-w-[24px]">
+                                  {String(seconds).padStart(2, '0')}
+                                </div>
+                                <div className="text-[#5a7a8a] text-[8px]">SEC</div>
+                              </div>
+                            </div>
+
+                            {/* Bid Info */}
+                            <div className="space-y-1 text-center">
+                              <div className="text-[#2266aa] font-black text-lg">
+                                {currentBid.toLocaleString()} PTS
+                              </div>
+                              <div className="text-[#5a7a8a] text-[10px]">
+                                {auction.highest_bidder_username ? (
+                                  <>High: <span className={isHighestBidder ? "text-green-600 font-bold" : ""}>{auction.highest_bidder_username}</span></>
+                                ) : "No bids yet"}
+                              </div>
+                              <div className="text-[#5a7a8a] text-[10px]">
+                                Seller: {auction.seller_username}
+                              </div>
+                            </div>
+
+                            {/* Action Button */}
+                            <button
                               onClick={() => navigate(`/auction/${auction.id}`)}
+                              className="w-full bg-[#3388cc] hover:bg-[#44aaee] text-white font-bold text-xs py-2 rounded"
                             >
-                              <ExternalLink className="mr-2 h-3 w-3" />
-                              Open Auction
-                            </Button>
+                              VIEW AUCTION
+                            </button>
                           </div>
                         </div>
-
-                        {/* Actions */}
-                        <div className="mt-4 pt-3 border-t border-border">
-                          {isOwner ? (
-                            <div className="flex gap-2">
-                              {auction.current_bid === 0 && (
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => cancelAuction(auction.id)}
-                                >
-                                  Cancel
-                                </Button>
-                              )}
-                              {ended && (
-                                <Button
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => handleEndAuction(auction.id)}
-                                >
-                                  Finalize
-                                </Button>
-                              )}
-                            </div>
-                          ) : !ended ? (
-                            <div className="flex gap-2 items-center">
-                              <Input
-                                type="number"
-                                value={currentBidAmount}
-                                onChange={(e) => setBidAmounts(prev => ({
-                                  ...prev,
-                                  [auction.id]: parseInt(e.target.value) || minBid
-                                }))}
-                                min={minBid}
-                                className="w-24"
-                              />
-                              <Button
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handlePlaceBid(auction.id, currentBidAmount)}
-                                disabled={currentBidAmount < minBid}
-                              >
-                                Bid
-                              </Button>
-                            </div>
-                          ) : isHighestBidder ? (
-                            <div className="text-center text-green-500 font-semibold">
-                              You won! Waiting for seller to finalize.
-                            </div>
-                          ) : null}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
