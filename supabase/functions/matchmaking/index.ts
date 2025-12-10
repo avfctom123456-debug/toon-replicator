@@ -45,6 +45,29 @@ serve(async (req) => {
     console.log(`Matchmaking action: ${action} for user: ${user.id}`);
 
     if (action === 'join_queue') {
+      // FIRST: Check if user is already in an active match (prevents duplicate matches)
+      const { data: existingMatch } = await supabaseAdmin
+        .from('matches')
+        .select('*')
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingMatch) {
+        console.log(`User ${user.id} already in match ${existingMatch.id}`);
+        // Remove from queue if in queue
+        await supabaseAdmin
+          .from('matchmaking_queue')
+          .delete()
+          .eq('user_id', user.id);
+          
+        return new Response(JSON.stringify({ status: 'matched', matchId: existingMatch.id }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // Check if user is already in queue
       const { data: existingQueue } = await supabaseAdmin
         .from('matchmaking_queue')
@@ -53,7 +76,8 @@ serve(async (req) => {
         .single();
 
       if (existingQueue) {
-        // Already in queue, check for match
+        // Already in queue - just check for opponents, don't create match yet
+        // The FIRST player to join should wait, SECOND player creates the match
         const { data: otherPlayers } = await supabaseAdmin
           .from('matchmaking_queue')
           .select('*')
@@ -64,7 +88,70 @@ serve(async (req) => {
         if (otherPlayers && otherPlayers.length > 0) {
           const opponent = otherPlayers[0];
           
-          // Create match
+          // Double-check neither player is already in a match (race condition prevention)
+          const { data: opponentMatch } = await supabaseAdmin
+            .from('matches')
+            .select('id')
+            .or(`player1_id.eq.${opponent.user_id},player2_id.eq.${opponent.user_id}`)
+            .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+            .limit(1)
+            .single();
+
+          if (opponentMatch) {
+            // Opponent is already in a match, remove them from queue
+            await supabaseAdmin
+              .from('matchmaking_queue')
+              .delete()
+              .eq('user_id', opponent.user_id);
+            
+            return new Response(JSON.stringify({ status: 'waiting' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          // Use the later player (by queue time) as the one who creates the match
+          // This prevents race conditions where both try to create
+          const iAmLaterPlayer = new Date(existingQueue.created_at) > new Date(opponent.created_at);
+          
+          if (!iAmLaterPlayer) {
+            // I joined first, let the other player create the match
+            return new Response(JSON.stringify({ status: 'waiting' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          // I'm the later player, I create the match
+          // First, try to delete both from queue (atomic check)
+          const { data: deletedRows, error: deleteError } = await supabaseAdmin
+            .from('matchmaking_queue')
+            .delete()
+            .in('user_id', [user.id, opponent.user_id])
+            .select();
+
+          if (deleteError || !deletedRows || deletedRows.length < 2) {
+            // Someone else already matched with one of us
+            console.log('Race condition detected, queue state changed');
+            // Re-check for existing match
+            const { data: myMatch } = await supabaseAdmin
+              .from('matches')
+              .select('*')
+              .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+              .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+              .limit(1)
+              .single();
+
+            if (myMatch) {
+              return new Response(JSON.stringify({ status: 'matched', matchId: myMatch.id }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+            
+            return new Response(JSON.stringify({ status: 'waiting' }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          // Create match - opponent (earlier) is player1, I am player2
           const { data: match, error: matchError } = await supabaseAdmin
             .from('matches')
             .insert({
@@ -82,13 +169,7 @@ serve(async (req) => {
             throw matchError;
           }
 
-          // Remove both players from queue
-          await supabaseAdmin
-            .from('matchmaking_queue')
-            .delete()
-            .in('user_id', [user.id, opponent.user_id]);
-
-          console.log(`Match created: ${match.id}`);
+          console.log(`Match created: ${match.id} (player1: ${opponent.user_id}, player2: ${user.id})`);
           return new Response(JSON.stringify({ status: 'matched', matchId: match.id }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
@@ -99,7 +180,7 @@ serve(async (req) => {
         });
       }
 
-      // Add to queue
+      // Not in queue yet - add to queue
       const { error: queueError } = await supabaseAdmin
         .from('matchmaking_queue')
         .insert({
@@ -112,7 +193,7 @@ serve(async (req) => {
         throw queueError;
       }
 
-      // Check if there's another player waiting
+      // Check if there's another player waiting (I'm the new/later player)
       const { data: otherPlayers } = await supabaseAdmin
         .from('matchmaking_queue')
         .select('*')
@@ -122,6 +203,55 @@ serve(async (req) => {
 
       if (otherPlayers && otherPlayers.length > 0) {
         const opponent = otherPlayers[0];
+        
+        // Double-check opponent isn't already in a match
+        const { data: opponentMatch } = await supabaseAdmin
+          .from('matches')
+          .select('id')
+          .or(`player1_id.eq.${opponent.user_id},player2_id.eq.${opponent.user_id}`)
+          .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+          .limit(1)
+          .single();
+
+        if (opponentMatch) {
+          // Opponent is already in a match, remove them from queue
+          await supabaseAdmin
+            .from('matchmaking_queue')
+            .delete()
+            .eq('user_id', opponent.user_id);
+          
+          return new Response(JSON.stringify({ status: 'waiting' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // I'm the later player, I create the match
+        const { data: deletedRows, error: deleteError } = await supabaseAdmin
+          .from('matchmaking_queue')
+          .delete()
+          .in('user_id', [user.id, opponent.user_id])
+          .select();
+
+        if (deleteError || !deletedRows || deletedRows.length < 2) {
+          console.log('Race condition detected during match creation');
+          const { data: myMatch } = await supabaseAdmin
+            .from('matches')
+            .select('*')
+            .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+            .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+            .limit(1)
+            .single();
+
+          if (myMatch) {
+            return new Response(JSON.stringify({ status: 'matched', matchId: myMatch.id }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          return new Response(JSON.stringify({ status: 'waiting' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         
         // Create match
         const { data: match, error: matchError } = await supabaseAdmin
@@ -141,13 +271,7 @@ serve(async (req) => {
           throw matchError;
         }
 
-        // Remove both players from queue
-        await supabaseAdmin
-          .from('matchmaking_queue')
-          .delete()
-          .in('user_id', [user.id, opponent.user_id]);
-
-        console.log(`Match created: ${match.id}`);
+        console.log(`Match created: ${match.id} (player1: ${opponent.user_id}, player2: ${user.id})`);
         return new Response(JSON.stringify({ status: 'matched', matchId: match.id }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -181,6 +305,12 @@ serve(async (req) => {
         .single();
 
       if (match) {
+        // Also remove from queue if still there
+        await supabaseAdmin
+          .from('matchmaking_queue')
+          .delete()
+          .eq('user_id', user.id);
+          
         return new Response(JSON.stringify({ status: 'matched', matchId: match.id }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
