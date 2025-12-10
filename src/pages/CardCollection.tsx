@@ -128,13 +128,7 @@ export default function CardCollection() {
         }
         return true;
       })
-      .sort((a, b) => {
-        // Sort owned cards first, then by name
-        const aOwned = isCardOwned(a.id);
-        const bOwned = isCardOwned(b.id);
-        if (aOwned !== bOwned) return bOwned ? 1 : -1;
-        return a.title.localeCompare(b.title);
-      });
+      .sort((a, b) => a.title.localeCompare(b.title));
   }, [searchQuery, selectedColor, selectedRarity, showOwned, starterCardIds, getCardQuantity]);
 
   const ownedCount = allCards.filter(c => isCardOwned(c.id)).length;
