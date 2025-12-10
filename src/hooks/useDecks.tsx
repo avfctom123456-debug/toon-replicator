@@ -128,6 +128,34 @@ export const useDecks = () => {
     }
   };
 
+  const resetDeck = async (slot: string) => {
+    if (!user) {
+      toast.error("Please sign in to reset decks");
+      return false;
+    }
+
+    try {
+      const existingDeck = getDeckBySlot(slot);
+
+      if (existingDeck) {
+        const { error } = await supabase
+          .from("decks")
+          .update({ card_ids: [] })
+          .eq("id", existingDeck.id);
+
+        if (error) throw error;
+      }
+
+      await fetchDecks();
+      toast.success(`Deck ${slot} reset!`);
+      return true;
+    } catch (error) {
+      console.error("Error resetting deck:", error);
+      toast.error("Failed to reset deck");
+      return false;
+    }
+  };
+
   const getDecksWithSlots = () => {
     return DECK_SLOTS.map((slot) => {
       const deck = getDeckBySlot(slot);
@@ -145,6 +173,7 @@ export const useDecks = () => {
     loading,
     getDeckBySlot,
     saveDeck,
+    resetDeck,
     getDecksWithSlots,
     refetch: fetchDecks,
   };

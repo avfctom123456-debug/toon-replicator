@@ -1,20 +1,29 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
 import { useDecks } from "@/hooks/useDecks";
 import { useAuth } from "@/hooks/useAuth";
+import { RotateCcw } from "lucide-react";
 
 const DeckBuilder = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { getDecksWithSlots, loading } = useDecks();
+  const { getDecksWithSlots, resetDeck, loading, refetch } = useDecks();
+  const [resetting, setResetting] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
+  const handleReset = async (slot: string) => {
+    setResetting(slot);
+    await resetDeck(slot);
+    await refetch();
+    setResetting(null);
+  };
 
   const decks = getDecksWithSlots();
 
@@ -68,14 +77,27 @@ const DeckBuilder = () => {
                   ))}
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => navigate("/deck-edit", { state: { deckSlot: deck.slot, cardIds: deck.cardIds } })}
-                className="text-foreground"
-              >
-                Edit
-              </Button>
+              <div className="flex gap-1">
+                {deck.filled > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleReset(deck.slot)}
+                    disabled={resetting === deck.slot}
+                    className="text-destructive hover:text-destructive px-2"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate("/deck-edit", { state: { deckSlot: deck.slot, cardIds: deck.cardIds } })}
+                  className="text-foreground"
+                >
+                  Edit
+                </Button>
+              </div>
             </div>
           ))
         )}
