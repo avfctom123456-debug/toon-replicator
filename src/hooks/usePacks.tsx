@@ -74,7 +74,11 @@ export function usePacks() {
         return null;
       }
 
-      if (profile.coins < pack.cost) {
+      // Check if user has free packs or enough coins
+      const hasFreePack = (profile.free_packs_remaining ?? 0) > 0;
+      const effectiveCost = hasFreePack ? 0 : pack.cost;
+
+      if (!hasFreePack && profile.coins < pack.cost) {
         toast.error("Not enough coins!");
         return null;
       }
@@ -103,13 +107,23 @@ export function usePacks() {
           }
         }
 
-        // Deduct coins
-        const { error: coinError } = await supabase
-          .from("profiles")
-          .update({ coins: profile.coins - pack.cost })
-          .eq("user_id", user.id);
+        // Update profile - deduct coins and/or free packs
+        if (hasFreePack) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ free_packs_remaining: (profile.free_packs_remaining ?? 1) - 1 })
+            .eq("user_id", user.id);
 
-        if (coinError) throw coinError;
+          if (updateError) throw updateError;
+          toast.success(`Used a free pack! ${(profile.free_packs_remaining ?? 1) - 1} remaining`);
+        } else {
+          const { error: coinError } = await supabase
+            .from("profiles")
+            .update({ coins: profile.coins - pack.cost })
+            .eq("user_id", user.id);
+
+          if (coinError) throw coinError;
+        }
 
         // Increment packs_opened in player_stats
         const { data: currentStats } = await supabase
@@ -135,7 +149,9 @@ export function usePacks() {
         }
 
         await refetchProfile();
-        toast.success(`Opened ${pack.name}!`);
+        if (!hasFreePack) {
+          toast.success(`Opened ${pack.name}!`);
+        }
         return drawnCards;
       } catch (error) {
         console.error("Error opening pack:", error);

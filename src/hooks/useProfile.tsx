@@ -10,6 +10,7 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   starter_deck_claimed: string | null;
+  free_packs_remaining: number;
 }
 
 export const useProfile = () => {
