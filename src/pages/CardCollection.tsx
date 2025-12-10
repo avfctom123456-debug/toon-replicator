@@ -43,6 +43,27 @@ const allCards = cardsData as CardData[];
 const allColors = [...new Set(allCards.flatMap(c => c.colors))].sort();
 const allRarities = [...new Set(allCards.map(c => c.rarity))].sort();
 
+function CollectionCardImage({ card, bgColor, customImageUrl }: { card: CardData; bgColor: string; customImageUrl?: string | null }) {
+  const [imageError, setImageError] = useState(false);
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
+
+  return (
+    <div className={`aspect-square rounded-full ${bgColor} overflow-hidden flex items-center justify-center border-4 border-muted shadow-lg`}>
+      {!imageError ? (
+        <img
+          src={imageUrl}
+          alt={card.title}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className="text-white font-bold text-2xl">{card.title[0]}</span>
+      )}
+    </div>
+  );
+}
+
 export default function CardCollection() {
   const { user, loading: authLoading } = useAuth();
   const { getCardQuantity, getCardCopyNumbers, loading: cardsLoading } = useUserCards();
@@ -325,23 +346,3 @@ export default function CardCollection() {
   );
 }
 
-function CollectionCardImage({ card, bgColor, customImageUrl }: { card: CardData; bgColor: string; customImageUrl?: string | null }) {
-  const [imageError, setImageError] = useState(false);
-  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
-  const imageUrl = customImageUrl || defaultImageUrl;
-
-  return (
-    <div className={`aspect-square rounded-full ${bgColor} overflow-hidden flex items-center justify-center border-4 border-muted shadow-lg`}>
-      {!imageError ? (
-        <img
-          src={imageUrl}
-          alt={card.title}
-          className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
-        />
-      ) : (
-        <span className="text-white font-bold text-2xl">{card.title[0]}</span>
-      )}
-    </div>
-  );
-}
