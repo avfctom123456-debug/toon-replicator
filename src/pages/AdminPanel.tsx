@@ -11,7 +11,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAdminAchievements, Achievement } from "@/hooks/useAchievements";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp, Calendar, Trophy, Coins } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp, Calendar, Trophy, Coins, Gamepad2 } from "lucide-react";
+import { AdminGameManagement } from "@/components/admin/AdminGameManagement";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -921,6 +922,10 @@ export default function AdminPanel() {
             <TabsTrigger value="achievements" className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
               Achievements
+            </TabsTrigger>
+            <TabsTrigger value="games" className="flex items-center gap-2">
+              <Gamepad2 className="h-4 w-4" />
+              Games
             </TabsTrigger>
           </TabsList>
 
@@ -1860,6 +1865,10 @@ export default function AdminPanel() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="games">
+            <AdminGameManagement />
           </TabsContent>
         </Tabs>
 
