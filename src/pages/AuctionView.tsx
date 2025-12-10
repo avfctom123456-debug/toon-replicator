@@ -6,13 +6,14 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAuctionBids, Auction, AuctionBid } from "@/hooks/useAuctions";
 import { getCardById } from "@/lib/gameEngine";
 import { MiniCard } from "@/components/MiniCard";
+import { UrgentCountdown } from "@/components/auction/UrgentCountdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { 
-  ArrowLeft, Coins, Clock, TrendingUp, User, Send, Eye,
+  ArrowLeft, Coins, TrendingUp, User, Send, Eye,
   Gavel, MessageCircle
 } from "lucide-react";
 
@@ -351,14 +352,7 @@ export default function AuctionView() {
                     </div>
 
                     {/* Timer */}
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${
-                      ended ? "bg-red-500/20 text-red-400" : "bg-orange-500/20 text-orange-400"
-                    }`}>
-                      <Clock className="h-5 w-5" />
-                      <span className="text-lg font-bold font-mono">
-                        {formatTimeLeft(auction.ends_at)}
-                      </span>
-                    </div>
+                    <UrgentCountdown endsAt={auction.ends_at} now={now} />
 
                     {/* Current Bid */}
                     <div className="bg-background/50 rounded-lg p-4">
