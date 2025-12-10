@@ -379,23 +379,14 @@ export default function AuctionView() {
 
                     {/* Bid Actions */}
                     {!ended && !isOwner && (
-                      <div className="flex gap-3">
-                        <Input
-                          type="number"
-                          value={bidAmount}
-                          onChange={(e) => setBidAmount(parseInt(e.target.value) || minBid)}
-                          min={minBid}
-                          className="w-32"
-                        />
-                        <Button 
-                          onClick={handlePlaceBid}
-                          disabled={bidAmount < minBid}
-                          className="flex-1"
-                        >
-                          <Gavel className="mr-2 h-4 w-4" />
-                          Place Bid
-                        </Button>
-                      </div>
+                      <Button 
+                        onClick={handlePlaceBid}
+                        className="w-full"
+                        size="lg"
+                      >
+                        <Gavel className="mr-2 h-5 w-5" />
+                        Place Bid: {minBid} coins
+                      </Button>
                     )}
 
                     {isOwner && ended && (
