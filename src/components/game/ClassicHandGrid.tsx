@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { GameCard } from "@/lib/gameEngine";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
@@ -33,11 +34,13 @@ interface HandCardProps {
   card: GameCard;
   isSelected: boolean;
   onClick: () => void;
+  customImageUrl?: string | null;
 }
 
-const HandCard = ({ card, isSelected, onClick }: HandCardProps) => {
+const HandCard = ({ card, isSelected, onClick, customImageUrl }: HandCardProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const borderColor = colorBorder[card.colors?.[0]] || "border-gray-400";
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-400";
 
@@ -77,6 +80,7 @@ interface ClassicHandGridProps {
 }
 
 export const ClassicHandGrid = ({ cards, selectedCard, onSelectCard }: ClassicHandGridProps) => {
+  const { getOverride } = useCardOverrides();
   // Create a 2x3 grid with empty slots
   const gridSlots = Array(6).fill(null).map((_, i) => cards[i] || null);
 
@@ -89,6 +93,7 @@ export const ClassicHandGrid = ({ cards, selectedCard, onSelectCard }: ClassicHa
               card={card}
               isSelected={selectedCard?.id === card.id}
               onClick={() => onSelectCard(selectedCard?.id === card.id ? null : card)}
+              customImageUrl={getOverride(card.id)?.custom_image_url}
             />
           ) : (
             <div className="w-14 h-14 rounded-full bg-[hsl(200,25%,70%)] border-2 border-[hsl(200,20%,65%)] shadow-inner" />
