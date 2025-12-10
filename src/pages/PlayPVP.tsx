@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useProfile } from "@/hooks/useProfile";
@@ -31,6 +31,9 @@ type RevealPhase = "placing" | "revealing" | "revealed";
 
 const PlayPVP = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlMatchId = searchParams.get("matchId");
+  
   const { user, loading: authLoading } = useAuth();
   const { getDecksWithSlots, loading: decksLoading } = useDecks();
   const { profile, updateCoins, refetchProfile } = useProfile();
@@ -42,6 +45,7 @@ const PlayPVP = () => {
     matchId, 
     joinQueue, 
     leaveQueue,
+    joinMatch,
     setReady,
     isPlayer1,
     searchTime 
@@ -72,6 +76,20 @@ const PlayPVP = () => {
       navigate("/auth");
     }
   }, [user, authLoading, navigate]);
+
+  // Join match from URL parameter (challenge accepted)
+  useEffect(() => {
+    if (urlMatchId && user && !matchId && matchmakingStatus === 'idle') {
+      joinMatch(urlMatchId).then((success) => {
+        if (success) {
+          setGamePhase("loading");
+        } else {
+          toast.error("Failed to join match");
+          navigate("/friends");
+        }
+      });
+    }
+  }, [urlMatchId, user, matchId, matchmakingStatus, joinMatch, navigate]);
 
   // Reveal sequence - same as CPU mode
   const performReveal = useCallback((gameState: GameState, isRound1: boolean) => {
