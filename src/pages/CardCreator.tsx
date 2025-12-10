@@ -32,7 +32,22 @@ interface CardData {
 
 const COLORS = ["SILVER", "BLUE", "BLACK", "GREEN", "PURPLE", "RED", "ORANGE", "YELLOW", "PINK", "WHITE"];
 const RARITIES = ["COMMON", "UNCOMMON", "RARE", "VERY RARE", "SLAM"];
-const TYPES = ["MALE", "FEMALE", "HERO", "VILLAIN", "ANIMAL", "VEHICLE", "PROP", "MONSTER"];
+const TYPES = [
+  // Gender/Character Types
+  "MALE", "FEMALE", 
+  // Role Types
+  "HERO", "VILLAIN", "CRIMINAL", "POLITICIAN", "LAWYER",
+  // Species/Form Types
+  "ANIMAL", "MONSTER", "DROID", "CLONE", "MINION",
+  // Object Types
+  "VEHICLE", "PROP", "PLACE",
+  // Royal Types
+  "PRINCESS", "PRINCE", "KING", "QUEEN", "NOBLE", "CONSORT",
+  // Special Types
+  "ELEMENTAL", "SPIRIT", "CAMEO", "GLITCH",
+  // Franchise-Specific Types
+  "JEDI", "SITH", "SAIYAN", "NAMEKIAN", "AVATAR", "GAANG", "FAIRY TALE CHARACTER"
+];
 
 const colorBg: Record<string, string> = {
   SILVER: "bg-gray-400",
@@ -47,18 +62,62 @@ const colorBg: Record<string, string> = {
   WHITE: "bg-white border border-gray-300",
 };
 
-// Common power patterns for cards
+// Common power patterns for cards - organized by category
 const POWER_PATTERNS = [
-  { label: "No Power", template: "No power" },
-  { label: "+X if [Card] in play", template: "+{points} if any {cardName} is in play" },
-  { label: "+X to neighboring cards", template: "+{points} to neighboring cards" },
-  { label: "+X to all [Color] cards", template: "+{points} to all {color} cards" },
-  { label: "+X if next to [Card]", template: "+{points} if next to any {cardName}" },
-  { label: "-X to opposite card", template: "-{points} to opposite card" },
-  { label: "-X to opposing [Type]", template: "-{points} to opposing card if not a {type}" },
-  { label: "x2 if [Card] in play", template: "x2 if {cardName} is in play" },
-  { label: "+X for each [Type]", template: "+{points} for each {type} in play" },
-  { label: "+X to [Group] members", template: "+{points} to all {group} members" },
+  // No Power
+  { label: "No Power", template: "No power", category: "basic" },
+  
+  // Self-Modifying: Conditional Bonuses
+  { label: "+X if [Card] in play", template: "+{points} if any {cardName} is in play", category: "conditional" },
+  { label: "+X if [A] and [B] both in play", template: "+{points} if {cardA} and {cardB} are both in play", category: "conditional" },
+  { label: "+X if next to [Card]", template: "+{points} if next to any {cardName}", category: "conditional" },
+  { label: "+X if adjacent to [Type]", template: "+{points} if adjacent to a {type}", category: "conditional" },
+  { label: "+X if played in 2nd round", template: "+{points} if played in the 2nd round", category: "conditional" },
+  { label: "+X if played first in first round", template: "+{points} if played first in the first round", category: "conditional" },
+  { label: "+X if played as last card", template: "+{points} if played as the last card", category: "conditional" },
+  { label: "+X if other [Type] in play", template: "+{points} if any other {type} is in play", category: "conditional" },
+  
+  // Self-Modifying: Multipliers
+  { label: "x2 if [Card] in play", template: "x2 if {cardName} is in play", category: "multiplier" },
+  { label: "x2 if next to [Card]", template: "x2 if next to any {cardName}", category: "multiplier" },
+  { label: "x3 if next to [Type]", template: "x3 if next to another {type}", category: "multiplier" },
+  { label: "x2 if opposite is [Color]", template: "x2 if opposite card is {color}", category: "multiplier" },
+  { label: "x2 if [A] or [B] in play", template: "x2 if {cardA} or {cardB} is in play", category: "multiplier" },
+  
+  // Self-Modifying: Count-Based
+  { label: "+X for each [Type]", template: "+{points} for each {type} in play", category: "counting" },
+  { label: "+X for each other [Type]", template: "+{points} for each other {type} in play", category: "counting" },
+  { label: "+X for each neighboring [Type]", template: "+{points} for each neighboring {type}", category: "counting" },
+  { label: "+X for each [Type] opponent", template: "+{points} for each {type} opponent", category: "counting" },
+  { label: "-X for each opponent [Type]", template: "-{points} for each opponent {type}", category: "counting" },
+  
+  // Buff Other Cards
+  { label: "+X to neighboring cards", template: "+{points} to neighboring cards", category: "buff" },
+  { label: "+X to all [Color] cards", template: "+{points} to all {color} cards", category: "buff" },
+  { label: "+X to all [Group] members", template: "+{points} to all {group} members", category: "buff" },
+  { label: "+X to each [Type]", template: "+{points} to each {type}", category: "buff" },
+  { label: "x2 to neighboring [Type]", template: "x2 to each neighboring {type}", category: "buff" },
+  { label: "+X to cards with lower base", template: "+{points} to each own card with lower base value", category: "buff" },
+  
+  // Debuff Opponents
+  { label: "-X to opposite card", template: "-{points} to opposite card", category: "debuff" },
+  { label: "-X to opposing [Type]", template: "-{points} to each opposing {type}", category: "debuff" },
+  { label: "-X to opposing if not [Type]", template: "-{points} to opposite card if not a {type}", category: "debuff" },
+  { label: "-X to opposing higher base", template: "-{points} to each opposing card with higher base value", category: "debuff" },
+  { label: "-X to each [Type]", template: "-{points} to each {type}", category: "debuff" },
+  
+  // Special/Complex
+  { label: "Cancels opposite [Type]", template: "Cancels opposite card if it's a {type}", category: "special" },
+  { label: "All [Type] get +X per [Target]", template: "All {type} get +{points} for each {target} in play", category: "special" },
+  { label: "+X to [Card] if adjacent to [Card]", template: "+{points} to {cardA} if adjacent to {cardB}", category: "special" },
+];
+
+const COMMON_GROUPS = [
+  "JUSTICE LEAGUE", "TEEN TITANS", "POWERPUFF GIRLS", "LOONEY TUNES",
+  "CLONE WARS", "DRAGON BALL Z", "KUNG FU PANDA", "DESPICABLE ME",
+  "FROZEN", "AVATAR", "SPONGEBOB", "SHREK", "CARS", "PHINEAS FERB",
+  "WRECK-IT RALPH", "ZOOTOPIA", "ED EDD N EDDY", "MYSTERY, INC.",
+  "INJUSTICE GANG", "IMAGINARY FRIEND", "BEAN SCOUTS", "MUCHA LUCHA"
 ];
 
 const emptyCard: Omit<CardData, "id"> = {
@@ -337,12 +396,39 @@ export default function CardCreator() {
                 <Input
                   value={newGroup}
                   onChange={(e) => setNewGroup(e.target.value)}
-                  placeholder="Enter group name"
+                  placeholder="Enter group name or click below"
                   onKeyDown={(e) => e.key === "Enter" && addGroup()}
                 />
                 <Button onClick={addGroup} variant="outline">
                   <Plus className="w-4 h-4" />
                 </Button>
+              </div>
+              {/* Quick group buttons */}
+              <div className="flex flex-wrap gap-1">
+                {COMMON_GROUPS.map((group) => (
+                  <Button
+                    key={group}
+                    variant="ghost"
+                    size="sm"
+                    className={`text-xs h-6 px-2 ${
+                      currentCard.groups.includes(group) 
+                        ? "bg-accent text-accent-foreground" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => {
+                      if (currentCard.groups.includes(group)) {
+                        removeGroup(group);
+                      } else {
+                        setCurrentCard((prev) => ({
+                          ...prev,
+                          groups: [...prev.groups, group],
+                        }));
+                      }
+                    }}
+                  >
+                    {group}
+                  </Button>
+                ))}
               </div>
               {currentCard.groups.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -359,7 +445,7 @@ export default function CardCreator() {
             </div>
 
             {/* Power/Description */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Power Description</Label>
               <Textarea
                 value={currentCard.description}
@@ -369,20 +455,115 @@ export default function CardCreator() {
                 placeholder="Describe the card's power..."
                 rows={3}
               />
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Quick patterns (click to apply):</p>
-                <div className="flex flex-wrap gap-1">
-                  {POWER_PATTERNS.map((pattern) => (
-                    <Button
-                      key={pattern.label}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => applyPowerPattern(pattern.template)}
-                    >
-                      {pattern.label}
-                    </Button>
-                  ))}
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground font-medium">Quick patterns (click to apply):</p>
+                
+                {/* Conditional Bonuses */}
+                <div className="space-y-1">
+                  <p className="text-xs text-primary">Conditional (+X if...)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "conditional").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Multipliers */}
+                <div className="space-y-1">
+                  <p className="text-xs text-orange-400">Multipliers (x2, x3...)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "multiplier").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Counting */}
+                <div className="space-y-1">
+                  <p className="text-xs text-yellow-400">Count-Based (+X for each...)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "counting").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Buffs */}
+                <div className="space-y-1">
+                  <p className="text-xs text-green-400">Buff Others (+X to...)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "buff").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Debuffs */}
+                <div className="space-y-1">
+                  <p className="text-xs text-red-400">Debuff Opponents (-X to...)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "debuff").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Special */}
+                <div className="space-y-1">
+                  <p className="text-xs text-purple-400">Special / Complex</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "special" || p.category === "basic").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
