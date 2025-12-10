@@ -11,6 +11,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTrades } from "@/hooks/useTrades";
 import { useUserCards } from "@/hooks/useUserCards";
 import { useAuctions } from "@/hooks/useAuctions";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 import { getCardById } from "@/lib/gameEngine";
 import { MiniCard, CardChip } from "@/components/MiniCard";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ export default function TradeBoard() {
     cancelAuction,
     endAuction 
   } = useAuctions();
+  const { getOverride } = useCardOverrides();
 
   // Trade form state - now uses user_card_ids for specific copies
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -303,6 +305,7 @@ export default function TradeBoard() {
                                 card={cardCopy}
                                 copyNumber={cardCopy.copyNumber}
                                 onRemove={() => setOfferUserCardIds(offerUserCardIds.filter(id => id !== userCardId))}
+                                customImageUrl={getOverride(cardCopy.id)?.custom_image_url}
                               />
                             ) : null;
                           })}
@@ -350,6 +353,7 @@ export default function TradeBoard() {
                                 key={cardId} 
                                 card={card}
                                 onRemove={() => setWantCardIds(wantCardIds.filter(id => id !== cardId))}
+                                customImageUrl={getOverride(cardId)?.custom_image_url}
                               />
                             ) : null;
                           })}
@@ -411,7 +415,7 @@ export default function TradeBoard() {
                                     const card = getCardById(offerCard.card_id);
                                     return card ? (
                                       <div key={offerCard.user_card_id} className="flex items-center gap-2">
-                                        <MiniCard card={card} size="sm" copyNumber={offerCard.copy_number} />
+                                        <MiniCard card={card} size="sm" copyNumber={offerCard.copy_number} customImageUrl={getOverride(offerCard.card_id)?.custom_image_url} />
                                         <span className="text-sm text-muted-foreground">
                                           {card.title}
                                           {offerCard.copy_number && (
@@ -430,7 +434,7 @@ export default function TradeBoard() {
                                     const card = getCardById(cardId);
                                     return card ? (
                                       <div key={cardId} className="flex items-center gap-2">
-                                        <MiniCard card={card} size="sm" />
+                                        <MiniCard card={card} size="sm" customImageUrl={getOverride(cardId)?.custom_image_url} />
                                         <span className="text-sm text-muted-foreground">{card.title}</span>
                                       </div>
                                     ) : null;
@@ -451,7 +455,7 @@ export default function TradeBoard() {
                                 const card = getCardById(cardId);
                                 return card ? (
                                   <div key={cardId} className="flex items-center gap-2">
-                                    <MiniCard card={card} size="sm" />
+                                    <MiniCard card={card} size="sm" customImageUrl={getOverride(cardId)?.custom_image_url} />
                                     <span className="text-sm text-muted-foreground">{card.title}</span>
                                   </div>
                                 ) : null;
@@ -533,7 +537,7 @@ export default function TradeBoard() {
                             const selectedCard = ownedCardsWithCopies.find(c => c.userCardId === auctionUserCardId);
                             return selectedCard ? (
                               <div className="flex flex-col items-center gap-1">
-                                <MiniCard card={selectedCard} size="md" copyNumber={selectedCard.copyNumber} />
+                                <MiniCard card={selectedCard} size="md" copyNumber={selectedCard.copyNumber} customImageUrl={getOverride(selectedCard.id)?.custom_image_url} />
                               </div>
                             ) : null;
                           })()}
@@ -615,7 +619,7 @@ export default function TradeBoard() {
                         <div className="flex gap-4">
                           {/* Card Image */}
                           <div className="flex-shrink-0">
-                            <MiniCard card={card} size="md" copyNumber={auction.copy_number} />
+                            <MiniCard card={card} size="md" copyNumber={auction.copy_number} customImageUrl={getOverride(auction.card_id)?.custom_image_url} />
                           </div>
                           
                           {/* Info */}
