@@ -9,6 +9,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { PromoCodeRedeemer } from "@/components/PromoCodeRedeemer";
 import { DailyRewardsModal } from "@/components/DailyRewardsModal";
 import { GlobalChat } from "@/components/GlobalChat";
+import { ChatModerationPanel } from "@/components/ChatModerationPanel";
 import { toast } from "sonner";
 import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers, Users } from "lucide-react";
 
@@ -16,7 +17,8 @@ const Home = () => {
   const navigate = useNavigate();
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isModerator } = useUserRole();
+  const canModerate = isAdmin || isModerator;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -171,6 +173,13 @@ const Home = () => {
           </Button>
         </div>
       </div>
+
+      {/* Moderation Panel */}
+      {canModerate && (
+        <div className="w-full max-w-md mb-4">
+          <ChatModerationPanel />
+        </div>
+      )}
 
       {/* Admin Panel */}
       {isAdmin && (
