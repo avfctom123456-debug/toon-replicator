@@ -213,8 +213,10 @@ const PlayPVP = () => {
               setPermanentRevealedSlots(prev => [...prev, ...slotIndices]);
               
               if (isRound1) {
-                // Reset ready flags before starting round 2
-                resetReady();
+                // Only player1 resets ready flags to prevent race condition
+                if (isPlayer1) {
+                  resetReady();
+                }
                 newState = refillHand(newState);
                 setGame({ ...newState, phase: "round2-place" });
                 setMessage("Round 2: Place 3 more cards");
@@ -343,12 +345,14 @@ const PlayPVP = () => {
     }
   }, [matchmakingStatus, match, isPlayer1, gamePhase]);
 
-  // Listen for opponent ready and board updates - with polling fallback for race conditions
+  // Listen for opponent ready and board updates - with aggressive polling for sync
   useEffect(() => {
     if (!matchId || !game || gamePhase !== "playing" || !waitingForOpponent || revealPhase !== "placing") return;
 
+    let hasStartedReveal = false;
+
     const checkAndStartReveal = async (matchData: typeof match) => {
-      if (!matchData) return false;
+      if (!matchData || hasStartedReveal) return false;
       
       const opponentReady = isPlayer1 ? matchData.player2_ready : matchData.player1_ready;
       
@@ -366,6 +370,7 @@ const PlayPVP = () => {
         requiredSlots.every(slot => opponentBoard[slot] !== null && opponentBoard[slot] !== undefined);
       
       if (hasValidOpponentBoard) {
+        hasStartedReveal = true;
         console.log('Both players ready, starting reveal. Opponent board:', opponentBoard);
         
         setGame(prev => {
@@ -408,8 +413,13 @@ const PlayPVP = () => {
       checkAndStartReveal(match);
     }
 
-    // Poll every 1 second as fallback for realtime delays
+    // Poll every 500ms for faster sync (reduced from 1s)
     const pollInterval = setInterval(async () => {
+      if (hasStartedReveal) {
+        clearInterval(pollInterval);
+        return;
+      }
+      
       const { data: freshMatch } = await supabase
         .from('matches')
         .select('*')
@@ -422,7 +432,7 @@ const PlayPVP = () => {
           clearInterval(pollInterval);
         }
       }
-    }, 1000);
+    }, 500);
 
     return () => clearInterval(pollInterval);
   }, [matchId, match, game, isPlayer1, waitingForOpponent, revealPhase, performReveal, gamePhase]);
