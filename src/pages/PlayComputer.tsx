@@ -195,11 +195,28 @@ const PlayComputer = () => {
                 const isColorWin = newState.winMethod === "color";
                 const isPerfectWin = newState.winner === "player" && opponentScore === 0;
                 
+                // Count card stats for achievements
+                const playerCards = newState.player.board.filter(c => c !== null);
+                const cardPlays = playerCards.length;
+                const cardBuffs = playerCards.filter(c => c && c.modifiedPoints > c.card.basePoints).length;
+                const cardCancels = newState.opponent.board.filter(c => c?.cancelled).length;
+                
+                // Count adjacency plays (cards placed next to other player cards)
+                const adjacencyPlays = playerCards.filter((card, idx) => {
+                  if (!card) return false;
+                  const neighbors = [idx - 1, idx + 1].filter(i => i >= 0 && i < 7);
+                  return neighbors.some(i => newState.player.board[i] !== null);
+                }).length;
+                
                 // Update game stats for achievements
                 updateGameStats({
                   score: playerScore,
                   isColorWin: newState.winner === "player" && isColorWin,
                   isPerfectWin,
+                  cardPlays,
+                  cardBuffs,
+                  cardCancels,
+                  adjacencyPlays,
                 });
                 
                 // Track CPU win if player won

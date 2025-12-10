@@ -421,6 +421,10 @@ export type Database = {
           pvp_draws: number
           pvp_losses: number
           pvp_wins: number
+          total_adjacency_plays: number
+          total_card_buffs: number
+          total_card_cancels: number
+          total_card_plays: number
           total_coins_earned: number
           updated_at: string
           user_id: string
@@ -442,6 +446,10 @@ export type Database = {
           pvp_draws?: number
           pvp_losses?: number
           pvp_wins?: number
+          total_adjacency_plays?: number
+          total_card_buffs?: number
+          total_card_cancels?: number
+          total_card_plays?: number
           total_coins_earned?: number
           updated_at?: string
           user_id: string
@@ -463,6 +471,10 @@ export type Database = {
           pvp_draws?: number
           pvp_losses?: number
           pvp_wins?: number
+          total_adjacency_plays?: number
+          total_card_buffs?: number
+          total_card_cancels?: number
+          total_card_plays?: number
           total_coins_earned?: number
           updated_at?: string
           user_id?: string
