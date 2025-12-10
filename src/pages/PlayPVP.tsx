@@ -580,9 +580,33 @@ const PlayPVP = () => {
   }, [gamblingQueue]);
 
   // Handle choice effect selection - MUST be before early returns
-  const handleChoiceSelect = useCallback((choice: string) => {
-    if (!game || !choiceData) return;
+  const handleChoiceSelect = useCallback(async (choice: string) => {
+    if (!game || !choiceData || !matchId) return;
     
+    // Only sync if this is the player's own choice (isPlayer = true means it's our card)
+    if (choiceData.isPlayer) {
+      // Sync choice to database
+      const gameStateData = match?.game_state as Record<string, unknown> || {};
+      const choicesKey = isPlayer1 ? 'player1_choices' : 'player2_choices';
+      const existingChoices = (gameStateData[choicesKey] as Record<number, string>) || {};
+      
+      const updatedChoices = {
+        ...existingChoices,
+        [choiceData.cardPosition]: choice,
+      };
+      
+      await supabase
+        .from('matches')
+        .update({
+          game_state: {
+            ...gameStateData,
+            [choicesKey]: updatedChoices,
+          } as any // eslint-disable-line @typescript-eslint/no-explicit-any
+        })
+        .eq('id', matchId);
+    }
+    
+    // Apply choice locally
     setGame(prev => {
       if (!prev) return prev;
       
@@ -639,7 +663,70 @@ const PlayPVP = () => {
         }
       }
     }
-  }, [game, choiceData, pendingChoiceCards]);
+  }, [game, choiceData, pendingChoiceCards, matchId, match, isPlayer1]);
+
+  // Listen for opponent choice effects synced via game_state
+  useEffect(() => {
+    if (!match || !game || gamePhase !== "playing") return;
+    
+    const gameStateData = match.game_state as Record<string, unknown>;
+    const opponentChoicesKey = isPlayer1 ? 'player2_choices' : 'player1_choices';
+    const opponentChoices = gameStateData?.[opponentChoicesKey] as Record<number, string> | undefined;
+    
+    if (!opponentChoices) return;
+    
+    // Apply any opponent choices that haven't been applied yet
+    Object.entries(opponentChoices).forEach(([posStr, choice]) => {
+      const position = parseInt(posStr);
+      const opponentCard = game.opponent.board[position];
+      
+      if (opponentCard && !opponentCard.choiceResolved) {
+        // Apply the opponent's choice
+        setGame(prev => {
+          if (!prev) return prev;
+          
+          const board = [...prev.opponent.board];
+          const card = board[position];
+          
+          if (card && !card.choiceResolved) {
+            card.choiceResolved = true;
+            card.chosenEffect = choice;
+            
+            if (choice.startsWith('flat:')) {
+              const bonus = parseInt(choice.split(':')[1]);
+              card.modifiedPoints += bonus;
+            } else if (choice.startsWith('self:')) {
+              const bonus = parseInt(choice.split(':')[1]);
+              card.modifiedPoints += bonus;
+            } else if (choice.startsWith('opposite:')) {
+              const penalty = parseInt(choice.split(':')[1]);
+              const myCard = prev.player.board[position];
+              if (myCard && !myCard.shielded) {
+                const playerBoard = [...prev.player.board];
+                if (playerBoard[position]) {
+                  playerBoard[position]!.modifiedPoints += penalty;
+                }
+                return { ...prev, player: { ...prev.player, board: playerBoard }, opponent: { ...prev.opponent, board } };
+              }
+            } else if (choice === 'cancel-opposite') {
+              const myCard = prev.player.board[position];
+              if (myCard && !myCard.shielded) {
+                const playerBoard = [...prev.player.board];
+                if (playerBoard[position]) {
+                  playerBoard[position]!.cancelled = true;
+                }
+                return { ...prev, player: { ...prev.player, board: playerBoard }, opponent: { ...prev.opponent, board } };
+              }
+            } else if (choice === 'double-self') {
+              card.modifiedPoints *= 2;
+            }
+          }
+          
+          return { ...prev, opponent: { ...prev.opponent, board } };
+        });
+      }
+    });
+  }, [match, game, gamePhase, isPlayer1]);
 
   // Determine opponent status for UI
   const getOpponentStatus = (): "placing" | "ready" | null => {
