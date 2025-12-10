@@ -204,6 +204,110 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_invites: {
+        Row: {
+          challenged_id: string
+          challenger_deck: number[]
+          challenger_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_ranked: boolean
+          match_id: string | null
+          status: string
+        }
+        Insert: {
+          challenged_id: string
+          challenger_deck?: number[]
+          challenger_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_ranked?: boolean
+          match_id?: string | null
+          status?: string
+        }
+        Update: {
+          challenged_id?: string
+          challenger_deck?: number[]
+          challenger_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_ranked?: boolean
+          match_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_invites_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_bans: {
+        Row: {
+          banned_by: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          banned_by: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          banned_by?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          channel: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          id: string
+          is_deleted: boolean
+          message: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          is_deleted?: boolean
+          message: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          id?: string
+          is_deleted?: boolean
+          message?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_login_rewards: {
         Row: {
           created_at: string
@@ -250,6 +354,33 @@ export type Database = {
           created_at?: string
           id?: string
           slot?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }
