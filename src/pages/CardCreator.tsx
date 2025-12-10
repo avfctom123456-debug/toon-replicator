@@ -764,6 +764,60 @@ export default function CardCreator() {
                     ))}
                   </div>
                 </div>
+                
+                {/* Color Manipulation */}
+                <div className="space-y-1">
+                  <p className="text-xs text-pink-400">🎨 Color Manipulation</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "color").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7 border-pink-500/30 hover:bg-pink-500/10"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Resource Effects */}
+                <div className="space-y-1">
+                  <p className="text-xs text-lime-400">📦 Resource / Hand Effects</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "resource").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7 border-lime-500/30 hover:bg-lime-500/10"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Amplify Effects */}
+                <div className="space-y-1">
+                  <p className="text-xs text-sky-400">🔊 Amplify / Double Effects</p>
+                  <div className="flex flex-wrap gap-1">
+                    {POWER_PATTERNS.filter(p => p.category === "amplify").map((pattern) => (
+                      <Button
+                        key={pattern.label}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7 border-sky-500/30 hover:bg-sky-500/10"
+                        onClick={() => applyPowerPattern(pattern.template)}
+                      >
+                        {pattern.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
