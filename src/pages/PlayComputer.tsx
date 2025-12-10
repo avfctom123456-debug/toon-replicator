@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDecks } from "@/hooks/useDecks";
 import { useProfile } from "@/hooks/useProfile";
 import { usePlayerStats } from "@/hooks/usePlayerStats";
+import { useCardWins } from "@/hooks/useCardWins";
 import { CardInfoModal } from "@/components/game/CardInfoModal";
 import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
@@ -31,6 +32,7 @@ const PlayComputer = () => {
   const { getDecksWithSlots, loading: decksLoading } = useDecks();
   const { profile } = useProfile();
   const { updateCpuWin, updateGameStats } = usePlayerStats();
+  const { incrementCardWins } = useCardWins();
   
   const [gamePhase, setGamePhase] = useState<GamePhase>("deck-select");
   const [selectedDeck, setSelectedDeck] = useState<number[] | null>(null);
@@ -219,9 +221,17 @@ const PlayComputer = () => {
                   adjacencyPlays,
                 });
                 
-                // Track CPU win if player won
+                // Track CPU win and card wins if player won
                 if (newState.winner === "player") {
                   updateCpuWin();
+                  
+                  // Track wins with specific cards for achievements
+                  const winningCardIds = newState.player.board
+                    .filter((c): c is PlacedCard => c !== null)
+                    .map(c => c.card.id);
+                  if (winningCardIds.length > 0) {
+                    incrementCardWins(winningCardIds);
+                  }
                 }
                 
                 if (newState.winner === "player") {
