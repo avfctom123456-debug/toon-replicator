@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getCardById } from "@/lib/gameEngine";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
 interface PackOpeningModalProps {
   open: boolean;
@@ -12,16 +15,18 @@ interface PackOpeningModalProps {
 }
 
 export function PackOpeningModal({ open, onClose, cardIds }: PackOpeningModalProps) {
+  const { getOverride } = useCardOverrides();
   const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
   const [allRevealed, setAllRevealed] = useState(false);
   const [showingPack, setShowingPack] = useState(true);
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (open) {
-      // Reset state when opening
       setRevealedCards(new Set());
       setAllRevealed(false);
       setShowingPack(true);
+      setImageErrors(new Set());
 
       // Start pack opening animation after a short delay
       const packTimer = setTimeout(() => {
@@ -179,16 +184,30 @@ export function PackOpeningModal({ open, onClose, cardIds }: PackOpeningModalPro
                           isRevealed && getRarityGlow(card?.rarity || "", cardId)
                         )}
                       >
-                        {card && (
+                      {card && (
                           <>
-                            <img
-                              src={`/cards/${card.id}.jpg`}
-                              alt={card.title}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = "/placeholder.svg";
-                              }}
-                            />
+                            {(() => {
+                              const override = getOverride(card.id);
+                              const customImageUrl = override?.custom_image_url;
+                              const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+                              const imageUrl = customImageUrl || defaultImageUrl;
+                              const hasError = imageErrors.has(index);
+                              
+                              return !hasError ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={card.title}
+                                  className="w-full h-full object-cover"
+                                  onError={() => {
+                                    setImageErrors(prev => new Set([...prev, index]));
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-muted flex items-center justify-center">
+                                  <span className="text-2xl font-bold text-muted-foreground">{card.title[0]}</span>
+                                </div>
+                              );
+                            })()}
                             <div
                               className={cn(
                                 "absolute bottom-0 left-0 right-0 py-1 px-2 text-center",
