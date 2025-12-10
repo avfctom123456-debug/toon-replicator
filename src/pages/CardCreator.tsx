@@ -208,6 +208,92 @@ const POWER_PATTERNS = [
   { label: "Echo base to neighbors", template: "Copy this card's base points to neighboring cards", category: "chain", description: "Neighbors get this card's base as bonus", example: "If base is 5, neighbors get +5" },
   { label: "Chain +X on win", template: "If this card wins its matchup, give +{points} to next card", category: "chain", description: "Victory bonus passes to next slot", example: "If this card wins its matchup, give +3 to next card" },
   { label: "Sabotage all opponents", template: "Reduce all opponent cards by {points} points", category: "debuff", description: "Mass opponent debuff", example: "Reduce all opponent cards by 2 points" },
+  
+  // === MATCH-BASED CONDITIONS ===
+  { label: "If played first this round", template: "+{points} if played first this round", category: "match", description: "Bonus for being the first card placed in current round", example: "+4 if played first this round" },
+  { label: "If played second this round", template: "+{points} if played second this round", category: "match", description: "Bonus for being the second card placed", example: "+3 if played second this round" },
+  { label: "If your score is higher", template: "+{points} if your current score is higher than opponent's", category: "match", description: "Bonus when winning before this card resolves", example: "+5 if your current score is higher than opponent's" },
+  { label: "If your score is lower", template: "+{points} if your current score is lower than opponent's", category: "match", description: "Comeback bonus when behind", example: "+7 if your current score is lower than opponent's" },
+  { label: "If R1 score higher", template: "+{points} if your round 1 score was higher than opponent's", category: "match", description: "Reward for winning round 1", example: "+4 if your round 1 score was higher" },
+  { label: "If R1 score lower", template: "+{points} if your round 1 score was lower than opponent's", category: "match", description: "Round 2 comeback mechanic", example: "+7 if your round 1 score was lower (underdog bonus)" },
+  { label: "x2 if R1 score lower", template: "x2 if your round 1 score was lower than opponent's", category: "match", description: "Double points for underdogs in round 2", example: "Doubles if you lost round 1" },
+  { label: "If this beats opposite", template: "+{points} if this card's score beats opposite card", category: "match", description: "Bonus for winning individual matchup", example: "+3 if this card's score beats opposite card" },
+  { label: "x2 if this beats opposite", template: "x2 if this card's score beats opposite card", category: "match", description: "Doubles when winning the slot", example: "Double points if you win this matchup" },
+  { label: "If last match was win", template: "+{points} if your last match was a win", category: "match", description: "Win streak bonus from previous game", example: "+3 if your last match was a win" },
+  { label: "If last match was loss", template: "+{points} if your last match was a loss", category: "match", description: "Bounce-back bonus after losing", example: "+5 if your last match was a loss" },
+  { label: "If drawn first", template: "+{points} if this card was drawn first in your deck", category: "match", description: "Bonus for top-deck card", example: "+4 if this card was drawn first" },
+  { label: "If drawn last", template: "+{points} if this card was drawn last in your deck", category: "match", description: "Bonus for bottom-deck card", example: "+4 if this card was drawn last" },
+  
+  // === POSITION-BASED (EXPANDED) ===
+  { label: "If played in slot 1", template: "+{points} if played in slot 1", category: "position", description: "Bonus for first slot placement", example: "+10 if played in slot 1" },
+  { label: "If played in slot 2", template: "+{points} if played in slot 2", category: "position", description: "Bonus for second slot placement", example: "+8 if played in slot 2" },
+  { label: "If played in slot 3", template: "+{points} if played in slot 3", category: "position", description: "Bonus for third slot placement", example: "+6 if played in slot 3" },
+  { label: "If played in slot 4", template: "+{points} if played in slot 4", category: "position", description: "Bonus for fourth slot placement", example: "+5 if played in slot 4" },
+  { label: "Different bonus per slot", template: "+{points} in slot 1, +{points2} in slot 2, +{points3} in slot 3", category: "position", description: "Variable bonus based on placement", example: "+10 in slot 1, +5 in slot 2, +2 in slot 3" },
+  
+  // === OPPONENT DEPENDENT CONDITIONS ===
+  { label: "If opposite has higher base", template: "+{points} if opposite card has higher base points", category: "opponent", description: "Giant-slayer bonus vs stronger cards", example: "+5 if opposite card has higher base points" },
+  { label: "If opposite has lower base", template: "+{points} if opposite card has lower base points", category: "opponent", description: "Bully bonus vs weaker cards", example: "+2 if opposite card has lower base points" },
+  { label: "x2 if opposite has higher base", template: "x2 if opposite card has higher base points", category: "opponent", description: "Double vs stronger opponents", example: "Doubles when facing a stronger card" },
+  { label: "If opposite is same color", template: "+{points} if opposite card is the same color", category: "opponent", description: "Color mirror bonus", example: "+4 if opposite card is the same color" },
+  { label: "If opposite is different color", template: "+{points} if opposite card is a different color", category: "opponent", description: "Color contrast bonus", example: "+3 if opposite card is a different color" },
+  { label: "If opposite is [Color]", template: "+{points} if opposite card is {color}", category: "opponent", description: "Bonus vs specific color", example: "+5 if opposite card is RED" },
+  { label: "If opposite is active", template: "+{points} if opposite card's effect is active", category: "opponent", description: "Punish opponent's triggered abilities", example: "+3 if opposite card's effect is active" },
+  { label: "If opposite is inactive", template: "+{points} if opposite card has no active effect", category: "opponent", description: "Bonus vs vanilla/failed effect cards", example: "+4 if opposite card has no active effect" },
+  { label: "If opposite is canceling", template: "+{points} if opposite card has a cancel effect", category: "opponent", description: "Anti-cancel bonus", example: "+6 if opposite card has a cancel effect" },
+  { label: "If opposite is [Type]", template: "+{points} if opposite card is a {type}", category: "opponent", description: "Bonus vs specific type", example: "+4 if opposite card is a VILLAIN" },
+  { label: "If opponent plays [Type]", template: "+{points} if opponent has any {type} in play", category: "opponent", description: "Triggers when opponent uses type", example: "+3 if opponent has any HERO in play" },
+  { label: "If opponent plays [Color]", template: "+{points} if opponent has any {color} card in play", category: "opponent", description: "Triggers when opponent uses color", example: "+2 if opponent has any BLUE card in play" },
+  { label: "Cancel if opposite is [Type]", template: "Cancel opposite card if it is a {type}", category: "opponent", description: "Type-specific cancel", example: "Cancel opposite card if it is a DROID" },
+  
+  // === DECK AND HAND CONDITIONS ===
+  { label: "If deck has 3+ [Type]", template: "+{points} if your deck has 3 or more {type} cards", category: "deck", description: "Synergy bonus for type-focused decks", example: "+5 if your deck has 3 or more HERO cards" },
+  { label: "If deck has 4+ [Color]", template: "+{points} if your deck has 4 or more {color} cards", category: "deck", description: "Synergy bonus for color-focused decks", example: "+4 if your deck has 4 or more BLUE cards" },
+  { label: "If played after [Type]", template: "+{points} if played after a {type}", category: "deck", description: "Combo bonus for sequencing", example: "+4 if played after a VILLAIN" },
+  { label: "If this is unique type", template: "+{points} if this is the only {type} in your deck", category: "deck", description: "Unique typing bonus", example: "+6 if this is the only PRINCESS in your deck" },
+  { label: "If prior card was [Type]", template: "+{points} if your prior played card was a {type}", category: "deck", description: "Sequential type combo", example: "+3 if your prior played card was a JEDI" },
+  { label: "If prior card higher base", template: "+{points} if your prior played card had higher base points", category: "deck", description: "Descending power chain", example: "+2 if your prior played card had higher base points" },
+  { label: "If prior card lower base", template: "+{points} if your prior played card had lower base points", category: "deck", description: "Ascending power chain", example: "+3 if your prior played card had lower base points" },
+  { label: "If no [Type] played yet", template: "+{points} if you haven't played a {type} yet", category: "deck", description: "First of type bonus", example: "+5 if you haven't played a HERO yet" },
+  
+  // === SLAM/RARITY CONDITIONS ===
+  { label: "If opposite is Slam", template: "+{points} if opposite card is a Slam rarity", category: "slam", description: "Anti-Slam bonus for common cards", example: "+10 if opposite card is a Slam rarity" },
+  { label: "x2 if opposite is Slam", template: "x2 if opposite card is a Slam rarity", category: "slam", description: "Double vs Slam cards", example: "Doubles when facing a Slam card" },
+  { label: "Cancel if opposite is Slam", template: "Cancel opposite card if it is a Slam rarity", category: "slam", description: "Slam-specific cancel", example: "Nullify opponent's Slam card" },
+  { label: "If opponent has Slam in play", template: "+{points} if opponent has any Slam card in play", category: "slam", description: "Triggers when opponent uses Slam", example: "+5 if opponent has any Slam card in play" },
+  { label: "If no Slams in play", template: "+{points} if no Slam cards are in play", category: "slam", description: "Bonus when no rare cards present", example: "+4 if no Slam cards are in play" },
+  
+  // === CHARACTER/CARD CONDITIONS ===
+  { label: "If [Card] in play, set type", template: "If {cardName} is in play, this card becomes a {type}", category: "transform", description: "Conditional type transformation", example: "If Batman is in play, this card becomes a HERO" },
+  { label: "If [Card] in play, gain effect", template: "If {cardName} is in play, +{points} to all {type}", category: "transform", description: "Unlock ability when specific card present", example: "If Robin is in play, +2 to all TEEN TITANS members" },
+  { label: "Become [Type] if adjacent to [Type]", template: "Become a {type} if adjacent to a {type2}", category: "transform", description: "Adjacency-based transformation", example: "Become a HERO if adjacent to a VILLAIN" },
+  
+  // === SWAP/SWITCH EFFECTS (EXPANDED) ===
+  { label: "Switch with opposite gtoon", template: "Switch positions with opposite card", category: "swap", description: "Swap your card with the opposing card's position", example: "Your card goes to opponent's board and vice versa" },
+  { label: "Swap opposite with opponent deck", template: "Swap opposite card with a random card from opponent's deck", category: "swap", description: "Replace opponent's played card with unknown deck card", example: "Opponent's card is replaced by random deck card" },
+  { label: "Swap neighbor with opposite", template: "Swap a neighboring card with the opposite card", category: "swap", description: "Force a neighbor to face opponent's card", example: "Move your neighbor to face the opposite card" },
+  
+  // === TYPE/COLOR TRANSFORMATION ===
+  { label: "Change all yours to [Type]", template: "Change all your cards to {type}", category: "transform", description: "Mass type change for your board", example: "Change all your cards to HERO" },
+  { label: "Change all opponent to [Type]", template: "Change all opponent's cards to {type}", category: "transform", description: "Mass type change for opponent", example: "Change all opponent's cards to VILLAIN" },
+  { label: "Change neighbors to [Type]", template: "Change neighboring cards to {type}", category: "transform", description: "Adjacent type transformation", example: "Change neighboring cards to CLONE" },
+  { label: "Change all yours to [Color]", template: "Change all your cards to {color}", category: "transform", description: "Mass color change for your board", example: "Change all your cards to BLUE" },
+  { label: "Change all opponent to [Color]", template: "Change all opponent's cards to {color}", category: "transform", description: "Mass color change for opponent", example: "Change all opponent's cards to RED" },
+  { label: "Change neighbors to [Color]", template: "Change neighboring cards to {color}", category: "transform", description: "Adjacent color transformation", example: "Change neighboring cards to GREEN" },
+  { label: "Change opposite to [Type]", template: "Change opposite card to {type}", category: "transform", description: "Single target type change", example: "Change opposite card to MONSTER" },
+  { label: "Change opposite to [Color]", template: "Change opposite card to {color}", category: "transform", description: "Single target color change", example: "Change opposite card to PURPLE" },
+  
+  // === DUAL/CHOICE ABILITIES ===
+  { label: "Choose: +X or +Y per [Type]", template: "Choose one: +{points} or +{points2} for each {type} in play", category: "choice", description: "Player picks between two bonuses", example: "Choose one: +7 or +2 for each HERO in play" },
+  { label: "Choose: buff self or debuff opposite", template: "Choose one: +{points} to this card or -{points} to opposite card", category: "choice", description: "Offensive or defensive choice", example: "Choose one: +5 to this card or -5 to opposite card" },
+  { label: "Choose: cancel or double", template: "Choose one: cancel opposite card or double this card's points", category: "choice", description: "Control or power choice", example: "Pick between canceling opponent or doubling yourself" },
+  { label: "Choose: buff neighbors or all [Type]", template: "Choose one: +{points} to neighbors or +{points2} to all {type}", category: "choice", description: "Local vs global buff choice", example: "Choose: +4 to neighbors or +2 to all VILLAINS" },
+  { label: "Activate one of two effects", template: "Activate one: {effect1} OR {effect2}", category: "choice", description: "Generic dual ability template", example: "Activate one: +8 OR x2 to neighboring HERO" },
+  
+  // === COLOR MATCHING CONDITIONS ===
+  { label: "If same color as neighbor", template: "+{points} if same color as a neighboring card", category: "color", description: "Color synergy with adjacents", example: "+3 if same color as a neighboring card" },
+  { label: "If different color from neighbor", template: "+{points} if different color from all neighboring cards", category: "color", description: "Color diversity bonus", example: "+4 if different color from all neighboring cards" },
+  { label: "If matches round color", template: "+{points} if this card matches the round's winning color", category: "color", description: "Bonus for matching color condition", example: "+5 if this card matches the round's winning color" },
 ];
 
 const COMMON_GROUPS = [
@@ -1028,6 +1114,156 @@ export default function CardCreator() {
                                   variant="outline"
                                   size="sm"
                                   className="text-xs h-7 border-sky-500/30 hover:bg-sky-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Match-Based Conditions */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-blue-400">⚔️ Match-Based Conditions</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "match").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-blue-500/30 hover:bg-blue-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Opponent-Dependent Conditions */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-red-500">👁️ Opponent-Dependent</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "opponent").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-red-500/30 hover:bg-red-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Deck/Hand Conditions */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-violet-400">🃏 Deck & Hand Conditions</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "deck").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-violet-500/30 hover:bg-violet-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Slam/Rarity Conditions */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-gradient from-pink-500 to-orange-500 bg-gradient-to-r bg-clip-text text-transparent">⭐ Slam / Rarity Conditions</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "slam").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-pink-500/30 hover:bg-pink-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Transform Effects */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-orange-400">🔮 Transform (Type/Color Change)</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "transform").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-orange-500/30 hover:bg-orange-500/10"
+                                  onClick={() => applyPowerPattern(pattern.template)}
+                                >
+                                  {pattern.label}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p className="font-medium">{pattern.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Example: {pattern.example}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Choice/Dual Abilities */}
+                      <div className="space-y-1">
+                        <p className="text-xs text-cyan-500">🎯 Choice / Dual Abilities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {POWER_PATTERNS.filter(p => p.category === "choice").map((pattern) => (
+                            <Tooltip key={pattern.label}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs h-7 border-cyan-500/30 hover:bg-cyan-500/10"
                                   onClick={() => applyPowerPattern(pattern.template)}
                                 >
                                   {pattern.label}
