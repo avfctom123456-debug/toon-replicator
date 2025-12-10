@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -108,6 +108,14 @@ export default function AdminPanel() {
   // Add card form
   const [selectedCardId, setSelectedCardId] = useState("");
   const [rarityWeight, setRarityWeight] = useState(100);
+
+  // Give cards form
+  const [showGiveCards, setShowGiveCards] = useState(false);
+  const [giveCardsUserId, setGiveCardsUserId] = useState("");
+  const [giveCardsCardId, setGiveCardsCardId] = useState("");
+  const [giveCardsQuantity, setGiveCardsQuantity] = useState(1);
+  const [giveCardsSearch, setGiveCardsSearch] = useState("");
+  const [givingCards, setGivingCards] = useState(false);
 
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
 
@@ -260,6 +268,67 @@ export default function AdminPanel() {
       u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.user_id.toLowerCase().includes(userSearch.toLowerCase())
   );
+
+  const filteredGiveCards = allCards
+    .filter((c) => c.title.toLowerCase().includes(giveCardsSearch.toLowerCase()))
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .slice(0, 50);
+
+  const openGiveCardsDialog = (userId: string) => {
+    setGiveCardsUserId(userId);
+    setGiveCardsCardId("");
+    setGiveCardsQuantity(1);
+    setGiveCardsSearch("");
+    setShowGiveCards(true);
+  };
+
+  const handleGiveCards = async () => {
+    if (!giveCardsUserId || !giveCardsCardId) return;
+    
+    setGivingCards(true);
+    try {
+      // Check if user already has this card
+      const { data: existing, error: fetchError } = await supabase
+        .from("user_cards")
+        .select("id, quantity")
+        .eq("user_id", giveCardsUserId)
+        .eq("card_id", parseInt(giveCardsCardId))
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (existing) {
+        // Update quantity
+        const { error } = await supabase
+          .from("user_cards")
+          .update({ quantity: existing.quantity + giveCardsQuantity })
+          .eq("id", existing.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new card
+        const { error } = await supabase
+          .from("user_cards")
+          .insert({
+            user_id: giveCardsUserId,
+            card_id: parseInt(giveCardsCardId),
+            quantity: giveCardsQuantity,
+          });
+
+        if (error) throw error;
+      }
+
+      const card = getCardById(parseInt(giveCardsCardId));
+      const username = users.find((u) => u.user_id === giveCardsUserId)?.username;
+      toast.success(`Gave ${giveCardsQuantity}x ${card?.title || "card"} to ${username}`);
+      setShowGiveCards(false);
+    } catch (error) {
+      console.error("Error giving cards:", error);
+      toast.error("Failed to give cards");
+    } finally {
+      setGivingCards(false);
+    }
+  };
 
   const fetchPacks = async () => {
     const { data, error } = await supabase
@@ -811,25 +880,35 @@ export default function AdminPanel() {
                                 {new Date(u.created_at).toLocaleDateString()}
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  variant={isUserAdmin ? "destructive" : "outline"}
-                                  size="sm"
-                                  onClick={() => toggleUserAdmin(u.user_id)}
-                                  disabled={isCurrentUser}
-                                  title={isCurrentUser ? "Cannot modify your own role" : ""}
-                                >
-                                  {isUserAdmin ? (
-                                    <>
-                                      <ShieldOff className="h-4 w-4 mr-1" />
-                                      Remove
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Shield className="h-4 w-4 mr-1" />
-                                      Make Admin
-                                    </>
-                                  )}
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openGiveCardsDialog(u.user_id)}
+                                  >
+                                    <Gift className="h-4 w-4 mr-1" />
+                                    Give Cards
+                                  </Button>
+                                  <Button
+                                    variant={isUserAdmin ? "destructive" : "outline"}
+                                    size="sm"
+                                    onClick={() => toggleUserAdmin(u.user_id)}
+                                    disabled={isCurrentUser}
+                                    title={isCurrentUser ? "Cannot modify your own role" : ""}
+                                  >
+                                    {isUserAdmin ? (
+                                      <>
+                                        <ShieldOff className="h-4 w-4 mr-1" />
+                                        Remove
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Shield className="h-4 w-4 mr-1" />
+                                        Make Admin
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -842,6 +921,58 @@ export default function AdminPanel() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Give Cards Dialog */}
+        <Dialog open={showGiveCards} onOpenChange={setShowGiveCards}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Give Cards to {users.find((u) => u.user_id === giveCardsUserId)?.username}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Search Card</Label>
+                <Input
+                  value={giveCardsSearch}
+                  onChange={(e) => setGiveCardsSearch(e.target.value)}
+                  placeholder="Search by card name..."
+                />
+              </div>
+              <div>
+                <Label>Select Card</Label>
+                <Select value={giveCardsCardId} onValueChange={setGiveCardsCardId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a card" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {filteredGiveCards.map((card) => (
+                      <SelectItem key={card.id} value={card.id.toString()}>
+                        #{card.id} - {card.title} ({card.rarity})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Quantity</Label>
+                <Input
+                  type="number"
+                  value={giveCardsQuantity}
+                  onChange={(e) => setGiveCardsQuantity(parseInt(e.target.value) || 1)}
+                  min={1}
+                />
+              </div>
+              <Button
+                onClick={handleGiveCards}
+                className="w-full"
+                disabled={!giveCardsCardId || givingCards}
+              >
+                {givingCards ? "Giving..." : "Give Cards"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
