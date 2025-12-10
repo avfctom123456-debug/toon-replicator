@@ -328,14 +328,7 @@ const PlayComputer = () => {
     if (slotIndex < minSlot || slotIndex >= maxSlot) return;
     if (game.player.board[slotIndex] !== null) return;
     
-    const existingCharacters = game.player.board
-      .filter((s): s is PlacedCard => s !== null)
-      .map(s => s.card.character);
-    
-    if (existingCharacters.includes(selectedHandCard.character)) {
-      setMessage("Cannot place same character twice!");
-      return;
-    }
+    // Duplicate characters are allowed - they will cancel each other out during reveal
     
     const newBoard = [...game.player.board];
     newBoard[slotIndex] = {
