@@ -8,9 +8,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAdminAchievements, Achievement } from "@/hooks/useAchievements";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp, Calendar, Trophy, Coins } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -173,7 +174,71 @@ export default function AdminPanel() {
   const [newDailyRewardValue, setNewDailyRewardValue] = useState(50);
   const [dailyCardSearch, setDailyCardSearch] = useState("");
 
+  // Achievements
+  const { 
+    achievements: adminAchievements, 
+    createAchievement, 
+    updateAchievement, 
+    deleteAchievement, 
+    toggleActive: toggleAchievementActive 
+  } = useAdminAchievements();
+  const [showCreateAchievement, setShowCreateAchievement] = useState(false);
+  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(null);
+  const [newAchievementName, setNewAchievementName] = useState("");
+  const [newAchievementDesc, setNewAchievementDesc] = useState("");
+  const [newAchievementCategory, setNewAchievementCategory] = useState<"game" | "collection" | "trading" | "economy">("game");
+  const [newAchievementReqType, setNewAchievementReqType] = useState("cpu_wins");
+  const [newAchievementReqValue, setNewAchievementReqValue] = useState(1);
+  const [newAchievementReward, setNewAchievementReward] = useState(100);
+
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
+
+  const requirementTypes = [
+    { value: "cpu_wins", label: "CPU Wins" },
+    { value: "pvp_wins", label: "PVP Wins" },
+    { value: "best_win_streak", label: "Best Win Streak" },
+    { value: "unique_cards", label: "Unique Cards Owned" },
+    { value: "trades_completed", label: "Trades Completed" },
+    { value: "auctions_won", label: "Auctions Won" },
+    { value: "total_coins_earned", label: "Total Coins Earned" },
+  ];
+
+  const handleCreateAchievement = async () => {
+    if (!newAchievementName.trim()) return;
+    
+    await createAchievement.mutateAsync({
+      name: newAchievementName,
+      description: newAchievementDesc,
+      category: newAchievementCategory,
+      requirement_type: newAchievementReqType,
+      requirement_value: newAchievementReqValue,
+      coin_reward: newAchievementReward,
+      icon: null,
+      is_active: true,
+    });
+    
+    setShowCreateAchievement(false);
+    setNewAchievementName("");
+    setNewAchievementDesc("");
+    setNewAchievementReqValue(1);
+    setNewAchievementReward(100);
+  };
+
+  const handleUpdateAchievement = async () => {
+    if (!editingAchievement) return;
+    
+    await updateAchievement.mutateAsync({
+      id: editingAchievement.id,
+      name: editingAchievement.name,
+      description: editingAchievement.description,
+      category: editingAchievement.category,
+      requirement_type: editingAchievement.requirement_type,
+      requirement_value: editingAchievement.requirement_value,
+      coin_reward: editingAchievement.coin_reward,
+    });
+    
+    setEditingAchievement(null);
+  };
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -836,7 +901,7 @@ export default function AdminPanel() {
         </div>
 
         <Tabs defaultValue="packs" className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex-wrap">
             <TabsTrigger value="packs" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Packs
@@ -852,6 +917,10 @@ export default function AdminPanel() {
             <TabsTrigger value="daily" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Daily Rewards
+            </TabsTrigger>
+            <TabsTrigger value="achievements" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Achievements
             </TabsTrigger>
           </TabsList>
 
@@ -1620,7 +1689,274 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Achievements Tab */}
+          <TabsContent value="achievements">
+            <Card className="bg-card border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5" />
+                  Achievements
+                </CardTitle>
+                <Dialog open={showCreateAchievement} onOpenChange={setShowCreateAchievement}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Achievement
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create Achievement</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label>Name</Label>
+                        <Input
+                          value={newAchievementName}
+                          onChange={(e) => setNewAchievementName(e.target.value)}
+                          placeholder="Achievement name"
+                        />
+                      </div>
+                      <div>
+                        <Label>Description</Label>
+                        <Input
+                          value={newAchievementDesc}
+                          onChange={(e) => setNewAchievementDesc(e.target.value)}
+                          placeholder="What the player needs to do"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Category</Label>
+                          <Select value={newAchievementCategory} onValueChange={(v: any) => setNewAchievementCategory(v)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="game">Game</SelectItem>
+                              <SelectItem value="collection">Collection</SelectItem>
+                              <SelectItem value="trading">Trading</SelectItem>
+                              <SelectItem value="economy">Economy</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Requirement Type</Label>
+                          <Select value={newAchievementReqType} onValueChange={setNewAchievementReqType}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {requirementTypes.map((t) => (
+                                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Required Value</Label>
+                          <Input
+                            type="number"
+                            value={newAchievementReqValue}
+                            onChange={(e) => setNewAchievementReqValue(parseInt(e.target.value) || 1)}
+                            min={1}
+                          />
+                        </div>
+                        <div>
+                          <Label>Coin Reward</Label>
+                          <Input
+                            type="number"
+                            value={newAchievementReward}
+                            onChange={(e) => setNewAchievementReward(parseInt(e.target.value) || 0)}
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={handleCreateAchievement} 
+                        className="w-full"
+                        disabled={!newAchievementName || createAchievement.isPending}
+                      >
+                        {createAchievement.isPending ? "Creating..." : "Create Achievement"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {adminAchievements.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">No achievements created yet</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Requirement</TableHead>
+                        <TableHead>Reward</TableHead>
+                        <TableHead>Active</TableHead>
+                        <TableHead className="w-24"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adminAchievements.map((achievement) => (
+                        <TableRow key={achievement.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{achievement.name}</p>
+                              <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {achievement.category}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm">
+                              {requirementTypes.find(t => t.value === achievement.requirement_type)?.label || achievement.requirement_type}: {achievement.requirement_value}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="flex items-center gap-1 text-yellow-500">
+                              <Coins className="h-3 w-3" />
+                              {achievement.coin_reward}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={achievement.is_active}
+                              onCheckedChange={() => toggleAchievementActive.mutate({ 
+                                id: achievement.id, 
+                                is_active: !achievement.is_active 
+                              })}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEditingAchievement(achievement)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteAchievement.mutate(achievement.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
+        {/* Edit Achievement Dialog */}
+        <Dialog open={!!editingAchievement} onOpenChange={(open) => !open && setEditingAchievement(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Achievement</DialogTitle>
+            </DialogHeader>
+            {editingAchievement && (
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    value={editingAchievement.name}
+                    onChange={(e) => setEditingAchievement({ ...editingAchievement, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Input
+                    value={editingAchievement.description}
+                    onChange={(e) => setEditingAchievement({ ...editingAchievement, description: e.target.value })}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Category</Label>
+                    <Select 
+                      value={editingAchievement.category} 
+                      onValueChange={(v: any) => setEditingAchievement({ ...editingAchievement, category: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="game">Game</SelectItem>
+                        <SelectItem value="collection">Collection</SelectItem>
+                        <SelectItem value="trading">Trading</SelectItem>
+                        <SelectItem value="economy">Economy</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Requirement Type</Label>
+                    <Select 
+                      value={editingAchievement.requirement_type} 
+                      onValueChange={(v) => setEditingAchievement({ ...editingAchievement, requirement_type: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {requirementTypes.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Required Value</Label>
+                    <Input
+                      type="number"
+                      value={editingAchievement.requirement_value}
+                      onChange={(e) => setEditingAchievement({ 
+                        ...editingAchievement, 
+                        requirement_value: parseInt(e.target.value) || 1 
+                      })}
+                      min={1}
+                    />
+                  </div>
+                  <div>
+                    <Label>Coin Reward</Label>
+                    <Input
+                      type="number"
+                      value={editingAchievement.coin_reward}
+                      onChange={(e) => setEditingAchievement({ 
+                        ...editingAchievement, 
+                        coin_reward: parseInt(e.target.value) || 0 
+                      })}
+                      min={0}
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleUpdateAchievement} 
+                  className="w-full"
+                  disabled={updateAchievement.isPending}
+                >
+                  {updateAchievement.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Give Cards Dialog */}
         <Dialog open={showGiveCards} onOpenChange={setShowGiveCards}>
