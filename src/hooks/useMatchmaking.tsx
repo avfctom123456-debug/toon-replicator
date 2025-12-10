@@ -203,6 +203,15 @@ export function useMatchmaking() {
       .eq('id', matchId);
   }, [matchId, user, match]);
 
+  const resetReady = useCallback(async () => {
+    if (!matchId) return;
+
+    await supabase
+      .from('matches')
+      .update({ player1_ready: false, player2_ready: false })
+      .eq('id', matchId);
+  }, [matchId]);
+
   return {
     status,
     matchId,
@@ -214,6 +223,7 @@ export function useMatchmaking() {
     joinMatch,
     updateGameState,
     setReady,
+    resetReady,
     isPlayer1: match?.player1_id === user?.id,
   };
 }
