@@ -70,6 +70,17 @@ interface UserRole {
   role: "admin" | "user";
 }
 
+interface PlayerStats {
+  user_id: string;
+  elo_rating: number;
+  pvp_wins: number;
+  pvp_losses: number;
+  pvp_draws: number;
+  cpu_wins: number;
+  win_streak: number;
+  best_win_streak: number;
+}
+
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -84,6 +95,7 @@ export default function AdminPanel() {
   // Users management
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
+  const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(false);
 
@@ -131,13 +143,25 @@ export default function AdminPanel() {
 
       if (rolesError) throw rolesError;
 
+      // Fetch all player stats
+      const { data: stats, error: statsError } = await supabase
+        .from("player_stats")
+        .select("user_id, elo_rating, pvp_wins, pvp_losses, pvp_draws, cpu_wins, win_streak, best_win_streak");
+
+      if (statsError) throw statsError;
+
       setUsers(profiles || []);
       setUserRoles(roles || []);
+      setPlayerStats(stats || []);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
       setLoadingUsers(false);
     }
+  };
+
+  const getUserStats = (userId: string): PlayerStats | null => {
+    return playerStats.find((s) => s.user_id === userId) || null;
   };
 
   const getUserRole = (userId: string): "admin" | "user" => {
@@ -192,6 +216,42 @@ export default function AdminPanel() {
     }
 
     toast.success("Coins updated");
+    fetchUsers();
+  };
+
+  const updatePlayerStats = async (
+    userId: string,
+    field: "elo_rating" | "pvp_wins" | "pvp_losses" | "pvp_draws" | "cpu_wins",
+    value: number
+  ) => {
+    // Check if stats exist
+    const existingStats = getUserStats(userId);
+    
+    if (existingStats) {
+      const { error } = await supabase
+        .from("player_stats")
+        .update({ [field]: value })
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Error updating stats:", error);
+        toast.error("Failed to update stats");
+        return;
+      }
+    } else {
+      // Create new stats record
+      const { error } = await supabase
+        .from("player_stats")
+        .insert({ user_id: userId, [field]: value });
+
+      if (error) {
+        console.error("Error creating stats:", error);
+        toast.error("Failed to create stats");
+        return;
+      }
+    }
+
+    toast.success("Stats updated");
     fetchUsers();
   };
 
@@ -641,78 +701,142 @@ export default function AdminPanel() {
                 ) : filteredUsers.length === 0 ? (
                   <p className="text-muted-foreground text-center py-4">No users found</p>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Username</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Coins</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead className="w-24">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((u) => {
-                        const isUserAdmin = getUserRole(u.user_id) === "admin";
-                        const isCurrentUser = u.user_id === user?.id;
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Username</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Coins</TableHead>
+                          <TableHead>ELO</TableHead>
+                          <TableHead>PVP W/L/D</TableHead>
+                          <TableHead>CPU Wins</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead className="w-24">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((u) => {
+                          const isUserAdmin = getUserRole(u.user_id) === "admin";
+                          const isCurrentUser = u.user_id === user?.id;
+                          const stats = getUserStats(u.user_id);
 
-                        return (
-                          <TableRow key={u.user_id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{u.username}</span>
-                                {isCurrentUser && (
-                                  <Badge variant="outline" className="text-xs">You</Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {isUserAdmin ? (
-                                <Badge className="bg-primary">Admin</Badge>
-                              ) : (
-                                <Badge variant="secondary">User</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Input
-                                type="number"
-                                value={u.coins}
-                                onChange={(e) =>
-                                  updateUserCoins(u.user_id, parseInt(e.target.value) || 0)
-                                }
-                                className="w-24"
-                                min={0}
-                              />
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {new Date(u.created_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant={isUserAdmin ? "destructive" : "outline"}
-                                size="sm"
-                                onClick={() => toggleUserAdmin(u.user_id)}
-                                disabled={isCurrentUser}
-                                title={isCurrentUser ? "Cannot modify your own role" : ""}
-                              >
+                          return (
+                            <TableRow key={u.user_id}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{u.username}</span>
+                                  {isCurrentUser && (
+                                    <Badge variant="outline" className="text-xs">You</Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
                                 {isUserAdmin ? (
-                                  <>
-                                    <ShieldOff className="h-4 w-4 mr-1" />
-                                    Remove
-                                  </>
+                                  <Badge className="bg-primary">Admin</Badge>
                                 ) : (
-                                  <>
-                                    <Shield className="h-4 w-4 mr-1" />
-                                    Make Admin
-                                  </>
+                                  <Badge variant="secondary">User</Badge>
                                 )}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  value={u.coins}
+                                  onChange={(e) =>
+                                    updateUserCoins(u.user_id, parseInt(e.target.value) || 0)
+                                  }
+                                  className="w-20"
+                                  min={0}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  value={stats?.elo_rating || 1000}
+                                  onChange={(e) =>
+                                    updatePlayerStats(u.user_id, "elo_rating", parseInt(e.target.value) || 1000)
+                                  }
+                                  className="w-20"
+                                  min={0}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    type="number"
+                                    value={stats?.pvp_wins || 0}
+                                    onChange={(e) =>
+                                      updatePlayerStats(u.user_id, "pvp_wins", parseInt(e.target.value) || 0)
+                                    }
+                                    className="w-14"
+                                    min={0}
+                                    title="Wins"
+                                  />
+                                  <span className="text-muted-foreground">/</span>
+                                  <Input
+                                    type="number"
+                                    value={stats?.pvp_losses || 0}
+                                    onChange={(e) =>
+                                      updatePlayerStats(u.user_id, "pvp_losses", parseInt(e.target.value) || 0)
+                                    }
+                                    className="w-14"
+                                    min={0}
+                                    title="Losses"
+                                  />
+                                  <span className="text-muted-foreground">/</span>
+                                  <Input
+                                    type="number"
+                                    value={stats?.pvp_draws || 0}
+                                    onChange={(e) =>
+                                      updatePlayerStats(u.user_id, "pvp_draws", parseInt(e.target.value) || 0)
+                                    }
+                                    className="w-14"
+                                    min={0}
+                                    title="Draws"
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  value={stats?.cpu_wins || 0}
+                                  onChange={(e) =>
+                                    updatePlayerStats(u.user_id, "cpu_wins", parseInt(e.target.value) || 0)
+                                  }
+                                  className="w-16"
+                                  min={0}
+                                />
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {new Date(u.created_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant={isUserAdmin ? "destructive" : "outline"}
+                                  size="sm"
+                                  onClick={() => toggleUserAdmin(u.user_id)}
+                                  disabled={isCurrentUser}
+                                  title={isCurrentUser ? "Cannot modify your own role" : ""}
+                                >
+                                  {isUserAdmin ? (
+                                    <>
+                                      <ShieldOff className="h-4 w-4 mr-1" />
+                                      Remove
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Shield className="h-4 w-4 mr-1" />
+                                      Make Admin
+                                    </>
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
