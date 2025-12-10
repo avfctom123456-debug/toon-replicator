@@ -170,20 +170,9 @@ const Auth = () => {
         </button>
       </form>
 
-      {/* Play as Guest */}
-      <div className="mt-8">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate("/")}
-          className="text-muted-foreground"
-        >
-          Play as Guest
-        </Button>
-      </div>
-
       {/* Version */}
       <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">
-        v0.0.36
+        v0.0.38
       </div>
     </div>
   );
