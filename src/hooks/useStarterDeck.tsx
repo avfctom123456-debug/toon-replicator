@@ -30,6 +30,27 @@ export function useStarterDeck() {
         // Add all cards from the starter deck to user's collection
         await addMultipleCards(deck.cardIds);
 
+        // Save the starter deck cards to Deck A
+        const { error: deckError } = await supabase
+          .from("decks")
+          .upsert({ 
+            user_id: user.id, 
+            slot: "A", 
+            card_ids: deck.cardIds 
+          }, { 
+            onConflict: "user_id,slot" 
+          });
+
+        if (deckError) {
+          console.error("Error saving deck A:", deckError);
+          // Try update instead if upsert fails
+          await supabase
+            .from("decks")
+            .update({ card_ids: deck.cardIds })
+            .eq("user_id", user.id)
+            .eq("slot", "A");
+        }
+
         // Mark the starter deck as claimed
         const { error } = await supabase
           .from("profiles")

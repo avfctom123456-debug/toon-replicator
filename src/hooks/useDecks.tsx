@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
-import { starterDecks } from "@/lib/starterDecks";
+
 
 interface Deck {
   id: string;
@@ -20,15 +20,15 @@ export const useDecks = () => {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
-  const createStarterDecks = useCallback(async () => {
+  const createEmptyDecks = useCallback(async () => {
     if (!user) return;
 
     try {
-      // Create all 4 starter decks
-      const deckInserts = starterDecks.map(deck => ({
+      // Create empty decks for all 4 slots (A will be filled when user claims starter deck)
+      const deckInserts = DECK_SLOTS.map(slot => ({
         user_id: user.id,
-        slot: deck.slot,
-        card_ids: deck.cardIds,
+        slot,
+        card_ids: [],
       }));
 
       const { error } = await supabase
@@ -40,11 +40,9 @@ export const useDecks = () => {
         if (!error.message.includes("duplicate")) {
           throw error;
         }
-      } else {
-        toast.success("Starter decks created!");
       }
     } catch (error) {
-      console.error("Error creating starter decks:", error);
+      console.error("Error creating empty decks:", error);
     }
   }, [user]);
 
@@ -68,7 +66,7 @@ export const useDecks = () => {
       if (!data || data.length === 0) {
         if (!initialized) {
           setInitialized(true);
-          await createStarterDecks();
+          await createEmptyDecks();
           // Refetch after creating
           const { data: newData } = await supabase
             .from("decks")
@@ -86,7 +84,7 @@ export const useDecks = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, initialized, createStarterDecks]);
+  }, [user, initialized, createEmptyDecks]);
 
   useEffect(() => {
     fetchDecks();
@@ -133,10 +131,9 @@ export const useDecks = () => {
   const getDecksWithSlots = () => {
     return DECK_SLOTS.map((slot) => {
       const deck = getDeckBySlot(slot);
-      const starterDeck = starterDecks.find(d => d.slot === slot);
       return {
         slot,
-        name: starterDeck?.name || `Deck ${slot}`,
+        name: `Deck ${slot}`,
         cardIds: deck?.card_ids || [],
         filled: deck?.card_ids?.length || 0,
       };
