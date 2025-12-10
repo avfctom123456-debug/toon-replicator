@@ -340,10 +340,11 @@ const PlayPVP = () => {
     if (!match || !game || gamePhase !== "playing") return;
 
     const opponentReady = isPlayer1 ? match.player2_ready : match.player1_ready;
-    const myReady = isPlayer1 ? match.player1_ready : match.player2_ready;
     
-    // When both players ready, start reveal
-    if (opponentReady && myReady && waitingForOpponent && revealPhase === "placing") {
+    // When opponent is ready and we're waiting, start reveal
+    // We don't check myReady from match because there's a race condition - 
+    // if waitingForOpponent is true, we know we already set ourselves as ready
+    if (opponentReady && waitingForOpponent && revealPhase === "placing") {
       // Get opponent's board from game_state
       const gameStateData = match.game_state as Record<string, unknown>;
       const opponentBoard = gameStateData?.[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
