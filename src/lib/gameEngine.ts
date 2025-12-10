@@ -1,4 +1,5 @@
 import cardsData from "@/data/cards.json";
+import { seededCoinFlip, seededDiceRoll, getSeededGamblingRandom } from "@/lib/seededRandom";
 
 export interface GameCard {
   id: number;
@@ -3026,6 +3027,308 @@ export function getGamblingEffects(state: GameState): GamblingEffectResult[] {
   state.opponent.board.forEach(slot => {
     if (slot && !slot.cancelled && hasGamblingEffect(slot.card.description)) {
       const result = processGamblingEffectForCard(slot, false);
+      if (result) results.push(result);
+    }
+  });
+  
+  return results;
+}
+
+// Seeded version of processGamblingEffectForCard for PvP mode
+// Uses deterministic random based on matchId to ensure both players see same results
+export function processGamblingEffectForCardSeeded(
+  card: PlacedCard,
+  isPlayer: boolean,
+  matchId: string,
+  round: number
+): GamblingEffectResult | null {
+  const desc = card.card.description.toLowerCase();
+  const basePoints = card.card.basePoints;
+  const position = card.position;
+
+  // Coin flip: +X or -X
+  let match = desc.match(/coin\s*flip:\s*\+(\d+)\s+or\s+-(\d+)/);
+  if (match) {
+    const winAmount = parseInt(match[1]);
+    const loseAmount = parseInt(match[2]);
+    const isHeads = seededCoinFlip(matchId, position, round);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "coin",
+      outcome: isHeads ? "heads" : "tails",
+      pointChange: isHeads ? winAmount : -loseAmount,
+      isPositive: isHeads,
+      effectDescription: `Coin flip: +${winAmount} or -${loseAmount}`,
+    };
+  }
+
+  // Coin flip: double or zero
+  if (desc.includes("coin flip") && desc.includes("double") && desc.includes("zero")) {
+    const isHeads = seededCoinFlip(matchId, position, round);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "coin",
+      outcome: isHeads ? "heads" : "tails",
+      pointChange: isHeads ? basePoints : -basePoints,
+      isPositive: isHeads,
+      effectDescription: "Coin flip: x2 or x0",
+    };
+  }
+
+  // Coin flip: +X or cancel
+  match = desc.match(/coin\s*flip:\s*\+(\d+)\s+or\s+cancel/);
+  if (match) {
+    const winAmount = parseInt(match[1]);
+    const isHeads = seededCoinFlip(matchId, position, round);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "coin",
+      outcome: isHeads ? "heads" : "tails",
+      pointChange: isHeads ? winAmount : 0,
+      isPositive: isHeads,
+      effectDescription: `Coin flip: +${winAmount} or cancel`,
+      specialEffect: isHeads ? undefined : "cancel",
+    };
+  }
+
+  // Coin flip: steal or give
+  match = desc.match(/coin\s*flip:\s*steal\s*(\d+)\s*.+\s*give\s*(\d+)/);
+  if (match) {
+    const stealAmount = parseInt(match[1]);
+    const giveAmount = parseInt(match[2]);
+    const isHeads = seededCoinFlip(matchId, position, round);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "coin",
+      outcome: isHeads ? "heads" : "tails",
+      pointChange: isHeads ? stealAmount : -giveAmount,
+      isPositive: isHeads,
+      effectDescription: `Coin flip: steal ${stealAmount} or give ${giveAmount}`,
+    };
+  }
+
+  // Coin flip: buff or debuff team
+  match = desc.match(/coin\s*flip:\s*\+(\d+)\s+to\s+all.+or\s+-(\d+)\s+to\s+all/);
+  if (match) {
+    const buffAmount = parseInt(match[1]);
+    const debuffAmount = parseInt(match[2]);
+    const isHeads = seededCoinFlip(matchId, position, round);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "coin",
+      outcome: isHeads ? "heads" : "tails",
+      pointChange: isHeads ? buffAmount : -debuffAmount,
+      isPositive: isHeads,
+      effectDescription: `Team buff/debuff: ${isHeads ? '+' : '-'}${isHeads ? buffAmount : debuffAmount} to all`,
+    };
+  }
+
+  // Dice roll: +1 to +6
+  if (desc.includes("dice roll") && desc.includes("+1 to +6")) {
+    const roll = seededDiceRoll(matchId, position, round);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "dice",
+      outcome: roll,
+      pointChange: roll,
+      isPositive: true,
+      effectDescription: "Dice roll: +1 to +6",
+    };
+  }
+
+  // Dice roll: -3 to +6
+  if (desc.includes("dice roll") && desc.includes("-3 to +6")) {
+    const roll = seededDiceRoll(matchId, position, round);
+    const change = roll <= 3 ? -(4 - roll) : roll - 3;
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "dice",
+      outcome: roll,
+      pointChange: change,
+      isPositive: change > 0,
+      effectDescription: "Risky dice: -3 to +3",
+    };
+  }
+
+  // Dice roll: multiplier
+  if (desc.includes("dice roll") && desc.includes("multiply")) {
+    const roll = seededDiceRoll(matchId, position, round);
+    const multipliers = [0, 0.5, 1, 1.5, 2, 3];
+    const mult = multipliers[roll - 1];
+    const change = Math.floor(basePoints * mult) - basePoints;
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "dice",
+      outcome: roll,
+      pointChange: change,
+      isPositive: mult >= 1,
+      effectDescription: `Multiplier roll: x${mult}`,
+    };
+  }
+
+  // Dice roll: effect roulette
+  if (desc.includes("dice roll") && desc.includes("1=cancel")) {
+    const roll = seededDiceRoll(matchId, position, round);
+    const effects = [0, -5, 0, 3, 6, 10];
+    const change = effects[roll - 1];
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "dice",
+      outcome: roll,
+      pointChange: roll === 1 ? 0 : change,
+      isPositive: change > 0,
+      effectDescription: "Effect roulette",
+      specialEffect: roll === 1 ? "cancel" : undefined,
+    };
+  }
+
+  // Lucky 7
+  if (desc.includes("roll 2 dice") && desc.includes("7")) {
+    const die1 = seededDiceRoll(matchId, position, round, 0);
+    const die2 = seededDiceRoll(matchId, position, round, 1);
+    const total = die1 + die2;
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "double-dice",
+      outcome: die1,
+      secondDie: die2,
+      pointChange: total === 7 ? 15 : -3,
+      isPositive: total === 7,
+      effectDescription: `Lucky 7: ${die1} + ${die2} = ${total}`,
+    };
+  }
+
+  // Snake Eyes
+  if (desc.includes("snake eyes") || (desc.includes("double 1s") && desc.includes("cancel"))) {
+    const die1 = seededDiceRoll(matchId, position, round, 0);
+    const die2 = seededDiceRoll(matchId, position, round, 1);
+    const isSnakeEyes = die1 === 1 && die2 === 1;
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "double-dice",
+      outcome: die1,
+      secondDie: die2,
+      pointChange: 0,
+      isPositive: isSnakeEyes,
+      effectDescription: isSnakeEyes ? "SNAKE EYES! Cancel opposite!" : `${die1} + ${die2} - No effect`,
+      specialEffect: isSnakeEyes ? "cancel-opposite" : undefined,
+    };
+  }
+
+  // Boxcars
+  if (desc.includes("boxcars") || (desc.includes("double 6s") && desc.includes("+20"))) {
+    const die1 = seededDiceRoll(matchId, position, round, 0);
+    const die2 = seededDiceRoll(matchId, position, round, 1);
+    const isBoxcars = die1 === 6 && die2 === 6;
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "double-dice",
+      outcome: die1,
+      secondDie: die2,
+      pointChange: isBoxcars ? 20 : -(die1 + die2),
+      isPositive: isBoxcars,
+      effectDescription: isBoxcars ? "BOXCARS! +20!" : `${die1} + ${die2} = -${die1 + die2}`,
+    };
+  }
+
+  // All-In Flip
+  if (desc.includes("all-in") || (desc.includes("x3") && desc.includes("cancel all"))) {
+    const isHeads = seededCoinFlip(matchId, position, round);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "coin",
+      outcome: isHeads ? "heads" : "tails",
+      pointChange: isHeads ? basePoints * 2 : 0,
+      isPositive: isHeads,
+      effectDescription: isHeads ? "ALL-IN WINS! x3!" : "ALL-IN LOSES! All cards cancelled!",
+      specialEffect: isHeads ? undefined : "cancel-all",
+    };
+  }
+
+  // Double dice: difference
+  if (desc.includes("roll 2 dice") && desc.includes("difference")) {
+    const die1 = seededDiceRoll(matchId, position, round, 0);
+    const die2 = seededDiceRoll(matchId, position, round, 1);
+    const diff = Math.abs(die1 - die2);
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "double-dice",
+      outcome: die1,
+      secondDie: die2,
+      pointChange: diff,
+      isPositive: diff > 0,
+      effectDescription: `Dice difference: |${die1} - ${die2}| = ${diff}`,
+    };
+  }
+
+  // Random +X to +Y
+  match = desc.match(/randomly\s+gain\s+\+(\d+)\s+to\s+\+(\d+)/);
+  if (match) {
+    const min = parseInt(match[1]);
+    const max = parseInt(match[2]);
+    const random = getSeededGamblingRandom(matchId, position, round);
+    const roll = Math.floor(random * (max - min + 1)) + min;
+    return {
+      cardTitle: card.card.title,
+      cardPosition: position,
+      isPlayer,
+      effectType: "dice",
+      outcome: roll,
+      pointChange: roll,
+      isPositive: true,
+      effectDescription: `Random: +${roll}`,
+    };
+  }
+
+  return null;
+}
+
+// Get all gambling effects for a game state with seeded random (for PvP)
+export function getGamblingEffectsSeeded(
+  state: GameState,
+  matchId: string,
+  round: number
+): GamblingEffectResult[] {
+  const results: GamblingEffectResult[] = [];
+  
+  state.player.board.forEach(slot => {
+    if (slot && !slot.cancelled && hasGamblingEffect(slot.card.description)) {
+      const result = processGamblingEffectForCardSeeded(slot, true, matchId, round);
+      if (result) results.push(result);
+    }
+  });
+  
+  state.opponent.board.forEach(slot => {
+    if (slot && !slot.cancelled && hasGamblingEffect(slot.card.description)) {
+      const result = processGamblingEffectForCardSeeded(slot, false, matchId, round);
       if (result) results.push(result);
     }
   });

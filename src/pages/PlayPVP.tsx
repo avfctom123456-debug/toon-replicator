@@ -10,7 +10,7 @@ import { CardInfoModal } from "@/components/game/CardInfoModal";
 import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
 import { ClassicGameScreen } from "@/components/game/ClassicGameScreen";
-import { GamblingResult, processGamblingEffect } from "@/components/game/GamblingAnimation";
+import { GamblingResult } from "@/components/game/GamblingAnimation";
 import { ChoiceEffectData, parseChoiceEffect, hasChoiceEffect } from "@/components/game/ChoiceEffectModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ import {
   calculateScores,
   determineWinner,
   refillHand,
+  getGamblingEffectsSeeded,
+  GamblingEffectResult,
 } from "@/lib/gameEngine";
 import { supabase } from "@/integrations/supabase/client";
 
