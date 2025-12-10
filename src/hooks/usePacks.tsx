@@ -111,6 +111,9 @@ export function usePacks() {
 
         if (coinError) throw coinError;
 
+        // Increment packs_opened in player_stats
+        await supabase.rpc('increment_packs_opened', { p_user_id: user.id });
+
         // Add cards to user's collection
         for (const cardId of drawnCards) {
           await addCard(cardId, 1);

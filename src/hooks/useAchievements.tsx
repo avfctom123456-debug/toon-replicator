@@ -88,6 +88,20 @@ export const useAchievements = () => {
     },
   });
 
+  // Sync achievements on demand (useful for initial load or manual refresh)
+  const syncAchievements = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase.rpc('update_achievement_progress', {
+        p_user_id: user.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-achievements'] });
+    },
+  });
+
   // Get user's progress for a specific achievement
   const getUserProgress = (achievementId: string) => {
     return userAchievements.find(ua => ua.achievement_id === achievementId);
@@ -106,6 +120,7 @@ export const useAchievements = () => {
     loadingAchievements,
     loadingUserAchievements,
     claimReward,
+    syncAchievements,
     getUserProgress,
   };
 };
