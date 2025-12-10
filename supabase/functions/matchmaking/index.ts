@@ -45,18 +45,22 @@ serve(async (req) => {
     console.log(`Matchmaking action: ${action} for user: ${user.id}`);
 
     if (action === 'join_queue') {
+      // Only consider matches updated in the last 10 minutes as "active"
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      
       // FIRST: Check if user is already in an active match (prevents duplicate matches)
       const { data: existingMatch } = await supabaseAdmin
         .from('matches')
         .select('*')
         .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
         .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+        .gte('updated_at', tenMinutesAgo)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
       if (existingMatch) {
-        console.log(`User ${user.id} already in match ${existingMatch.id}`);
+        console.log(`User ${user.id} already in active match ${existingMatch.id}`);
         // Remove from queue if in queue
         await supabaseAdmin
           .from('matchmaking_queue')
@@ -67,6 +71,14 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      
+      // Clean up any stale matches this user is in (mark as game-over)
+      await supabaseAdmin
+        .from('matches')
+        .update({ phase: 'game-over', win_method: 'abandoned' })
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .neq('phase', 'game-over')
+        .lt('updated_at', tenMinutesAgo);
 
       // Check if user is already in queue
       const { data: existingQueue } = await supabaseAdmin
@@ -94,6 +106,7 @@ serve(async (req) => {
             .select('id')
             .or(`player1_id.eq.${opponent.user_id},player2_id.eq.${opponent.user_id}`)
             .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+            .gte('updated_at', tenMinutesAgo)
             .limit(1)
             .single();
 
@@ -137,6 +150,7 @@ serve(async (req) => {
               .select('*')
               .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
               .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+              .gte('updated_at', tenMinutesAgo)
               .limit(1)
               .single();
 
@@ -210,6 +224,7 @@ serve(async (req) => {
           .select('id')
           .or(`player1_id.eq.${opponent.user_id},player2_id.eq.${opponent.user_id}`)
           .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+          .gte('updated_at', tenMinutesAgo)
           .limit(1)
           .single();
 
@@ -239,6 +254,7 @@ serve(async (req) => {
             .select('*')
             .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
             .in('phase', ['loading', 'waiting', 'round1-place', 'round2-place'])
+            .gte('updated_at', tenMinutesAgo)
             .limit(1)
             .single();
 
@@ -294,12 +310,16 @@ serve(async (req) => {
     }
 
     if (action === 'check_match') {
+      // Only consider matches updated in the last 10 minutes as "active"
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      
       // Check if user was matched while waiting
       const { data: match } = await supabaseAdmin
         .from('matches')
         .select('*')
         .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
         .neq('phase', 'game-over')
+        .gte('updated_at', tenMinutesAgo)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
