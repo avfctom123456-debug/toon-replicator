@@ -60,28 +60,31 @@ export const ClassicBoardSlot = ({
   const [prevTransformState, setPrevTransformState] = useState<string | null>(null);
   const slotSize = "w-20 h-20";
 
+  // Compute transform state outside of conditional - MUST be before any early returns
+  const currentTransformState = slot ? JSON.stringify({
+    types: slot.convertedTypes,
+    colors: slot.convertedColors,
+  }) : null;
+
+  // Detect transform changes for animation - MUST be before any early returns
+  useEffect(() => {
+    if (!currentTransformState) return;
+    
+    if (prevTransformState === null) {
+      setPrevTransformState(currentTransformState);
+    } else if (prevTransformState !== currentTransformState && slot &&
+               (slot.convertedTypes?.length || slot.convertedColors?.length)) {
+      setShowTransformAnim(true);
+      setPrevTransformState(currentTransformState);
+      setTimeout(() => setShowTransformAnim(false), 1500);
+    }
+  }, [currentTransformState, prevTransformState, slot]);
+
   if (slot) {
     const bgColor = colorBg[slot.card.colors?.[0]] || "bg-gray-500";
     const borderColor = colorBorder[slot.card.colors?.[0]] || "border-gray-400";
     const defaultImageUrl = `${IMAGE_BASE_URL}/${slot.card.id}.jpg`;
     const imageUrl = customImageUrl || defaultImageUrl;
-    
-    // Detect transform changes for animation
-    const currentTransformState = JSON.stringify({
-      types: slot.convertedTypes,
-      colors: slot.convertedColors,
-    });
-    
-    useEffect(() => {
-      if (prevTransformState === null) {
-        setPrevTransformState(currentTransformState);
-      } else if (prevTransformState !== currentTransformState && 
-                 (slot.convertedTypes?.length || slot.convertedColors?.length)) {
-        setShowTransformAnim(true);
-        setPrevTransformState(currentTransformState);
-        setTimeout(() => setShowTransformAnim(false), 1500);
-      }
-    }, [currentTransformState, prevTransformState]);
     // Hidden card (face down with GToons logo)
     if (isHidden) {
       return (
