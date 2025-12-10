@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuctionBids, Auction, AuctionBid } from "@/hooks/useAuctions";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 import { getCardById } from "@/lib/gameEngine";
 import { MiniCard } from "@/components/MiniCard";
 import { UrgentCountdown } from "@/components/auction/UrgentCountdown";
@@ -38,6 +39,7 @@ export default function AuctionView() {
   const { user } = useAuth();
   const { profile, refetchProfile } = useProfile();
   const { bids } = useAuctionBids(id || null);
+  const { getOverride } = useCardOverrides();
   
   const [auction, setAuction] = useState<Auction | null>(null);
   const [loading, setLoading] = useState(true);
@@ -328,7 +330,7 @@ export default function AuctionView() {
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Card Display */}
                   <div className="flex-shrink-0 flex justify-center">
-                    <MiniCard card={card} size="md" copyNumber={auction.copy_number} />
+                    <MiniCard card={card} size="md" copyNumber={auction.copy_number} customImageUrl={getOverride(auction.card_id)?.custom_image_url} />
                   </div>
 
                   {/* Auction Details */}
