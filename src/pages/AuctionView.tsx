@@ -9,6 +9,7 @@ import { getCardById } from "@/lib/gameEngine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 const IMAGE_BASE_URL = "https://dlgjmqnjzepntvfeqfcx.supabase.co/storage/v1/object/public/card-images";
@@ -33,18 +34,16 @@ export default function AuctionView() {
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
   const [chatVisible, setChatVisible] = useState(true);
+  const [showCardInfo, setShowCardInfo] = useState(false);
   
-  // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const chatScrollRef = useRef<HTMLDivElement>(null);
   
-  // Presence state
   const [viewers, setViewers] = useState<Map<string, { username: string; online_at: string }>>(new Map());
   
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Fetch auction data
   const fetchAuction = useCallback(async () => {
     if (!id) return;
     
@@ -55,7 +54,6 @@ export default function AuctionView() {
       .single();
 
     if (error || !data) {
-      console.error("Error fetching auction:", error);
       toast.error("Auction not found");
       navigate("/trade-board");
       return;
@@ -279,7 +277,6 @@ export default function AuctionView() {
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
-            {/* Orbit Planet Icon */}
             <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg relative">
               <div className="absolute w-16 h-4 border-2 border-cyan-300 rounded-full -rotate-12 opacity-60"></div>
               <div className="w-6 h-6 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full"></div>
@@ -337,12 +334,11 @@ export default function AuctionView() {
         </div>
 
         {/* Main Content Area */}
-        <div className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg p-3 shadow-xl">
-          <div className="grid grid-cols-[200px,1fr,280px] gap-3">
-            
+        <div className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg p-4 shadow-xl">
+          {/* Top Row: Left Info + BID NOW Button */}
+          <div className="grid grid-cols-[200px,1fr] gap-4 mb-4">
             {/* Left Panel - Bid Info */}
-            <div className="space-y-3">
-              {/* High Bidder */}
+            <div className="space-y-2">
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
                 <div className="text-[#4a6a7a] text-[10px] font-bold">HIGH BIDDER:</div>
                 <div className="text-[#2266aa] font-black text-sm uppercase truncate">
@@ -350,7 +346,6 @@ export default function AuctionView() {
                 </div>
               </div>
 
-              {/* Current High Bid */}
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
                 <div className="text-[#4a6a7a] text-[10px] font-bold">CURRENT HIGH BID:</div>
                 <div className="text-[#2266aa] font-black text-sm">
@@ -358,7 +353,6 @@ export default function AuctionView() {
                 </div>
               </div>
 
-              {/* Starting Price */}
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
                 <div className="text-[#4a6a7a] text-[10px] font-bold">STARTING PRICE:</div>
                 <div className="text-[#2266aa] font-black text-sm">
@@ -366,7 +360,6 @@ export default function AuctionView() {
                 </div>
               </div>
 
-              {/* Seller */}
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
                 <div className="text-[#4a6a7a] text-[10px] font-bold">SELLER:</div>
                 <div className="text-[#2266aa] font-black text-sm uppercase truncate">
@@ -374,18 +367,17 @@ export default function AuctionView() {
                 </div>
               </div>
 
-              {/* Help Link */}
               <button className="text-[#2266aa] text-xs font-bold underline hover:no-underline w-full text-center">
                 HELP
               </button>
             </div>
 
-            {/* Center - BID NOW Button */}
-            <div className="flex flex-col items-center justify-center">
+            {/* BID NOW Button */}
+            <div className="flex items-center justify-center">
               {!time.ended && !isOwner ? (
                 <button 
                   onClick={handlePlaceBid}
-                  className="w-full bg-gradient-to-b from-[#ff8833] to-[#cc5500] hover:from-[#ffaa55] hover:to-[#dd6600] text-white font-black text-2xl py-4 px-6 rounded-lg shadow-lg border-2 border-[#aa4400] transition-all"
+                  className="bg-gradient-to-b from-[#ff8833] to-[#cc5500] hover:from-[#ffaa55] hover:to-[#dd6600] text-white font-black text-3xl py-4 px-12 rounded-lg shadow-lg border-2 border-[#aa4400] transition-all"
                   style={{ textShadow: '2px 2px 2px rgba(0,0,0,0.5)' }}
                 >
                   BID NOW&nbsp;&nbsp;{minBid.toLocaleString()} POINTS
@@ -393,91 +385,96 @@ export default function AuctionView() {
               ) : isOwner && time.ended ? (
                 <Button 
                   onClick={handleEndAuction}
-                  className="w-full bg-green-600 hover:bg-green-700 font-bold py-6 text-xl"
+                  className="bg-green-600 hover:bg-green-700 font-bold py-6 px-12 text-xl"
                 >
                   FINALIZE AUCTION
                 </Button>
               ) : time.ended && isHighestBidder ? (
-                <div className="bg-green-200 border-2 border-green-500 rounded-lg p-4 text-center">
-                  <div className="text-green-800 font-black text-xl">🎉 YOU WON!</div>
-                  <div className="text-green-700 text-sm">Waiting for seller to finalize</div>
+                <div className="bg-green-200 border-2 border-green-500 rounded-lg p-6 text-center">
+                  <div className="text-green-800 font-black text-2xl">🎉 YOU WON!</div>
+                  <div className="text-green-700">Waiting for seller to finalize</div>
                 </div>
               ) : time.ended ? (
-                <div className="bg-red-200 border-2 border-red-400 rounded-lg p-4 text-center">
-                  <div className="text-red-800 font-black text-xl">AUCTION ENDED</div>
+                <div className="bg-red-200 border-2 border-red-400 rounded-lg p-6 text-center">
+                  <div className="text-red-800 font-black text-2xl">AUCTION ENDED</div>
                 </div>
               ) : (
-                <div className="text-[#4a6a7a] text-center font-bold">
+                <div className="text-[#4a6a7a] text-center font-bold text-lg">
                   This is your auction
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Right Panel - Card Display */}
-            <div className="flex flex-col items-center">
-              {/* Card Background with concentric circles */}
-              <div 
-                className="w-full aspect-square rounded-lg overflow-hidden border-4 border-[#3388bb] shadow-xl relative"
-                style={{
-                  background: `radial-gradient(circle at center, 
-                    #000000 0%, 
-                    #000000 20%, 
-                    #661111 25%,
-                    #882222 30%,
-                    #aa3333 35%,
-                    #cc4444 40%,
-                    #dd5544 45%,
-                    #ee6644 50%,
-                    #dd5544 55%,
-                    #cc4444 60%,
-                    #aa3333 65%,
-                    #882222 70%,
-                    #661111 75%,
-                    #441111 80%,
-                    #331111 85%,
-                    #220000 90%
-                  )`
-                }}
-              >
-                {/* Card Image */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <img 
-                    src={imageUrl}
-                    alt={card.title}
-                    className="w-[60%] h-[60%] object-contain drop-shadow-2xl"
-                    style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.8))' }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `${IMAGE_BASE_URL}/${card.id}.jpg`;
-                    }}
-                  />
-                </div>
-                
-                {/* Info Button */}
-                <button className="absolute top-2 right-2 w-6 h-6 bg-[#3388cc] hover:bg-[#44aaee] text-white rounded-full font-bold text-sm shadow-lg flex items-center justify-center">
-                  i
-                </button>
+          {/* Card Display - Large Rectangle with Card Name Top Left */}
+          <div className="relative mb-4">
+            {/* Card Name Banner - Top Left */}
+            <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-[#cc3344] via-[#dd5544] to-[#ee7744] rounded-lg px-4 py-2 border-2 border-[#aa2233] shadow-lg">
+              <div className="text-[#ffddcc] text-[10px] font-bold">CARD NAME:</div>
+              <div className="text-white font-black text-lg uppercase" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+                {card.title}
+                {auction.copy_number && (
+                  <span className={`ml-2 ${
+                    auction.copy_number <= 10 ? "text-yellow-300" :
+                    auction.copy_number <= 50 ? "text-gray-300" : "text-white/70"
+                  }`}>
+                    #{auction.copy_number}
+                  </span>
+                )}
               </div>
+            </div>
 
-              {/* Card Name Banner */}
-              <div className="w-full bg-gradient-to-r from-[#cc3344] via-[#dd5544] to-[#ee7744] rounded-lg mt-2 p-2 border-2 border-[#aa2233]">
-                <div className="text-[#ffddcc] text-[10px] font-bold">CARD NAME:</div>
-                <div className="text-white font-black text-base uppercase truncate" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
-                  {card.title}
-                  {auction.copy_number && (
-                    <span className={`ml-1 ${
-                      auction.copy_number <= 10 ? "text-yellow-300" :
-                      auction.copy_number <= 50 ? "text-gray-300" : "text-white/70"
-                    }`}>
-                      #{auction.copy_number}
-                    </span>
-                  )}
-                </div>
+            {/* Info Button - Top Right */}
+            <button 
+              onClick={() => setShowCardInfo(true)}
+              className="absolute top-3 right-3 z-10 w-8 h-8 bg-[#3388cc] hover:bg-[#44aaee] text-white rounded-full font-bold text-lg shadow-lg flex items-center justify-center"
+            >
+              i
+            </button>
+
+            {/* Card Background with concentric circles */}
+            <div 
+              onClick={() => setShowCardInfo(true)}
+              className="w-full h-[300px] md:h-[400px] rounded-lg overflow-hidden border-4 border-[#3388bb] shadow-xl cursor-pointer"
+              style={{
+                background: `radial-gradient(circle at center, 
+                  #000000 0%, 
+                  #000000 15%, 
+                  #661111 20%,
+                  #882222 25%,
+                  #aa3333 30%,
+                  #cc4444 35%,
+                  #dd5544 40%,
+                  #ee6644 45%,
+                  #ff7755 50%,
+                  #ee6644 55%,
+                  #dd5544 60%,
+                  #cc4444 65%,
+                  #aa3333 70%,
+                  #882222 75%,
+                  #661111 80%,
+                  #441111 85%,
+                  #331111 90%
+                )`
+              }}
+            >
+              {/* Card Image - Centered and Large */}
+              <div className="w-full h-full flex items-center justify-center">
+                <img 
+                  src={imageUrl}
+                  alt={card.title}
+                  className="max-w-[50%] max-h-[70%] object-contain drop-shadow-2xl"
+                  style={{ filter: 'drop-shadow(0 0 20px rgba(0,0,0,0.8))' }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+                  }}
+                />
               </div>
             </div>
           </div>
 
           {/* Bottom Section - Who's Here + Chat */}
-          <div className="mt-3 grid grid-cols-[140px,1fr,60px] gap-2">
+          <div className="grid grid-cols-[140px,1fr,60px] gap-2">
             {/* Who's Here */}
             <div className="bg-gradient-to-b from-[#d8e8f0] to-[#b8d0e0] rounded border border-[#8aa8b8]">
               <div className="bg-gradient-to-r from-[#6090a0] to-[#7aa0b0] px-2 py-1 flex items-center gap-1">
@@ -530,7 +527,6 @@ export default function AuctionView() {
                 </ScrollArea>
               )}
               
-              {/* Chat Input */}
               <div className="p-1 border-t border-[#8aa8b8] bg-white/40">
                 <div className="text-[#5a7a8a] text-[9px] font-semibold mb-0.5">SELECT A MESSAGE TO CHAT</div>
                 <div className="flex gap-1">
@@ -596,6 +592,36 @@ export default function AuctionView() {
           )}
         </div>
       </div>
+
+      {/* Card Info Modal */}
+      <Dialog open={showCardInfo} onOpenChange={setShowCardInfo}>
+        <DialogContent className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] border-[#3388bb] max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-[#2266aa] font-black">{card.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <img 
+              src={imageUrl}
+              alt={card.title}
+              className="w-full rounded-lg border-2 border-[#3388bb]"
+            />
+            <div className="bg-white/70 rounded p-3 border border-[#8aa8b8]">
+              <div className="text-[#4a6a7a] text-xs font-bold mb-1">BASE POINTS:</div>
+              <div className="text-[#2266aa] font-black text-xl">{card.basePoints}</div>
+            </div>
+            <div className="bg-white/70 rounded p-3 border border-[#8aa8b8]">
+              <div className="text-[#4a6a7a] text-xs font-bold mb-1">COLOR:</div>
+              <div className="text-[#2266aa] font-black capitalize">{card.colors?.join(', ') || 'None'}</div>
+            </div>
+            {card.description && (
+              <div className="bg-white/70 rounded p-3 border border-[#8aa8b8]">
+                <div className="text-[#4a6a7a] text-xs font-bold mb-1">POWER:</div>
+                <div className="text-[#3a5a6a] text-sm">{card.description}</div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
