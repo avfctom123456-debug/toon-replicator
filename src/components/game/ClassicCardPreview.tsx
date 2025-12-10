@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { GameCard } from "@/lib/gameEngine";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
@@ -34,6 +35,7 @@ interface ClassicCardPreviewProps {
 }
 
 export const ClassicCardPreview = ({ card }: ClassicCardPreviewProps) => {
+  const { getOverride } = useCardOverrides();
   const [imageError, setImageError] = useState(false);
 
   if (!card) {
@@ -49,7 +51,10 @@ export const ClassicCardPreview = ({ card }: ClassicCardPreviewProps) => {
     );
   }
 
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const override = getOverride(card.id);
+  const customImageUrl = override?.custom_image_url;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const borderColor = colorBorder[card.colors?.[0]] || "border-gray-400";
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-400";
 

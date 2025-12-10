@@ -7,6 +7,7 @@ import { useDecks } from "@/hooks/useDecks";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserCards } from "@/hooks/useUserCards";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 import { starterDecks, getStarterDeckBySlot } from "@/lib/starterDecks";
 import cardsData from "@/data/cards.json";
 
@@ -32,6 +33,7 @@ const DeckEdit = () => {
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { getOwnedCardIds, loading: cardsLoading } = useUserCards();
+  const { getOverride } = useCardOverrides();
   
   useEffect(() => {
     if (!authLoading && !user) {
@@ -141,6 +143,7 @@ const DeckEdit = () => {
               <CardListItem 
                 card={card} 
                 selected={selectedCards.includes(card.id)}
+                customImageUrl={getOverride(card.id)?.custom_image_url}
               />
             </div>
             <Button 
@@ -167,6 +170,7 @@ const DeckEdit = () => {
                     card={selectedCardData[i]} 
                     size="small"
                     onClick={() => toggleCard(selectedCardData[i].id)}
+                    customImageUrl={getOverride(selectedCardData[i].id)?.custom_image_url}
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-muted" />
@@ -197,7 +201,7 @@ const DeckEdit = () => {
 
       {/* Full Card Viewer */}
       {viewCard && (
-        <FullCard card={viewCard} onClose={() => setViewCard(null)} />
+        <FullCard card={viewCard} onClose={() => setViewCard(null)} customImageUrl={getOverride(viewCard.id)?.custom_image_url} />
       )}
 
       <div className="fixed bottom-20 left-4 text-muted-foreground text-xs">
