@@ -1438,12 +1438,70 @@ export function applyPowers(state: GameState): GameState {
       });
     }
     
+    // "Steal the effect from opposite card" - copies the point modification from opposite
+    if (desc.includes("steal") && desc.includes("effect") && (desc.includes("opposite") || desc.includes("opposing"))) {
+      if (oppositeCard && !oppositeCard.cancelled) {
+        const oppBonus = oppositeCard.modifiedPoints - oppositeCard.card.basePoints;
+        if (oppBonus !== 0) {
+          // Steal the effect: add it to self, remove from opposite
+          sourceSlot.modifiedPoints += oppBonus;
+          oppositeCard.modifiedPoints = oppositeCard.card.basePoints;
+        }
+      }
+    }
+    
+    // "Double the effect of the card to the left" 
+    if (desc.includes("double") && desc.includes("effect") && desc.includes("to the left")) {
+      const leftIdx = sourceSlot.position - 1;
+      // Only valid within same row (0-3 for round 1, 4-6 for round 2)
+      const sameRow = (sourceSlot.position < 4 && leftIdx >= 0) || (sourceSlot.position >= 4 && leftIdx >= 4);
+      if (sameRow && leftIdx >= 0) {
+        const leftCard = ownBoard[leftIdx];
+        if (leftCard && !leftCard.cancelled) {
+          const bonus = leftCard.modifiedPoints - leftCard.card.basePoints;
+          if (bonus !== 0) {
+            leftCard.modifiedPoints += bonus; // Double by adding the bonus again
+          }
+        }
+      }
+    }
+    
+    // "Double the effect of the card to the right"
+    if (desc.includes("double") && desc.includes("effect") && desc.includes("to the right")) {
+      const rightIdx = sourceSlot.position + 1;
+      // Only valid within same row (0-3 for round 1, 4-6 for round 2)
+      const sameRow = (sourceSlot.position < 4 && rightIdx <= 3) || (sourceSlot.position >= 4 && rightIdx <= 6);
+      if (sameRow) {
+        const rightCard = ownBoard[rightIdx];
+        if (rightCard && !rightCard.cancelled) {
+          const bonus = rightCard.modifiedPoints - rightCard.card.basePoints;
+          if (bonus !== 0) {
+            rightCard.modifiedPoints += bonus; // Double by adding the bonus again
+          }
+        }
+      }
+    }
+    
+    // "Cancel a random opponent's gtoon"
+    if (desc.includes("cancel") && desc.includes("random") && desc.includes("opponent")) {
+      const activeOpponentCards = enemyBoard
+        .map((slot, idx) => ({ slot, idx }))
+        .filter(({ slot }) => slot && !slot.cancelled && !slot.shielded);
+      if (activeOpponentCards.length > 0) {
+        const randomIdx = Math.floor(Math.random() * activeOpponentCards.length);
+        const targetCard = activeOpponentCards[randomIdx];
+        if (targetCard.slot) {
+          targetCard.slot.cancelled = true;
+        }
+      }
+    }
+    
     // "Mirror opposing card's effect" or "Copy opposing card's power"
     if ((desc.includes("mirror") || desc.includes("copy")) && 
         (desc.includes("opposing") || desc.includes("opposite")) && 
-        desc.includes("effect") || desc.includes("power")) {
+        (desc.includes("effect") || desc.includes("power")) &&
+        !desc.includes("steal")) {
       if (oppositeCard && !oppositeCard.cancelled) {
-        const oppDesc = oppositeCard.card.description.toLowerCase();
         // Simple implementation: gain the same point modification the opposing card got
         const oppBonus = oppositeCard.modifiedPoints - oppositeCard.card.basePoints;
         if (oppBonus > 0) {
