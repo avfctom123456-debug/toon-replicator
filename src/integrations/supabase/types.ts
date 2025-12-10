@@ -407,48 +407,63 @@ export type Database = {
       player_stats: {
         Row: {
           best_win_streak: number
+          color_wins: number
           cpu_wins: number
           created_at: string
           daily_coins_earned: number
           elo_rating: number
+          highest_score: number
           id: string
           last_coin_reset: string
           last_match_at: string | null
+          packs_opened: number
+          perfect_wins: number
           pvp_draws: number
           pvp_losses: number
           pvp_wins: number
+          total_coins_earned: number
           updated_at: string
           user_id: string
           win_streak: number
         }
         Insert: {
           best_win_streak?: number
+          color_wins?: number
           cpu_wins?: number
           created_at?: string
           daily_coins_earned?: number
           elo_rating?: number
+          highest_score?: number
           id?: string
           last_coin_reset?: string
           last_match_at?: string | null
+          packs_opened?: number
+          perfect_wins?: number
           pvp_draws?: number
           pvp_losses?: number
           pvp_wins?: number
+          total_coins_earned?: number
           updated_at?: string
           user_id: string
           win_streak?: number
         }
         Update: {
           best_win_streak?: number
+          color_wins?: number
           cpu_wins?: number
           created_at?: string
           daily_coins_earned?: number
           elo_rating?: number
+          highest_score?: number
           id?: string
           last_coin_reset?: string
           last_match_at?: string | null
+          packs_opened?: number
+          perfect_wins?: number
           pvp_draws?: number
           pvp_losses?: number
           pvp_wins?: number
+          total_coins_earned?: number
           updated_at?: string
           user_id?: string
           win_streak?: number
@@ -1029,6 +1044,10 @@ export type Database = {
       }
       redeem_promo_code: { Args: { p_code: string }; Returns: Json }
       start_tournament: { Args: { p_tournament_id: string }; Returns: Json }
+      update_achievement_progress: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       update_cpu_win: { Args: { p_user_id: string }; Returns: undefined }
       update_pvp_stats: {
         Args: { p_is_draw?: boolean; p_loser_id: string; p_winner_id: string }
