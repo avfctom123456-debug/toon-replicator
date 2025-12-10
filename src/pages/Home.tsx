@@ -9,7 +9,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { PromoCodeRedeemer } from "@/components/PromoCodeRedeemer";
 import { DailyRewardsModal } from "@/components/DailyRewardsModal";
 import { toast } from "sonner";
-import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers } from "lucide-react";
+import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers, Users } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -74,7 +74,7 @@ const Home = () => {
       {/* Play Section */}
       <div className="w-full max-w-md space-y-3 mb-4">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Play</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Button 
             variant="menu"
             onClick={() => navigate("/play-pvp")}
@@ -90,6 +90,14 @@ const Home = () => {
           >
             <Bot className="h-6 w-6" />
             <span>Play CPU</span>
+          </Button>
+          <Button 
+            variant="menu"
+            onClick={() => navigate("/friends")}
+            className="h-20 flex flex-col gap-1"
+          >
+            <Users className="h-6 w-6" />
+            <span>Friends</span>
           </Button>
         </div>
       </div>
