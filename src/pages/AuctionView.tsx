@@ -577,7 +577,17 @@ export default function AuctionView() {
       <Dialog open={showCardInfo} onOpenChange={setShowCardInfo}>
         <DialogContent className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] border-[#3388bb] max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-[#2266aa] font-black">{card.title}</DialogTitle>
+            <DialogTitle className="text-[#2266aa] font-black flex items-center gap-2">
+              {card.title}
+              {auction.copy_number && (
+                <span className={`text-lg ${
+                  auction.copy_number <= 10 ? "text-yellow-500" :
+                  auction.copy_number <= 50 ? "text-gray-500" : "text-[#6a8a9a]"
+                }`}>
+                  #{auction.copy_number}
+                </span>
+              )}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <img 
@@ -585,6 +595,25 @@ export default function AuctionView() {
               alt={card.title}
               className="w-full rounded-lg border-2 border-[#3388bb]"
             />
+            {auction.copy_number && (
+              <div className={`rounded p-3 border ${
+                auction.copy_number <= 10 
+                  ? "bg-gradient-to-r from-yellow-100 to-yellow-200 border-yellow-400" 
+                  : auction.copy_number <= 50 
+                    ? "bg-gradient-to-r from-gray-100 to-gray-200 border-gray-400"
+                    : "bg-white/70 border-[#8aa8b8]"
+              }`}>
+                <div className="text-[#4a6a7a] text-xs font-bold mb-1">COPY NUMBER:</div>
+                <div className={`font-black text-xl ${
+                  auction.copy_number <= 10 ? "text-yellow-600" :
+                  auction.copy_number <= 50 ? "text-gray-600" : "text-[#2266aa]"
+                }`}>
+                  #{auction.copy_number}
+                  {auction.copy_number <= 10 && <span className="ml-2 text-xs">🏆 RARE</span>}
+                  {auction.copy_number > 10 && auction.copy_number <= 50 && <span className="ml-2 text-xs">⭐ LIMITED</span>}
+                </div>
+              </div>
+            )}
             <div className="bg-white/70 rounded p-3 border border-[#8aa8b8]">
               <div className="text-[#4a6a7a] text-xs font-bold mb-1">BASE POINTS:</div>
               <div className="text-[#2266aa] font-black text-xl">{card.basePoints}</div>
