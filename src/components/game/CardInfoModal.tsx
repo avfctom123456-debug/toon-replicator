@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { PlacedCard } from "@/lib/gameEngine";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
@@ -22,11 +23,14 @@ interface CardInfoModalProps {
 }
 
 export const CardInfoModal = ({ placedCard, onClose }: CardInfoModalProps) => {
+  const { getOverride } = useCardOverrides();
+  
   if (!placedCard) return null;
 
   const { card, modifiedPoints, cancelled } = placedCard;
+  const override = getOverride(card.id);
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-500";
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = override?.custom_image_url || `${IMAGE_BASE_URL}/${card.id}.jpg`;
   const pointsDiff = modifiedPoints - card.basePoints;
 
   return (
