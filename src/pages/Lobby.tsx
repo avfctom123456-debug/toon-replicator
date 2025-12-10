@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { DailyEarningsProgress } from "@/components/DailyEarningsProgress";
 
 const Lobby = () => {
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ const Lobby = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col p-4 gap-4">
+      {/* Daily Earnings Progress */}
+      <DailyEarningsProgress />
+
       {/* Lobby Section */}
       <section>
         <h2 className="text-2xl font-bold text-primary mb-2">Lobby</h2>
