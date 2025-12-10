@@ -8,6 +8,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PromoCodeRedeemer } from "@/components/PromoCodeRedeemer";
 import { DailyRewardsModal } from "@/components/DailyRewardsModal";
+import { GlobalChat } from "@/components/GlobalChat";
 import { toast } from "sonner";
 import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers, Users } from "lucide-react";
 
@@ -206,6 +207,9 @@ const Home = () => {
       <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">
         v0.0.38
       </div>
+
+      {/* Global Chat */}
+      <GlobalChat />
     </div>
   );
 };
