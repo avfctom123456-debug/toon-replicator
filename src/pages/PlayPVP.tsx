@@ -343,18 +343,19 @@ const PlayPVP = () => {
     }
   }, [matchmakingStatus, match, isPlayer1, gamePhase]);
 
-  // Listen for opponent ready and board updates
+  // Listen for opponent ready and board updates - with polling fallback for race conditions
   useEffect(() => {
-    if (!match || !game || gamePhase !== "playing") return;
+    if (!matchId || !game || gamePhase !== "playing" || !waitingForOpponent || revealPhase !== "placing") return;
 
-    const opponentReady = isPlayer1 ? match.player2_ready : match.player1_ready;
-    
-    // When opponent is ready and we're waiting, start reveal
-    // We don't check myReady from match because there's a race condition - 
-    // if waitingForOpponent is true, we know we already set ourselves as ready
-    if (opponentReady && waitingForOpponent && revealPhase === "placing") {
+    const checkAndStartReveal = async (matchData: typeof match) => {
+      if (!matchData) return false;
+      
+      const opponentReady = isPlayer1 ? matchData.player2_ready : matchData.player1_ready;
+      
+      if (!opponentReady) return false;
+      
       // Get opponent's board from game_state
-      const gameStateData = match.game_state as Record<string, unknown>;
+      const gameStateData = matchData.game_state as Record<string, unknown>;
       const opponentBoard = gameStateData?.[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
       
       // Validate opponent has actually placed cards for the current round
@@ -394,11 +395,37 @@ const PlayPVP = () => {
         setTimeout(() => {
           performReveal(updatedGame, isRound1);
         }, 100);
+        
+        return true;
       } else {
         console.log('Opponent ready but board not valid yet:', opponentBoard);
+        return false;
       }
+    };
+
+    // First check current match state from realtime subscription
+    if (match) {
+      checkAndStartReveal(match);
     }
-  }, [match, game, isPlayer1, waitingForOpponent, revealPhase, performReveal, gamePhase]);
+
+    // Poll every 1 second as fallback for realtime delays
+    const pollInterval = setInterval(async () => {
+      const { data: freshMatch } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
+      
+      if (freshMatch) {
+        const started = await checkAndStartReveal(freshMatch as typeof match);
+        if (started) {
+          clearInterval(pollInterval);
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(pollInterval);
+  }, [matchId, match, game, isPlayer1, waitingForOpponent, revealPhase, performReveal, gamePhase]);
 
   const decks = getDecksWithSlots();
 
