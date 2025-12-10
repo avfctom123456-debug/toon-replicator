@@ -11,6 +11,7 @@ import { ClassicDeckSelect } from "@/components/game/ClassicDeckSelect";
 import { ClassicLoadingScreen } from "@/components/game/ClassicLoadingScreen";
 import { ClassicGameScreen } from "@/components/game/ClassicGameScreen";
 import { GamblingResult, processGamblingEffect } from "@/components/game/GamblingAnimation";
+import { ChoiceEffectData, parseChoiceEffect, hasChoiceEffect } from "@/components/game/ChoiceEffectModal";
 import {
   GameState,
   PlacedCard,
@@ -50,6 +51,8 @@ const PlayComputer = () => {
   const [showResultModal, setShowResultModal] = useState(false);
   const [gamblingResult, setGamblingResult] = useState<GamblingResult | null>(null);
   const [gamblingQueue, setGamblingQueue] = useState<GamblingResult[]>([]);
+  const [choiceData, setChoiceData] = useState<ChoiceEffectData | null>(null);
+  const [pendingChoiceCards, setPendingChoiceCards] = useState<{position: number; isPlayer: boolean}[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -461,6 +464,71 @@ const PlayComputer = () => {
     }
   }, [gamblingQueue]);
 
+  // Handle choice effect selection
+  const handleChoiceSelect = useCallback((choice: string) => {
+    if (!game || !choiceData) return;
+    
+    // Apply the choice result to the game state
+    setGame(prev => {
+      if (!prev) return prev;
+      
+      const board = choiceData.isPlayer ? [...prev.player.board] : [...prev.opponent.board];
+      const card = board[choiceData.cardPosition];
+      
+      if (card) {
+        card.choiceResolved = true;
+        card.chosenEffect = choice;
+        
+        // Apply the chosen effect
+        if (choice.startsWith('flat:')) {
+          const bonus = parseInt(choice.split(':')[1]);
+          card.modifiedPoints += bonus;
+        } else if (choice.startsWith('self:')) {
+          const bonus = parseInt(choice.split(':')[1]);
+          card.modifiedPoints += bonus;
+        } else if (choice.startsWith('opposite:')) {
+          const penalty = parseInt(choice.split(':')[1]);
+          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
+          const oppositeCard = oppositeBoard[choiceData.cardPosition];
+          if (oppositeCard && !oppositeCard.shielded) {
+            oppositeCard.modifiedPoints += penalty;
+          }
+        } else if (choice === 'cancel-opposite') {
+          const oppositeBoard = choiceData.isPlayer ? prev.opponent.board : prev.player.board;
+          const oppositeCard = oppositeBoard[choiceData.cardPosition];
+          if (oppositeCard && !oppositeCard.shielded) {
+            oppositeCard.cancelled = true;
+          }
+        } else if (choice === 'double-self') {
+          card.modifiedPoints *= 2;
+        }
+      }
+      
+      if (choiceData.isPlayer) {
+        return { ...prev, player: { ...prev.player, board } };
+      } else {
+        return { ...prev, opponent: { ...prev.opponent, board: board as (PlacedCard | null)[] } };
+      }
+    });
+    
+    setChoiceData(null);
+    
+    // Process next pending choice if any
+    if (pendingChoiceCards.length > 0) {
+      const [next, ...rest] = pendingChoiceCards;
+      setPendingChoiceCards(rest);
+      
+      const board = next.isPlayer ? game.player.board : game.opponent.board;
+      const card = board[next.position];
+      if (card) {
+        const parsed = parseChoiceEffect(card.card.description || '', card.card.title, next.position, next.isPlayer);
+        if (parsed) {
+          setTimeout(() => setChoiceData(parsed), 100);
+        }
+      }
+    }
+  }, [game, choiceData, pendingChoiceCards]);
+
   // Classic Game Screen (forced desktop view)
   return (
     <>
@@ -483,6 +551,8 @@ const PlayComputer = () => {
         onCloseResultModal={() => setShowResultModal(false)}
         gamblingResult={gamblingResult}
         onGamblingComplete={handleGamblingComplete}
+        choiceData={choiceData}
+        onChoiceSelect={handleChoiceSelect}
       />
 
       {/* Card Info Modal */}

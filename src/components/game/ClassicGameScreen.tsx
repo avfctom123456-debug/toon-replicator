@@ -7,6 +7,7 @@ import { ClassicHandGrid } from "./ClassicHandGrid";
 import { ClassicGameResultModal } from "./ClassicGameResultModal";
 import { EffectIndicators } from "./EffectIndicators";
 import { GamblingAnimation, GamblingResult } from "./GamblingAnimation";
+import ChoiceEffectModal, { ChoiceEffectData } from "./ChoiceEffectModal";
 import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 type RevealPhase = "placing" | "revealing" | "revealed";
@@ -35,6 +36,8 @@ interface ClassicGameScreenProps {
   waitingForOpponent?: boolean;
   gamblingResult?: GamblingResult | null;
   onGamblingComplete?: () => void;
+  choiceData?: ChoiceEffectData | null;
+  onChoiceSelect?: (choice: string) => void;
 }
 
 export const ClassicGameScreen = ({
@@ -59,6 +62,8 @@ export const ClassicGameScreen = ({
   waitingForOpponent = false,
   gamblingResult,
   onGamblingComplete,
+  choiceData,
+  onChoiceSelect,
 }: ClassicGameScreenProps) => {
   const { getOverride } = useCardOverrides();
   const [scale, setScale] = useState(1);
@@ -353,6 +358,15 @@ export const ClassicGameScreen = ({
         <GamblingAnimation
           result={gamblingResult}
           onComplete={onGamblingComplete}
+        />
+      )}
+
+      {/* Choice Effect Modal */}
+      {choiceData && onChoiceSelect && (
+        <ChoiceEffectModal
+          isOpen={!!choiceData}
+          choiceData={choiceData}
+          onChoice={onChoiceSelect}
         />
       )}
     </div>

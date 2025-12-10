@@ -28,6 +28,7 @@ export interface PlacedCard {
   priorCardId?: number; // ID of the card played before this one
   choiceResolved?: boolean; // Whether a choice effect has been resolved
   chosenEffect?: string; // The effect chosen by the player
+  gamblingResult?: 'win' | 'lose' | 'pending'; // Result of coin flip/dice roll
 }
 
 export interface PlayerState {
