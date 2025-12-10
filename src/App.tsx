@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Home from "./pages/Home";
+import Friends from "./pages/Friends";
 import Auth from "./pages/Auth";
 import DeckBuilder from "./pages/DeckBuilder";
 import DeckEdit from "./pages/DeckEdit";
@@ -40,6 +41,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/home" element={<Home />} />
+                <Route path="/friends" element={<Friends />} />
                 <Route path="/deck-builder" element={<DeckBuilder />} />
                 <Route path="/deck-edit" element={<DeckEdit />} />
                 <Route path="/lobby" element={<Lobby />} />
