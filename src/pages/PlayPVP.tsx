@@ -350,11 +350,16 @@ const PlayPVP = () => {
     if (!matchId || !game || gamePhase !== "playing" || !waitingForOpponent || revealPhase !== "placing") return;
 
     let hasStartedReveal = false;
+    const isRound1 = game.phase === "round1-place";
+    console.log(`[PvP Sync] Starting wait for opponent - Round ${isRound1 ? 1 : 2}`);
 
     const checkAndStartReveal = async (matchData: typeof match) => {
       if (!matchData || hasStartedReveal) return false;
       
       const opponentReady = isPlayer1 ? matchData.player2_ready : matchData.player1_ready;
+      const myReady = isPlayer1 ? matchData.player1_ready : matchData.player2_ready;
+      
+      console.log(`[PvP Sync] Check reveal - Round ${isRound1 ? 1 : 2}, myReady: ${myReady}, opponentReady: ${opponentReady}`);
       
       if (!opponentReady) return false;
       
@@ -363,7 +368,6 @@ const PlayPVP = () => {
       const opponentBoard = gameStateData?.[isPlayer1 ? 'player2_board' : 'player1_board'] as (PlacedCard | null)[] | undefined;
       
       // Validate opponent has actually placed cards for the current round
-      const isRound1 = game.phase === "round1-place";
       const requiredSlots = isRound1 ? [0, 1, 2, 3] : [4, 5, 6];
       const hasValidOpponentBoard = opponentBoard && 
         Array.isArray(opponentBoard) && 
@@ -371,7 +375,7 @@ const PlayPVP = () => {
       
       if (hasValidOpponentBoard) {
         hasStartedReveal = true;
-        console.log('Both players ready, starting reveal. Opponent board:', opponentBoard);
+        console.log(`[PvP Sync] Both players ready, starting Round ${isRound1 ? 1 : 2} reveal. Opponent board:`, opponentBoard);
         
         setGame(prev => {
           if (!prev) return prev;
@@ -403,17 +407,33 @@ const PlayPVP = () => {
         
         return true;
       } else {
-        console.log('Opponent ready but board not valid yet:', opponentBoard);
+        console.log(`[PvP Sync] Opponent ready but board not valid for Round ${isRound1 ? 1 : 2}:`, opponentBoard);
         return false;
       }
     };
 
-    // First check current match state from realtime subscription
-    if (match) {
+    // Immediately fetch fresh state (don't rely on potentially stale realtime data)
+    const fetchAndCheck = async () => {
+      const { data: freshMatch } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single();
+      
+      if (freshMatch && !hasStartedReveal) {
+        await checkAndStartReveal(freshMatch as typeof match);
+      }
+    };
+    
+    // Do immediate fetch first
+    fetchAndCheck();
+
+    // Also check realtime subscription data
+    if (match && !hasStartedReveal) {
       checkAndStartReveal(match);
     }
 
-    // Poll every 500ms for faster sync (reduced from 1s)
+    // Poll every 500ms for faster sync
     const pollInterval = setInterval(async () => {
       if (hasStartedReveal) {
         clearInterval(pollInterval);
