@@ -468,6 +468,15 @@ const PlayPVP = () => {
     }
   }, [timeLeft, game, revealPhase, gamePhase, waitingForOpponent]);
 
+  // Auto-cancel search after 1 minute and redirect home
+  useEffect(() => {
+    if (gamePhase === "searching" && searchTime >= 60) {
+      leaveQueue();
+      toast.error("No opponent found. Try again later.");
+      navigate("/");
+    }
+  }, [gamePhase, searchTime, leaveQueue, navigate]);
+
   const handleDeckSelect = useCallback(async (deckCardIds: number[]) => {
     if (deckCardIds.length < 12) {
       setMessage("Deck must have 12 cards!");
