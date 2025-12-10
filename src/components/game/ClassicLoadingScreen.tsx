@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { GameCard } from "@/lib/gameEngine";
+import { useCardOverrides } from "@/hooks/useCardOverrides";
 
 const IMAGE_BASE_URL = "https://raw.githubusercontent.com/ZakRabe/gtoons/master/client/public/images/normal/released";
 
@@ -33,11 +34,13 @@ interface ClassicCardDisplayProps {
   card: GameCard;
   playerName: string;
   isOpponent?: boolean;
+  customImageUrl?: string | null;
 }
 
-const ClassicCardDisplay = ({ card, playerName, isOpponent }: ClassicCardDisplayProps) => {
+const ClassicCardDisplay = ({ card, playerName, isOpponent, customImageUrl }: ClassicCardDisplayProps) => {
   const [imageError, setImageError] = useState(false);
-  const imageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const defaultImageUrl = `${IMAGE_BASE_URL}/${card.id}.jpg`;
+  const imageUrl = customImageUrl || defaultImageUrl;
   const borderColor = colorBorder[card.colors?.[0]] || "border-gray-400";
   const bgColor = colorBg[card.colors?.[0]] || "bg-gray-400";
 
@@ -143,6 +146,7 @@ export const ClassicLoadingScreen = ({
   mainColors,
   status,
 }: ClassicLoadingScreenProps) => {
+  const { getOverride } = useCardOverrides();
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
@@ -216,7 +220,7 @@ export const ClassicLoadingScreen = ({
       >
         <div className="flex items-center justify-center gap-8 flex-wrap">
           {/* Player Card */}
-          <ClassicCardDisplay card={playerCard} playerName={playerName} />
+          <ClassicCardDisplay card={playerCard} playerName={playerName} customImageUrl={getOverride(playerCard.id)?.custom_image_url} />
 
           <div className="bg-gradient-to-b from-[hsl(200,30%,75%)] to-[hsl(200,35%,60%)] rounded-xl p-1 shadow-xl">
             <div className="bg-gradient-to-b from-[hsl(200,40%,80%)] to-[hsl(200,35%,70%)] rounded-lg p-6 w-64">
@@ -237,7 +241,7 @@ export const ClassicLoadingScreen = ({
           </div>
 
           {/* Opponent Card */}
-          <ClassicCardDisplay card={opponentCard} playerName="Computer" isOpponent />
+          <ClassicCardDisplay card={opponentCard} playerName="Computer" isOpponent customImageUrl={getOverride(opponentCard.id)?.custom_image_url} />
         </div>
 
         {/* Status Button */}
