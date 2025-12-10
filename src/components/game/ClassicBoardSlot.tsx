@@ -83,12 +83,12 @@ export const ClassicBoardSlot = ({
       <div 
         className={`${slotSize} relative ${slot.cancelled ? "opacity-40" : ""} ${
           isRevealing ? "animate-scale-in" : ""
-        } ${onViewCard ? "cursor-pointer" : ""}`}
-        onClick={onViewCard}
+        } ${(onViewCard || isClickable) ? "cursor-pointer" : ""}`}
+        onClick={isClickable ? onClick : onViewCard}
       >
         <div className={`w-full h-full rounded-full ${bgColor} overflow-hidden border-4 ${borderColor} shadow-lg transition-transform ${
           hasEffect ? "scale-110 ring-2 ring-yellow-400" : ""
-        } ${onViewCard ? "hover:ring-2 hover:ring-white/50" : ""}`}>
+        } ${onViewCard ? "hover:ring-2 hover:ring-white/50" : ""} ${isClickable ? "hover:ring-2 hover:ring-red-400/50 hover:scale-95" : ""}`}>
           {!imageError ? (
             <img
               src={imageUrl}
