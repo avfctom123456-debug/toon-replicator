@@ -33,7 +33,7 @@ const PlayPVP = () => {
   const { user, loading: authLoading } = useAuth();
   const { getDecksWithSlots, loading: decksLoading } = useDecks();
   const { profile, updateCoins, refetchProfile } = useProfile();
-  const { updatePvpStats } = usePlayerStats();
+  const { updatePvpStats, updateGameStats } = usePlayerStats();
   const { 
     status: matchmakingStatus, 
     match, 
@@ -201,6 +201,18 @@ const PlayPVP = () => {
                 if (match && user && !rewardsProcessed) {
                   setRewardsProcessed(true);
                   const opponentId = isPlayer1 ? match.player2_id : match.player1_id;
+                  
+                  // Track game-specific achievements
+                  const playerScore = newState.player.totalPoints;
+                  const opponentScore = newState.opponent.totalPoints;
+                  const isColorWin = newState.winMethod === "color";
+                  const isPerfectWin = newState.winner === "player" && opponentScore === 0;
+                  
+                  updateGameStats({
+                    score: playerScore,
+                    isColorWin: newState.winner === "player" && isColorWin,
+                    isPerfectWin,
+                  });
                   
                   if (newState.winner === "player") {
                     // Winner gets coins and stats update
