@@ -32,8 +32,19 @@ export const GlobalChat = ({ channel = "global" }: GlobalChatProps) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [lastSeenCount, setLastSeenCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Track unread messages
+  const hasUnread = !isOpen && messages.length > lastSeenCount;
+
+  // Update last seen count when chat is opened
+  useEffect(() => {
+    if (isOpen && !isMinimized) {
+      setLastSeenCount(messages.length);
+    }
+  }, [isOpen, isMinimized, messages.length]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -88,10 +99,20 @@ export const GlobalChat = ({ channel = "global" }: GlobalChatProps) => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          className={`fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 relative ${
+            hasUnread ? "ring-2 ring-offset-2 ring-offset-background ring-destructive" : ""
+          }`}
           size="icon"
         >
           <MessageCircle className="h-6 w-6" />
+          {hasUnread && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive flex items-center justify-center">
+              <span className="text-[10px] text-destructive-foreground font-bold">
+                {Math.min(messages.length - lastSeenCount, 9)}
+                {messages.length - lastSeenCount > 9 ? '+' : ''}
+              </span>
+            </span>
+          )}
         </Button>
       )}
 
