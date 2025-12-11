@@ -270,150 +270,146 @@ export default function AuctionView() {
 
   return (
     <div 
-      className="min-h-screen p-4"
+      className="min-h-screen p-2 sm:p-4"
       style={{
         background: 'linear-gradient(135deg, #1a5a6a 0%, #2a7a8a 25%, #3a8a9a 50%, #2a7a8a 75%, #1a5a6a 100%)'
       }}
     >
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg relative">
-              <div className="absolute w-16 h-4 border-2 border-cyan-300 rounded-full -rotate-12 opacity-60"></div>
-              <div className="w-6 h-6 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full"></div>
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center shadow-lg relative shrink-0">
+              <div className="absolute w-10 sm:w-16 h-2 sm:h-4 border-2 border-cyan-300 rounded-full -rotate-12 opacity-60"></div>
+              <div className="w-4 h-4 sm:w-6 sm:h-6 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full"></div>
             </div>
-            <div>
-              <div className="text-cyan-200 font-bold text-sm tracking-wide">GET CARDS</div>
-              <div className="text-white font-black text-2xl tracking-wider" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
+            <div className="min-w-0">
+              <div className="text-cyan-200 font-bold text-[10px] sm:text-sm tracking-wide">GET CARDS</div>
+              <div className="text-white font-black text-base sm:text-2xl tracking-wider truncate" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
                 AUCTION ZONE
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-cyan-700 rounded px-3 py-1">
-            <span className="text-yellow-300 font-bold">{profile?.coins?.toLocaleString() || 0}</span>
-            <span className="text-cyan-200 text-sm">POINTS TO SPEND</span>
+          <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-cyan-600 to-cyan-700 rounded px-2 sm:px-3 py-1 shrink-0">
+            <span className="text-yellow-300 font-bold text-sm sm:text-base">{profile?.coins?.toLocaleString() || 0}</span>
+            <span className="text-cyan-200 text-[10px] sm:text-sm hidden xs:inline">POINTS</span>
           </div>
         </div>
 
         {/* Back + Time */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2 sm:mb-3 gap-2">
           <button 
             onClick={() => navigate("/trade-board")}
-            className="text-cyan-200 hover:text-white font-semibold text-sm underline"
+            className="text-cyan-200 hover:text-white font-semibold text-[11px] sm:text-sm underline shrink-0"
           >
-            BACK TO AUCTIONS
+            ← BACK
           </button>
           
-          <div className="bg-gradient-to-b from-[#2a5a6a] to-[#1a4a5a] rounded-lg px-4 py-2 border border-cyan-600">
-            <div className="text-cyan-300 text-[10px] text-center font-bold mb-1">TIME REMAINING:</div>
-            <div className="flex gap-1 items-center">
+          <div className="bg-gradient-to-b from-[#2a5a6a] to-[#1a4a5a] rounded-lg px-2 sm:px-4 py-1 sm:py-2 border border-cyan-600">
+            <div className="text-cyan-300 text-[8px] sm:text-[10px] text-center font-bold mb-0.5 sm:mb-1">TIME LEFT:</div>
+            <div className="flex gap-0.5 sm:gap-1 items-center">
               <div className="text-center">
-                <div className="bg-[#cc3333] text-white font-black text-xl px-2 py-0.5 rounded min-w-[32px]">
+                <div className="bg-[#cc3333] text-white font-black text-sm sm:text-xl px-1 sm:px-2 py-0.5 rounded min-w-[24px] sm:min-w-[32px]">
                   {String(time.days).padStart(2, '0')}
                 </div>
-                <div className="text-cyan-400 text-[8px] mt-0.5">DAY</div>
+                <div className="text-cyan-400 text-[7px] sm:text-[8px] mt-0.5">DAY</div>
               </div>
-              <span className="text-white font-bold">:</span>
+              <span className="text-white font-bold text-xs sm:text-base">:</span>
               <div className="text-center">
-                <div className="bg-[#cc3333] text-white font-black text-xl px-2 py-0.5 rounded min-w-[32px]">
+                <div className="bg-[#cc3333] text-white font-black text-sm sm:text-xl px-1 sm:px-2 py-0.5 rounded min-w-[24px] sm:min-w-[32px]">
                   {String(time.hours).padStart(2, '0')}
                 </div>
-                <div className="text-cyan-400 text-[8px] mt-0.5">HRS</div>
+                <div className="text-cyan-400 text-[7px] sm:text-[8px] mt-0.5">HRS</div>
               </div>
-              <span className="text-white font-bold">:</span>
+              <span className="text-white font-bold text-xs sm:text-base">:</span>
               <div className="text-center">
-                <div className="bg-[#cc3333] text-white font-black text-xl px-2 py-0.5 rounded min-w-[32px]">
+                <div className="bg-[#cc3333] text-white font-black text-sm sm:text-xl px-1 sm:px-2 py-0.5 rounded min-w-[24px] sm:min-w-[32px]">
                   {String(time.minutes).padStart(2, '0')}
                 </div>
-                <div className="text-cyan-400 text-[8px] mt-0.5">MIN</div>
+                <div className="text-cyan-400 text-[7px] sm:text-[8px] mt-0.5">MIN</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg p-4 shadow-xl">
+        <div className="bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg p-2 sm:p-4 shadow-xl">
           {/* Main Row: Left Info + BID NOW + Card */}
-          <div className="grid grid-cols-[180px,1fr] md:grid-cols-[200px,1fr] gap-4">
-            {/* Left Panel - Bid Info */}
-            <div className="space-y-2">
+          <div className="flex flex-col sm:grid sm:grid-cols-[160px,1fr] md:grid-cols-[200px,1fr] gap-3 sm:gap-4">
+            {/* Left Panel - Bid Info (grid on mobile, vertical on desktop) */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2">
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
-                <div className="text-[#4a6a7a] text-[10px] font-bold">HIGH BIDDER:</div>
-                <div className="text-[#2266aa] font-black text-sm uppercase truncate">
-                  {auction.highest_bidder_username || "NO BIDS YET"}
-                  {isHighestBidder && <span className="text-green-600 block text-xs">(YOU!)</span>}
+                <div className="text-[#4a6a7a] text-[9px] sm:text-[10px] font-bold">HIGH BIDDER:</div>
+                <div className="text-[#2266aa] font-black text-xs sm:text-sm uppercase truncate">
+                  {auction.highest_bidder_username || "NO BIDS"}
+                  {isHighestBidder && <span className="text-green-600 block text-[10px] sm:text-xs">(YOU!)</span>}
                 </div>
               </div>
 
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
-                <div className="text-[#4a6a7a] text-[10px] font-bold">CURRENT HIGH BID:</div>
-                <div className="text-[#2266aa] font-black text-sm">
-                  {currentBid.toLocaleString()} POINTS
+                <div className="text-[#4a6a7a] text-[9px] sm:text-[10px] font-bold">CURRENT BID:</div>
+                <div className="text-[#2266aa] font-black text-xs sm:text-sm">
+                  {currentBid.toLocaleString()} PTS
                 </div>
               </div>
 
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
-                <div className="text-[#4a6a7a] text-[10px] font-bold">STARTING PRICE:</div>
-                <div className="text-[#2266aa] font-black text-sm">
-                  {auction.starting_bid.toLocaleString()} POINTS
+                <div className="text-[#4a6a7a] text-[9px] sm:text-[10px] font-bold">STARTING:</div>
+                <div className="text-[#2266aa] font-black text-xs sm:text-sm">
+                  {auction.starting_bid.toLocaleString()} PTS
                 </div>
               </div>
 
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
-                <div className="text-[#4a6a7a] text-[10px] font-bold">SELLER:</div>
-                <div className="text-[#2266aa] font-black text-sm uppercase truncate">
+                <div className="text-[#4a6a7a] text-[9px] sm:text-[10px] font-bold">SELLER:</div>
+                <div className="text-[#2266aa] font-black text-xs sm:text-sm uppercase truncate">
                   {auction.seller_username}
                 </div>
               </div>
-
-              <button className="text-[#2266aa] text-xs font-bold underline hover:no-underline w-full text-center mt-2">
-                HELP
-              </button>
             </div>
 
             {/* Right side - BID NOW + Card Display */}
             <div className="flex flex-col">
               {/* BID NOW Button */}
-              <div className="mb-3">
+              <div className="mb-2 sm:mb-3">
                 {!time.ended && !isOwner ? (
                   <button 
                     onClick={handlePlaceBid}
-                    className="w-full bg-gradient-to-b from-[#ff8833] to-[#cc5500] hover:from-[#ffaa55] hover:to-[#dd6600] text-white font-black text-xl md:text-2xl py-3 px-6 rounded-lg shadow-lg border-2 border-[#aa4400] transition-all"
+                    className="w-full bg-gradient-to-b from-[#ff8833] to-[#cc5500] hover:from-[#ffaa55] hover:to-[#dd6600] text-white font-black text-base sm:text-xl md:text-2xl py-2 sm:py-3 px-3 sm:px-6 rounded-lg shadow-lg border-2 border-[#aa4400] transition-all"
                     style={{ textShadow: '2px 2px 2px rgba(0,0,0,0.5)' }}
                   >
-                    BID NOW&nbsp;&nbsp;{minBid.toLocaleString()} POINTS
+                    BID NOW {minBid.toLocaleString()} PTS
                   </button>
                 ) : isOwner && time.ended ? (
                   <Button 
                     onClick={handleEndAuction}
-                    className="w-full bg-green-600 hover:bg-green-700 font-bold py-4 text-lg"
+                    className="w-full bg-green-600 hover:bg-green-700 font-bold py-3 sm:py-4 text-sm sm:text-lg"
                   >
                     FINALIZE AUCTION
                   </Button>
                 ) : time.ended && isHighestBidder ? (
-                  <div className="bg-green-200 border-2 border-green-500 rounded-lg p-4 text-center">
-                    <div className="text-green-800 font-black text-xl">🎉 YOU WON!</div>
-                    <div className="text-green-700 text-sm">Waiting for seller to finalize</div>
+                  <div className="bg-green-200 border-2 border-green-500 rounded-lg p-2 sm:p-4 text-center">
+                    <div className="text-green-800 font-black text-base sm:text-xl">🎉 YOU WON!</div>
+                    <div className="text-green-700 text-xs sm:text-sm">Waiting for seller to finalize</div>
                   </div>
                 ) : time.ended ? (
-                  <div className="bg-red-200 border-2 border-red-400 rounded-lg p-4 text-center">
-                    <div className="text-red-800 font-black text-xl">AUCTION ENDED</div>
+                  <div className="bg-red-200 border-2 border-red-400 rounded-lg p-2 sm:p-4 text-center">
+                    <div className="text-red-800 font-black text-base sm:text-xl">AUCTION ENDED</div>
                   </div>
                 ) : (
-                  <div className="text-[#4a6a7a] text-center font-bold py-3">
+                  <div className="text-[#4a6a7a] text-center font-bold py-2 sm:py-3 text-sm">
                     This is your auction
                   </div>
                 )}
               </div>
 
               {/* Card Display */}
-              <div className="relative flex-1">
+              <div className="relative">
                 {/* Card Name - Top Left */}
-                <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#cc3344] via-[#dd5544] to-[#ee7744] rounded px-3 py-1 border border-[#aa2233] shadow-lg">
-                  <div className="text-[#ffddcc] text-[9px] font-bold">CARD NAME:</div>
-                  <div className="text-white font-black text-sm uppercase" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
+                <div className="absolute top-1 sm:top-2 left-1 sm:left-2 z-10 bg-gradient-to-r from-[#cc3344] via-[#dd5544] to-[#ee7744] rounded px-2 sm:px-3 py-0.5 sm:py-1 border border-[#aa2233] shadow-lg max-w-[70%]">
+                  <div className="text-[#ffddcc] text-[8px] sm:text-[9px] font-bold">CARD:</div>
+                  <div className="text-white font-black text-xs sm:text-sm uppercase truncate" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
                     {card.title}
                     {auction.copy_number && (
                       <span className={`ml-1 ${
@@ -429,7 +425,7 @@ export default function AuctionView() {
                 {/* Info Button */}
                 <button 
                   onClick={() => setShowCardInfo(true)}
-                  className="absolute top-2 right-2 z-10 w-7 h-7 bg-[#3388cc] hover:bg-[#44aaee] text-white rounded-full font-bold shadow-lg flex items-center justify-center"
+                  className="absolute top-1 sm:top-2 right-1 sm:right-2 z-10 w-6 h-6 sm:w-7 sm:h-7 bg-[#3388cc] hover:bg-[#44aaee] text-white rounded-full font-bold shadow-lg flex items-center justify-center text-xs sm:text-sm"
                 >
                   i
                 </button>
@@ -437,7 +433,7 @@ export default function AuctionView() {
                 {/* Card with concentric circles */}
                 <div 
                   onClick={() => setShowCardInfo(true)}
-                  className="w-full h-[250px] md:h-[300px] rounded-lg overflow-hidden border-4 border-[#3388bb] shadow-xl cursor-pointer"
+                  className="w-full h-[180px] sm:h-[250px] md:h-[300px] rounded-lg overflow-hidden border-2 sm:border-4 border-[#3388bb] shadow-xl cursor-pointer"
                   style={{
                     background: `radial-gradient(circle at center, 
                       #000000 0%, #000000 15%, 
@@ -466,20 +462,21 @@ export default function AuctionView() {
           </div>
 
           {/* Bottom: Who's Here + Chat */}
-          <div className="mt-4 grid grid-cols-[140px,1fr,50px] gap-2">
+          <div className="mt-3 sm:mt-4 flex flex-col sm:grid sm:grid-cols-[120px,1fr,40px] gap-2">
+            {/* Viewers - horizontal on mobile */}
             <div className="bg-gradient-to-b from-[#d8e8f0] to-[#b8d0e0] rounded border border-[#8aa8b8]">
               <div className="bg-gradient-to-r from-[#6090a0] to-[#7aa0b0] px-2 py-1 flex items-center gap-1">
-                <span className="text-white font-bold text-[10px]">WHO'S HERE</span>
-                <span className="ml-auto bg-[#4a7a8a] text-white px-1 rounded text-[10px] font-bold">
+                <span className="text-white font-bold text-[9px] sm:text-[10px]">WHO'S HERE</span>
+                <span className="ml-auto bg-[#4a7a8a] text-white px-1 rounded text-[9px] sm:text-[10px] font-bold">
                   {viewers.size}
                 </span>
               </div>
-              <ScrollArea className="h-[70px]">
-                <div className="p-1 space-y-0.5">
+              <ScrollArea className="h-[40px] sm:h-[60px]">
+                <div className="p-1 flex sm:block gap-1 sm:gap-0 sm:space-y-0.5 flex-wrap">
                   {Array.from(viewers.entries()).map(([userId, viewer]) => (
                     <div 
                       key={userId}
-                      className={`px-2 py-0.5 rounded text-[10px] font-semibold truncate ${
+                      className={`px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold truncate ${
                         userId === user?.id ? "bg-[#3388cc] text-white" : "text-[#2266aa]"
                       }`}
                     >
@@ -490,15 +487,16 @@ export default function AuctionView() {
               </ScrollArea>
             </div>
 
-            <div className="bg-white/60 rounded border border-[#8aa8b8] flex flex-col">
+            {/* Chat area */}
+            <div className="bg-white/60 rounded border border-[#8aa8b8] flex flex-col min-h-[60px] sm:min-h-0">
               {chatVisible && (
-                <ScrollArea className="flex-1 h-[50px] px-2 py-1" ref={chatScrollRef}>
+                <ScrollArea className="flex-1 h-[40px] sm:h-[50px] px-2 py-1" ref={chatScrollRef}>
                   {chatMessages.length === 0 ? (
-                    <p className="text-[#6a8a9a] text-[10px] italic">No messages...</p>
+                    <p className="text-[#6a8a9a] text-[9px] sm:text-[10px] italic">No messages...</p>
                   ) : (
                     <div className="space-y-0.5">
                       {chatMessages.map((msg) => (
-                        <div key={msg.id} className="text-[10px]">
+                        <div key={msg.id} className="text-[9px] sm:text-[10px]">
                           <span className={`font-bold ${msg.userId === user?.id ? "text-[#3388cc]" : "text-[#2266aa]"}`}>
                             {msg.username}:
                           </span>
@@ -515,12 +513,12 @@ export default function AuctionView() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && sendChatMessage()}
-                    placeholder="Type message..."
-                    className="flex-1 h-6 text-[10px] bg-white border-[#8aa8b8]"
+                    placeholder="Type..."
+                    className="flex-1 h-6 text-[9px] sm:text-[10px] bg-white border-[#8aa8b8]"
                   />
                   <button 
                     onClick={sendChatMessage}
-                    className="bg-[#3388cc] hover:bg-[#44aaee] text-white font-bold text-[9px] px-2 rounded"
+                    className="bg-[#3388cc] hover:bg-[#44aaee] text-white font-bold text-[8px] sm:text-[9px] px-2 rounded"
                   >
                     SEND
                   </button>
@@ -530,7 +528,7 @@ export default function AuctionView() {
 
             <button 
               onClick={() => setChatVisible(!chatVisible)}
-              className="bg-gradient-to-b from-[#d0e0e8] to-[#b0c8d8] text-[#3a6a7a] font-bold text-[9px] rounded border border-[#8aa8b8]"
+              className="hidden sm:block bg-gradient-to-b from-[#d0e0e8] to-[#b0c8d8] text-[#3a6a7a] font-bold text-[8px] sm:text-[9px] rounded border border-[#8aa8b8]"
             >
               {chatVisible ? 'HIDE' : 'SHOW'}
             </button>
@@ -538,21 +536,21 @@ export default function AuctionView() {
         </div>
 
         {/* Bid History */}
-        <div className="mt-3 bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg p-3">
-          <div className="text-[#3a5a6a] font-black text-sm mb-2">BID HISTORY ({bids.length})</div>
+        <div className="mt-2 sm:mt-3 bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg p-2 sm:p-3">
+          <div className="text-[#3a5a6a] font-black text-xs sm:text-sm mb-1 sm:mb-2">BID HISTORY ({bids.length})</div>
           {bids.length === 0 ? (
-            <p className="text-[#6a8a9a] text-center py-2 text-sm">No bids yet</p>
+            <p className="text-[#6a8a9a] text-center py-2 text-xs sm:text-sm">No bids yet</p>
           ) : (
-            <div className="grid gap-1 max-h-28 overflow-y-auto">
+            <div className="grid gap-1 max-h-24 sm:max-h-28 overflow-y-auto">
               {bids.slice(0, 6).map((bid, index) => (
                 <div 
                   key={bid.id}
-                  className={`flex items-center justify-between px-2 py-1 rounded text-sm ${
+                  className={`flex items-center justify-between px-2 py-1 rounded text-xs sm:text-sm ${
                     index === 0 ? "bg-yellow-200 border border-yellow-400" : "bg-white/50"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className={`font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                  <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+                    <span className={`font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[8px] sm:text-[10px] shrink-0 ${
                       index === 0 ? "bg-yellow-500 text-white" : "bg-[#8aa8b8] text-white"
                     }`}>
                       {index === 0 ? "👑" : index + 1}
@@ -563,7 +561,7 @@ export default function AuctionView() {
                       {bid.username}
                     </span>
                   </div>
-                  <span className="font-bold text-[#2266aa]">
+                  <span className="font-bold text-[#2266aa] shrink-0 ml-2">
                     {bid.bid_amount.toLocaleString()} pts
                   </span>
                 </div>
