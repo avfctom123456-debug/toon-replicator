@@ -6,6 +6,7 @@ import { useSeasons, useSeasonStats, REWARD_TIERS, getTierForRank } from "@/hook
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEndSeason } from "@/hooks/useSeasons";
 import { Button } from "@/components/ui/button";
+import { ClickableUsername } from "@/components/ClickableUsername";
 import { toast } from "sonner";
 import { 
   ArrowLeft, Trophy, Medal, Award, TrendingUp, Swords, Bot, 
@@ -230,10 +231,13 @@ const Leaderboard = () => {
                     <div className="col-span-1 flex items-center">{getRankIcon(entry.rank)}</div>
                     <div className="col-span-4">
                       <div className="flex items-center gap-2">
-                        <span className={`font-medium ${isMe ? "text-primary" : "text-white"}`}>
-                          {entry.username}
-                        </span>
-                        {isMe && <span className="text-xs text-primary">(You)</span>}
+                        <ClickableUsername
+                          userId={entry.user_id}
+                          username={entry.username}
+                          className={`font-medium ${isMe ? "text-primary" : "text-white"}`}
+                          showYouLabel
+                          isCurrentUser={isMe}
+                        />
                       </div>
                       <span className={`text-[10px] ${tier.color}`}>{tier.name}</span>
                     </div>
@@ -320,9 +324,11 @@ const Leaderboard = () => {
                         >
                           <div className="col-span-1">{getRankIcon(stat.final_rank)}</div>
                           <div className="col-span-4">
-                            <span className={`font-medium ${isMe ? "text-primary" : "text-white"}`}>
-                              {stat.username}
-                            </span>
+                            <ClickableUsername
+                              userId={stat.user_id}
+                              username={stat.username}
+                              className={`font-medium ${isMe ? "text-primary" : "text-white"}`}
+                            />
                             <span className={`text-[10px] ml-2 ${tier.color}`}>{tier.name}</span>
                           </div>
                           <div className="col-span-2 text-center">

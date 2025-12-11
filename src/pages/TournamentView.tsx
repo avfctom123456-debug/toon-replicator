@@ -3,6 +3,7 @@ import { Trophy, Users, Coins, Clock, ArrowLeft, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ClickableUsername } from '@/components/ClickableUsername';
 import { useTournamentDetails, useTournaments } from '@/hooks/useTournaments';
 import { TournamentBracket } from '@/components/tournament/TournamentBracket';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -137,7 +138,11 @@ const TournamentView = () => {
                             <span className="text-lg">
                               {p.placement === 1 ? '🥇' : p.placement === 2 ? '🥈' : '🥉'}
                             </span>
-                            <span className="font-medium">{p.username}</span>
+                            <ClickableUsername
+                              userId={p.user_id}
+                              username={p.username}
+                              className="font-medium"
+                            />
                           </div>
                           <span className="text-yellow-500 font-bold">
                             +{p.prize_won} coins
@@ -166,9 +171,11 @@ const TournamentView = () => {
                           <span className="text-xs text-muted-foreground w-4">
                             {p.seed || i + 1}
                           </span>
-                          <span className={p.eliminated ? 'line-through' : ''}>
-                            {p.username}
-                          </span>
+                          <ClickableUsername
+                            userId={p.user_id}
+                            username={p.username}
+                            className={p.eliminated ? 'line-through' : ''}
+                          />
                         </div>
                         {p.placement && (
                           <Badge variant="secondary">#{p.placement}</Badge>

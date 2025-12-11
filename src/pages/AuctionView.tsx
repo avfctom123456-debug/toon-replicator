@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ClickableUsername } from "@/components/ClickableUsername";
 import { toast } from "sonner";
 
 const IMAGE_BASE_URL = "https://dlgjmqnjzepntvfeqfcx.supabase.co/storage/v1/object/public/card-images";
@@ -342,7 +343,15 @@ export default function AuctionView() {
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
                 <div className="text-[#4a6a7a] text-[9px] sm:text-[10px] font-bold">HIGH BIDDER:</div>
                 <div className="text-[#2266aa] font-black text-xs sm:text-sm uppercase truncate">
-                  {auction.highest_bidder_username || "NO BIDS"}
+                  {auction.highest_bidder_id ? (
+                    <ClickableUsername
+                      userId={auction.highest_bidder_id}
+                      username={auction.highest_bidder_username || "Unknown"}
+                      className="text-[#2266aa]"
+                    />
+                  ) : (
+                    "NO BIDS"
+                  )}
                   {isHighestBidder && <span className="text-green-600 block text-[10px] sm:text-xs">(YOU!)</span>}
                 </div>
               </div>
@@ -364,7 +373,11 @@ export default function AuctionView() {
               <div className="bg-white/70 rounded p-2 border border-[#8aa8b8]">
                 <div className="text-[#4a6a7a] text-[9px] sm:text-[10px] font-bold">SELLER:</div>
                 <div className="text-[#2266aa] font-black text-xs sm:text-sm uppercase truncate">
-                  {auction.seller_username}
+                  <ClickableUsername
+                    userId={auction.user_id}
+                    username={auction.seller_username}
+                    className="text-[#2266aa]"
+                  />
                 </div>
               </div>
             </div>
@@ -497,10 +510,12 @@ export default function AuctionView() {
                     <div className="space-y-0.5">
                       {chatMessages.map((msg) => (
                         <div key={msg.id} className="text-[9px] sm:text-[10px]">
-                          <span className={`font-bold ${msg.userId === user?.id ? "text-[#3388cc]" : "text-[#2266aa]"}`}>
-                            {msg.username}:
-                          </span>
-                          <span className="text-[#3a5a6a] ml-1">{msg.message}</span>
+                          <ClickableUsername
+                            userId={msg.userId}
+                            username={msg.username}
+                            className={`font-bold ${msg.userId === user?.id ? "text-[#3388cc]" : "text-[#2266aa]"}`}
+                          />
+                          <span className="text-[#3a5a6a]">: {msg.message}</span>
                         </div>
                       ))}
                     </div>
@@ -555,11 +570,13 @@ export default function AuctionView() {
                     }`}>
                       {index === 0 ? "👑" : index + 1}
                     </span>
-                    <span className={`font-semibold truncate ${
-                      bid.user_id === user?.id ? "text-[#3388cc]" : "text-[#3a5a6a]"
-                    }`}>
-                      {bid.username}
-                    </span>
+                    <ClickableUsername
+                      userId={bid.user_id}
+                      username={bid.username}
+                      className={`font-semibold truncate ${
+                        bid.user_id === user?.id ? "text-[#3388cc]" : "text-[#3a5a6a]"
+                      }`}
+                    />
                   </div>
                   <span className="font-bold text-[#2266aa] shrink-0 ml-2">
                     {bid.bid_amount.toLocaleString()} pts

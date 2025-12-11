@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { ClickableUsername } from "@/components/ClickableUsername";
 import { useGlobalChat } from "@/hooks/useGlobalChat";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -157,9 +158,11 @@ export const GlobalChat = ({ channel = "global" }: GlobalChatProps) => {
                           className={`group flex flex-col ${isOwnMessage ? "items-end" : "items-start"}`}
                         >
                           <div className="flex items-center gap-1 mb-0.5">
-                            <span className={`text-xs font-medium ${isOwnMessage ? "text-primary" : "text-muted-foreground"}`}>
-                              {msg.username}
-                            </span>
+                            <ClickableUsername
+                              userId={msg.user_id}
+                              username={msg.username}
+                              className={`text-xs font-medium ${isOwnMessage ? "text-primary" : "text-muted-foreground"}`}
+                            />
                             <span className="text-xs text-muted-foreground/60">
                               {format(new Date(msg.created_at), "HH:mm")}
                             </span>
