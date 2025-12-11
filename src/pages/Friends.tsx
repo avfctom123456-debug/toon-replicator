@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { ClickableUsername } from "@/components/ClickableUsername";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
 import { useChallenges } from "@/hooks/useChallenges";
@@ -300,9 +301,11 @@ const Friends = () => {
                       <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                         <Users className="h-5 w-5 text-primary" />
                       </div>
-                      <span className="font-medium text-foreground">
-                        {friend.friend_username || "Unknown"}
-                      </span>
+                      <ClickableUsername
+                        userId={friend.user_id === user.id ? friend.friend_id : friend.user_id}
+                        username={friend.friend_username || "Unknown"}
+                        className="font-medium text-foreground"
+                      />
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -377,19 +380,22 @@ const Friends = () => {
                       key={challenge.id}
                       className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg border border-orange-500/30"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                          <Swords className="h-6 w-6 text-orange-500" />
-                        </div>
-                        <div>
-                          <span className="font-semibold text-foreground block">
-                            {challenge.challenger_username || "Unknown"} challenges you!
-                          </span>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            <span>Expires in {getTimeRemaining(challenge.expires_at)}</span>
-                            {challenge.is_ranked && (
-                              <Badge variant="secondary" className="text-xs">Ranked</Badge>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                            <Swords className="h-6 w-6 text-orange-500" />
+                          </div>
+                          <div>
+                            <span className="font-semibold text-foreground block">
+                              <ClickableUsername
+                                userId={challenge.challenger_id}
+                                username={challenge.challenger_username || "Unknown"}
+                              /> challenges you!
+                            </span>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              <span>Expires in {getTimeRemaining(challenge.expires_at)}</span>
+                              {challenge.is_ranked && (
+                                <Badge variant="secondary" className="text-xs">Ranked</Badge>
                             )}
                           </div>
                         </div>

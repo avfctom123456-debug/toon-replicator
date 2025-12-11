@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Eye } from 'lucide-react';
 import { TournamentMatch } from '@/hooks/useTournaments';
 import { Button } from '@/components/ui/button';
+import { ClickableUsername } from '@/components/ClickableUsername';
 import { cn } from '@/lib/utils';
 
 interface TournamentBracketProps {
@@ -27,7 +28,12 @@ const MatchCard = ({ match }: { match: TournamentMatch }) => {
         )}
       >
         <span className="text-sm truncate">
-          {match.player1_username || (match.player1_id ? 'TBD' : 'BYE')}
+          {match.player1_id ? (
+            <ClickableUsername
+              userId={match.player1_id}
+              username={match.player1_username || 'TBD'}
+            />
+          ) : 'BYE'}
         </span>
         {isCompleted && <span className="text-xs ml-2">{match.player1_score}</span>}
       </div>
@@ -39,7 +45,12 @@ const MatchCard = ({ match }: { match: TournamentMatch }) => {
         )}
       >
         <span className="text-sm truncate">
-          {match.player2_username || (match.player2_id ? 'TBD' : 'BYE')}
+          {match.player2_id ? (
+            <ClickableUsername
+              userId={match.player2_id}
+              username={match.player2_username || 'TBD'}
+            />
+          ) : 'BYE'}
         </span>
         {isCompleted && <span className="text-xs ml-2">{match.player2_score}</span>}
       </div>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ClickableUsername } from "@/components/ClickableUsername";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useTrades } from "@/hooks/useTrades";
@@ -660,17 +661,31 @@ export default function TradeBoard() {
                             <span className="text-[#5a7a8a] text-[10px] sm:text-xs">High Bidder:</span>
                             <span className={`text-[10px] sm:text-xs font-semibold truncate max-w-[100px] ${
                               isHighestBidder ? "text-green-600" : "text-[#4a6a7a]"
-                            }`}>
-                              {auction.highest_bidder_username || "No bids"}
-                              {isHighestBidder && " (You!)"}
+                            }`} onClick={(e) => e.stopPropagation()}>
+                              {auction.highest_bidder_id ? (
+                                <>
+                                  <ClickableUsername
+                                    userId={auction.highest_bidder_id}
+                                    username={auction.highest_bidder_username || "Unknown"}
+                                    className={isHighestBidder ? "text-green-600" : "text-[#4a6a7a]"}
+                                  />
+                                  {isHighestBidder && " (You!)"}
+                                </>
+                              ) : (
+                                "No bids"
+                              )}
                             </span>
                           </div>
 
                           {/* Seller */}
                           <div className="flex items-center justify-between">
                             <span className="text-[#5a7a8a] text-[10px] sm:text-xs">Seller:</span>
-                            <span className="text-[#4a6a7a] text-[10px] sm:text-xs truncate max-w-[100px]">
-                              {auction.seller_username}
+                            <span className="text-[#4a6a7a] text-[10px] sm:text-xs truncate max-w-[100px]" onClick={(e) => e.stopPropagation()}>
+                              <ClickableUsername
+                                userId={auction.user_id}
+                                username={auction.seller_username}
+                                className="text-[#4a6a7a]"
+                              />
                             </span>
                           </div>
 
