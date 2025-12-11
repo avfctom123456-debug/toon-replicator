@@ -99,7 +99,7 @@ export const GlobalChat = ({ channel = "global" }: GlobalChatProps) => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className={`fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 relative ${
+          className={`fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 ${
             hasUnread ? "ring-2 ring-offset-2 ring-offset-background ring-destructive" : ""
           }`}
           size="icon"
