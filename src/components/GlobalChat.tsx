@@ -32,19 +32,29 @@ export const GlobalChat = ({ channel = "global" }: GlobalChatProps) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [lastSeenCount, setLastSeenCount] = useState(0);
+  const [lastReadMessageId, setLastReadMessageId] = useState<string | null>(() => {
+    return localStorage.getItem(`chat-last-read-${channel}`);
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Track unread messages
-  const hasUnread = !isOpen && messages.length > lastSeenCount;
+  // Track unread messages by comparing against last read message ID
+  const lastReadIndex = lastReadMessageId 
+    ? messages.findIndex(m => m.id === lastReadMessageId) 
+    : -1;
+  const unreadCount = lastReadIndex === -1 
+    ? (lastReadMessageId ? messages.length : messages.length) // If ID not found but exists, show all as unread
+    : messages.length - lastReadIndex - 1;
+  const hasUnread = !isOpen && unreadCount > 0;
 
-  // Update last seen count when chat is opened
+  // Update last read message when chat is opened
   useEffect(() => {
-    if (isOpen && !isMinimized) {
-      setLastSeenCount(messages.length);
+    if (isOpen && !isMinimized && messages.length > 0) {
+      const latestMessageId = messages[messages.length - 1].id;
+      setLastReadMessageId(latestMessageId);
+      localStorage.setItem(`chat-last-read-${channel}`, latestMessageId);
     }
-  }, [isOpen, isMinimized, messages.length]);
+  }, [isOpen, isMinimized, messages, channel]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -108,8 +118,8 @@ export const GlobalChat = ({ channel = "global" }: GlobalChatProps) => {
           {hasUnread && (
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive flex items-center justify-center">
               <span className="text-[10px] text-destructive-foreground font-bold">
-                {Math.min(messages.length - lastSeenCount, 9)}
-                {messages.length - lastSeenCount > 9 ? '+' : ''}
+                {Math.min(unreadCount, 9)}
+                {unreadCount > 9 ? '+' : ''}
               </span>
             </span>
           )}
