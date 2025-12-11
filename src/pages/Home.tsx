@@ -43,196 +43,198 @@ const Home = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center px-4 py-6 md:py-8">
-      {/* Header with logo and notifications */}
-      <div className="w-full max-w-md flex items-center justify-between gap-2 mb-4">
-        <div className="flex flex-col gap-1 shrink-0">
-          <div className="flex gap-1">
-            <DailyRewardsModal />
-            <PromoCodeRedeemer onSuccess={() => window.location.reload()} />
-          </div>
-          <NotificationBell />
-        </div>
-        <img 
-          src={gtoonsLogo} 
-          alt="gTOONS Remastered" 
-          className="w-32 sm:w-40 md:w-56 h-auto shrink-0"
-        />
-      </div>
-
-      {/* Player Info Card - Clickable */}
-      <div 
-        className="w-full max-w-md bg-card/50 backdrop-blur border border-border/50 rounded-lg p-4 mb-6 cursor-pointer hover:bg-card/70 transition-colors"
-        onClick={() => navigate("/profile")}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center text-lg font-bold text-white">
-              {profile?.username?.charAt(0).toUpperCase() || "?"}
+    <>
+      <div className="min-h-screen bg-background flex flex-col items-center px-4 py-6 md:py-8">
+        {/* Header with logo and notifications */}
+        <div className="w-full max-w-md flex items-center justify-between gap-2 mb-4">
+          <div className="flex flex-col gap-1 shrink-0">
+            <div className="flex gap-1">
+              <DailyRewardsModal />
+              <PromoCodeRedeemer onSuccess={() => window.location.reload()} />
             </div>
-            <div>
-              <p className="text-muted-foreground text-sm">Welcome back,</p>
-              <h1 className="text-xl font-bold text-primary">
-                {profile?.username || "Player"}
-              </h1>
-            </div>
+            <NotificationBell />
           </div>
-          <div className="flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-full border border-border/30">
-            <Coins className="h-5 w-5 text-yellow-500" />
-            <span className="text-foreground font-bold text-lg">{profile?.coins ?? 0}</span>
-          </div>
+          <img 
+            src={gtoonsLogo} 
+            alt="gTOONS Remastered" 
+            className="w-32 sm:w-40 md:w-56 h-auto shrink-0"
+          />
         </div>
-        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-          <User className="w-3 h-3" /> Tap to view your stats
-        </p>
-      </div>
 
-      {/* Play Section */}
-      <div className="w-full max-w-md space-y-3 mb-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Play</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/play-pvp")}
-            className="h-20 flex flex-col gap-1"
-          >
-            <Swords className="h-6 w-6" />
-            <span>Play PVP</span>
-          </Button>
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/play")}
-            className="h-20 flex flex-col gap-1"
-          >
-            <Bot className="h-6 w-6" />
-            <span>Play CPU</span>
-          </Button>
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/friends")}
-            className="h-20 flex flex-col gap-1"
-          >
-            <Users className="h-6 w-6" />
-            <span>Friends</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Cards Section */}
-      <div className="w-full max-w-md space-y-3 mb-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Cards</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/deck-builder")}
-            className="h-16 flex items-center justify-center gap-2"
-          >
-            <Layers className="h-5 w-5" />
-            <span>Deck Builder</span>
-          </Button>
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/collection")}
-            className="h-16 flex items-center justify-center gap-2"
-          >
-            <Library className="h-5 w-5" />
-            <span>Collection</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Shop & Trade Section */}
-      <div className="w-full max-w-md space-y-3 mb-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Shop & Trade</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/pack-shop")}
-            className="h-16 flex items-center justify-center gap-2"
-          >
-            <Package className="h-5 w-5" />
-            <span>Pack Shop</span>
-          </Button>
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/trade-board")}
-            className="h-16 flex items-center justify-center gap-2"
-          >
-            <ArrowRightLeft className="h-5 w-5" />
-            <span>Trade Board</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Compete Section */}
-      <div className="w-full max-w-md space-y-3 mb-4">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Compete</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/leaderboard")}
-            className="h-16 flex items-center justify-center gap-2"
-          >
-            <Trophy className="h-5 w-5" />
-            <span>Leaderboard</span>
-          </Button>
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/tournaments")}
-            className="h-16 flex items-center justify-center gap-2"
-          >
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            <span>Tournaments</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Moderation Panel */}
-      {canModerate && (
-        <div className="w-full max-w-md mb-4">
-          <ChatModerationPanel />
-        </div>
-      )}
-
-      {/* Admin Panel */}
-      {isAdmin && (
-        <div className="w-full max-w-md mb-4">
-          <Button 
-            variant="menu"
-            onClick={() => navigate("/admin")}
-            className="w-full h-14 flex items-center justify-center gap-2 border-primary/50"
-          >
-            <Settings className="h-5 w-5" />
-            <span>Admin Panel</span>
-          </Button>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="w-full max-w-md mt-auto pt-4 flex flex-col items-center gap-3">
-        <Button 
-          variant="discord"
-          onClick={() => window.open("https://discord.gg/gtoons", "_blank")}
-          className="flex items-center gap-2"
+        {/* Player Info Card - Clickable */}
+        <div 
+          className="w-full max-w-md bg-card/50 backdrop-blur border border-border/50 rounded-lg p-4 mb-6 cursor-pointer hover:bg-card/70 transition-colors"
+          onClick={() => navigate("/profile")}
         >
-          <DiscordIcon />
-          Join Discord
-        </Button>
-        <p className="text-accent/80 text-xs text-center">Join the community to find matches!</p>
-        
-        <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground text-sm">
-          Sign Out
-        </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center text-lg font-bold text-white">
+                {profile?.username?.charAt(0).toUpperCase() || "?"}
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm">Welcome back,</p>
+                <h1 className="text-xl font-bold text-primary">
+                  {profile?.username || "Player"}
+                </h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-full border border-border/30">
+              <Coins className="h-5 w-5 text-yellow-500" />
+              <span className="text-foreground font-bold text-lg">{profile?.coins ?? 0}</span>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+            <User className="w-3 h-3" /> Tap to view your stats
+          </p>
+        </div>
+
+        {/* Play Section */}
+        <div className="w-full max-w-md space-y-3 mb-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Play</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/play-pvp")}
+              className="h-20 flex flex-col gap-1"
+            >
+              <Swords className="h-6 w-6" />
+              <span>Play PVP</span>
+            </Button>
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/play")}
+              className="h-20 flex flex-col gap-1"
+            >
+              <Bot className="h-6 w-6" />
+              <span>Play CPU</span>
+            </Button>
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/friends")}
+              className="h-20 flex flex-col gap-1"
+            >
+              <Users className="h-6 w-6" />
+              <span>Friends</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Cards Section */}
+        <div className="w-full max-w-md space-y-3 mb-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Cards</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/deck-builder")}
+              className="h-16 flex items-center justify-center gap-2"
+            >
+              <Layers className="h-5 w-5" />
+              <span>Deck Builder</span>
+            </Button>
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/collection")}
+              className="h-16 flex items-center justify-center gap-2"
+            >
+              <Library className="h-5 w-5" />
+              <span>Collection</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Shop & Trade Section */}
+        <div className="w-full max-w-md space-y-3 mb-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Shop & Trade</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/pack-shop")}
+              className="h-16 flex items-center justify-center gap-2"
+            >
+              <Package className="h-5 w-5" />
+              <span>Pack Shop</span>
+            </Button>
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/trade-board")}
+              className="h-16 flex items-center justify-center gap-2"
+            >
+              <ArrowRightLeft className="h-5 w-5" />
+              <span>Trade Board</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Compete Section */}
+        <div className="w-full max-w-md space-y-3 mb-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">Compete</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/leaderboard")}
+              className="h-16 flex items-center justify-center gap-2"
+            >
+              <Trophy className="h-5 w-5" />
+              <span>Leaderboard</span>
+            </Button>
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/tournaments")}
+              className="h-16 flex items-center justify-center gap-2"
+            >
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              <span>Tournaments</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Moderation Panel */}
+        {canModerate && (
+          <div className="w-full max-w-md mb-4">
+            <ChatModerationPanel />
+          </div>
+        )}
+
+        {/* Admin Panel */}
+        {isAdmin && (
+          <div className="w-full max-w-md mb-4">
+            <Button 
+              variant="menu"
+              onClick={() => navigate("/admin")}
+              className="w-full h-14 flex items-center justify-center gap-2 border-primary/50"
+            >
+              <Settings className="h-5 w-5" />
+              <span>Admin Panel</span>
+            </Button>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="w-full max-w-md mt-auto pt-4 flex flex-col items-center gap-3">
+          <Button 
+            variant="discord"
+            onClick={() => window.open("https://discord.gg/gtoons", "_blank")}
+            className="flex items-center gap-2"
+          >
+            <DiscordIcon />
+            Join Discord
+          </Button>
+          <p className="text-accent/80 text-xs text-center">Join the community to find matches!</p>
+          
+          <Button variant="ghost" onClick={handleSignOut} className="text-muted-foreground text-sm">
+            Sign Out
+          </Button>
+        </div>
+
+        {/* Version */}
+        <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">
+          v0.0.38
+        </div>
       </div>
 
-      {/* Version */}
-      <div className="fixed bottom-4 left-4 text-muted-foreground text-xs">
-        v0.0.38
-      </div>
-
-      {/* Global Chat */}
+      {/* Global Chat - Outside flex container for proper fixed positioning */}
       <GlobalChat />
-    </div>
+    </>
   );
 };
 
