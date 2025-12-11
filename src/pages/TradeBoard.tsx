@@ -129,6 +129,10 @@ export default function TradeBoard() {
 
   const addOfferCard = () => {
     if (selectedOfferUserCard && !offerUserCardIds.includes(selectedOfferUserCard)) {
+      if (offerUserCardIds.length >= 12) {
+        toast.error("Maximum 12 cards allowed");
+        return;
+      }
       setOfferUserCardIds([...offerUserCardIds, selectedOfferUserCard]);
       setSelectedOfferUserCard("");
     }
@@ -136,6 +140,10 @@ export default function TradeBoard() {
 
   const addWantCard = () => {
     if (selectedWantCard && !wantCardIds.includes(parseInt(selectedWantCard))) {
+      if (wantCardIds.length >= 12) {
+        toast.error("Maximum 12 cards allowed");
+        return;
+      }
       setWantCardIds([...wantCardIds, parseInt(selectedWantCard)]);
       setSelectedWantCard("");
     }
@@ -267,7 +275,10 @@ export default function TradeBoard() {
                   <div className="space-y-6 py-4">
                     {/* Offering */}
                     <div>
-                      <Label className="text-lg font-semibold">You Offer</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-lg font-semibold">You Offer</Label>
+                        <span className="text-xs text-muted-foreground">{offerUserCardIds.length}/12 cards</span>
+                      </div>
                       <div className="mt-2 space-y-2">
                         <div className="flex gap-2">
                           <Select value={selectedOfferUserCard} onValueChange={setSelectedOfferUserCard}>
@@ -326,7 +337,10 @@ export default function TradeBoard() {
 
                     {/* Wanting */}
                     <div>
-                      <Label className="text-lg font-semibold">You Want</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-lg font-semibold">You Want</Label>
+                        <span className="text-xs text-muted-foreground">{wantCardIds.length}/12 cards</span>
+                      </div>
                       <div className="mt-2 space-y-2">
                         <div className="flex gap-2">
                           <Select value={selectedWantCard} onValueChange={setSelectedWantCard}>
@@ -611,7 +625,7 @@ export default function TradeBoard() {
                   <p className="text-[#4a6a7a] font-semibold">No active auctions. Start one now!</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {auctions.map((auction) => {
                     const card = getCardById(auction.card_id);
                     if (!card) return null;
@@ -632,115 +646,106 @@ export default function TradeBoard() {
                     return (
                       <div 
                         key={auction.id} 
-                        className={`bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg overflow-hidden ${
+                        onClick={() => navigate(`/auction/${auction.id}`)}
+                        className={`bg-gradient-to-b from-[#c8d8e8] to-[#a8c8d8] rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-cyan-400 transition-all ${
                           isHighestBidder ? "ring-2 ring-green-400" : ""
                         }`}
                       >
-                        {/* Card display with concentric circles */}
-                        <div className="grid grid-cols-[1fr,200px] gap-0">
-                          {/* Left side - Card image */}
-                          <div 
-                            className="h-[160px] relative cursor-pointer"
-                            onClick={() => navigate(`/auction/${auction.id}`)}
-                            style={{
-                              background: `radial-gradient(circle at center, 
-                                #000000 0%, 
-                                #000000 15%, 
-                                #661111 20%,
-                                #882222 25%,
-                                #aa3333 30%,
-                                #cc4444 35%,
-                                #dd5544 40%,
-                                #ee6644 45%,
-                                #ff7755 50%,
-                                #ee6644 55%,
-                                #dd5544 60%,
-                                #cc4444 65%,
-                                #aa3333 70%
-                              )`
-                            }}
+                        {/* Card image with concentric circles */}
+                        <div 
+                          className="h-[120px] sm:h-[140px] relative"
+                          style={{
+                            background: `radial-gradient(circle at center, 
+                              #000000 0%, #000000 15%, 
+                              #661111 20%, #882222 25%, #aa3333 30%,
+                              #cc4444 35%, #dd5544 40%, #ee6644 45%,
+                              #ff7755 50%, #ee6644 55%, #dd5544 60%,
+                              #cc4444 65%, #aa3333 70%
+                            )`
+                          }}
+                        >
+                          {/* Card Name Badge */}
+                          <div className="absolute top-1.5 left-1.5 bg-gradient-to-r from-[#cc3344] via-[#dd5544] to-[#ee7744] rounded px-1.5 py-0.5 border border-[#aa2233] max-w-[70%]">
+                            <div className="text-white font-black text-[10px] sm:text-xs uppercase truncate" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
+                              {card.title}
+                              {auction.copy_number && (
+                                <span className={`ml-1 ${
+                                  auction.copy_number <= 10 ? "text-yellow-300" :
+                                  auction.copy_number <= 50 ? "text-gray-300" : "text-white/70"
+                                }`}>
+                                  #{auction.copy_number}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Timer Badge */}
+                          <div className="absolute top-1.5 right-1.5 flex gap-0.5 bg-black/50 rounded px-1.5 py-0.5">
+                            <span className="bg-[#cc3333] text-white font-bold text-[10px] px-1 rounded">
+                              {String(hours).padStart(2, '0')}
+                            </span>
+                            <span className="text-white text-[10px]">:</span>
+                            <span className="bg-[#cc3333] text-white font-bold text-[10px] px-1 rounded">
+                              {String(minutes).padStart(2, '0')}
+                            </span>
+                            <span className="text-white text-[10px]">:</span>
+                            <span className="bg-[#cc3333] text-white font-bold text-[10px] px-1 rounded">
+                              {String(seconds).padStart(2, '0')}
+                            </span>
+                          </div>
+
+                          {/* Card Image */}
+                          <div className="w-full h-full flex items-center justify-center pt-4">
+                            <img 
+                              src={imageUrl}
+                              alt={card.title}
+                              className="max-w-[45%] max-h-[75%] object-contain"
+                              style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.8))' }}
+                            />
+                          </div>
+
+                          {ended && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <span className="text-white font-black text-xl">ENDED</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info section */}
+                        <div className="p-2 sm:p-3 space-y-1.5">
+                          {/* Current bid */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[#5a7a8a] text-[10px] sm:text-xs font-semibold">Current Bid:</span>
+                            <span className="text-[#2266aa] font-black text-sm sm:text-base">
+                              {currentBid.toLocaleString()} PTS
+                            </span>
+                          </div>
+                          
+                          {/* High bidder */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[#5a7a8a] text-[10px] sm:text-xs">High Bidder:</span>
+                            <span className={`text-[10px] sm:text-xs font-semibold truncate max-w-[100px] ${
+                              isHighestBidder ? "text-green-600" : "text-[#4a6a7a]"
+                            }`}>
+                              {auction.highest_bidder_username || "No bids"}
+                              {isHighestBidder && " (You!)"}
+                            </span>
+                          </div>
+
+                          {/* Seller */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[#5a7a8a] text-[10px] sm:text-xs">Seller:</span>
+                            <span className="text-[#4a6a7a] text-[10px] sm:text-xs truncate max-w-[100px]">
+                              {auction.seller_username}
+                            </span>
+                          </div>
+
+                          {/* View button */}
+                          <button
+                            className="w-full bg-[#3388cc] hover:bg-[#44aaee] text-white font-bold text-[10px] sm:text-xs py-1.5 sm:py-2 rounded mt-1"
                           >
-                            {/* Card Name - Top Left */}
-                            <div className="absolute top-2 left-2 bg-gradient-to-r from-[#cc3344] via-[#dd5544] to-[#ee7744] rounded px-2 py-1 border border-[#aa2233]">
-                              <div className="text-white font-black text-sm uppercase truncate max-w-[200px]" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.5)' }}>
-                                {card.title}
-                                {auction.copy_number && (
-                                  <span className={`ml-1 ${
-                                    auction.copy_number <= 10 ? "text-yellow-300" :
-                                    auction.copy_number <= 50 ? "text-gray-300" : "text-white/70"
-                                  }`}>
-                                    #{auction.copy_number}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Card Image - Centered */}
-                            <div className="w-full h-full flex items-center justify-center">
-                              <img 
-                                src={imageUrl}
-                                alt={card.title}
-                                className="max-w-[40%] max-h-[80%] object-contain drop-shadow-lg"
-                                style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.8))' }}
-                              />
-                            </div>
-
-                            {ended && (
-                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <span className="text-white font-black text-2xl">ENDED</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Right side - Info */}
-                          <div className="p-3 flex flex-col justify-between">
-                            {/* Timer */}
-                            <div className="flex gap-1 justify-center">
-                              <div className="text-center">
-                                <div className="bg-[#cc3333] text-white font-bold text-sm px-1.5 py-0.5 rounded min-w-[24px]">
-                                  {String(hours).padStart(2, '0')}
-                                </div>
-                                <div className="text-[#5a7a8a] text-[8px]">HRS</div>
-                              </div>
-                              <span className="text-[#5a7a8a] font-bold">:</span>
-                              <div className="text-center">
-                                <div className="bg-[#cc3333] text-white font-bold text-sm px-1.5 py-0.5 rounded min-w-[24px]">
-                                  {String(minutes).padStart(2, '0')}
-                                </div>
-                                <div className="text-[#5a7a8a] text-[8px]">MIN</div>
-                              </div>
-                              <span className="text-[#5a7a8a] font-bold">:</span>
-                              <div className="text-center">
-                                <div className="bg-[#cc3333] text-white font-bold text-sm px-1.5 py-0.5 rounded min-w-[24px]">
-                                  {String(seconds).padStart(2, '0')}
-                                </div>
-                                <div className="text-[#5a7a8a] text-[8px]">SEC</div>
-                              </div>
-                            </div>
-
-                            {/* Bid Info */}
-                            <div className="space-y-1 text-center">
-                              <div className="text-[#2266aa] font-black text-lg">
-                                {currentBid.toLocaleString()} PTS
-                              </div>
-                              <div className="text-[#5a7a8a] text-[10px]">
-                                {auction.highest_bidder_username ? (
-                                  <>High: <span className={isHighestBidder ? "text-green-600 font-bold" : ""}>{auction.highest_bidder_username}</span></>
-                                ) : "No bids yet"}
-                              </div>
-                              <div className="text-[#5a7a8a] text-[10px]">
-                                Seller: {auction.seller_username}
-                              </div>
-                            </div>
-
-                            {/* Action Button */}
-                            <button
-                              onClick={() => navigate(`/auction/${auction.id}`)}
-                              className="w-full bg-[#3388cc] hover:bg-[#44aaee] text-white font-bold text-xs py-2 rounded"
-                            >
-                              VIEW AUCTION
-                            </button>
-                          </div>
+                            VIEW AUCTION
+                          </button>
                         </div>
                       </div>
                     );
