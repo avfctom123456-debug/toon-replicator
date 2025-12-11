@@ -24,6 +24,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Tournaments from "./pages/Tournaments";
 import TournamentView from "./pages/TournamentView";
 import SpectatorView from "./components/tournament/SpectatorView";
+import PlayerProfile from "./pages/PlayerProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,8 @@ const App = () => (
                 <Route path="/tournaments" element={<Tournaments />} />
                 <Route path="/tournament/:id" element={<TournamentView />} />
                 <Route path="/spectate/:matchId" element={<SpectatorView />} />
+                <Route path="/profile" element={<PlayerProfile />} />
+                <Route path="/profile/:userId" element={<PlayerProfile />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>

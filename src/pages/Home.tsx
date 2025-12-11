@@ -11,7 +11,7 @@ import { DailyRewardsModal } from "@/components/DailyRewardsModal";
 import { GlobalChat } from "@/components/GlobalChat";
 import { ChatModerationPanel } from "@/components/ChatModerationPanel";
 import { toast } from "sonner";
-import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers, Users } from "lucide-react";
+import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers, Users, User } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -60,20 +60,31 @@ const Home = () => {
         />
       </div>
 
-      {/* Player Info Card */}
-      <div className="w-full max-w-md bg-card/50 backdrop-blur border border-border/50 rounded-lg p-4 mb-6">
+      {/* Player Info Card - Clickable */}
+      <div 
+        className="w-full max-w-md bg-card/50 backdrop-blur border border-border/50 rounded-lg p-4 mb-6 cursor-pointer hover:bg-card/70 transition-colors"
+        onClick={() => navigate("/profile")}
+      >
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-muted-foreground text-sm">Welcome back,</p>
-            <h1 className="text-2xl font-bold text-primary">
-              {profile?.username || "Player"}
-            </h1>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center text-lg font-bold text-white">
+              {profile?.username?.charAt(0).toUpperCase() || "?"}
+            </div>
+            <div>
+              <p className="text-muted-foreground text-sm">Welcome back,</p>
+              <h1 className="text-xl font-bold text-primary">
+                {profile?.username || "Player"}
+              </h1>
+            </div>
           </div>
           <div className="flex items-center gap-2 bg-secondary/50 px-4 py-2 rounded-full border border-border/30">
             <Coins className="h-5 w-5 text-yellow-500" />
             <span className="text-foreground font-bold text-lg">{profile?.coins ?? 0}</span>
           </div>
         </div>
+        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+          <User className="w-3 h-3" /> Tap to view your stats
+        </p>
       </div>
 
       {/* Play Section */}
