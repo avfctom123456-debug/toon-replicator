@@ -20,6 +20,7 @@ import {
   TrendingUp, User, History, ExternalLink
 } from "lucide-react";
 import { AuctionBidHistoryModal } from "@/components/trade/AuctionBidHistoryModal";
+import { CardPickerModal } from "@/components/trade/CardPickerModal";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import cardsData from "@/data/cards.json";
 
 export default function TradeBoard() {
   const navigate = useNavigate();
@@ -52,14 +52,10 @@ export default function TradeBoard() {
   } = useAuctions();
   const { getOverride } = useCardOverrides();
 
-  // Trade form state - now uses user_card_ids for specific copies
+  // Trade form state - simplified: only offer cards and/or coins
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [offerUserCardIds, setOfferUserCardIds] = useState<string[]>([]);
   const [offerCoins, setOfferCoins] = useState(0);
-  const [wantCardIds, setWantCardIds] = useState<number[]>([]);
-  const [wantCoins, setWantCoins] = useState(0);
-  const [selectedOfferUserCard, setSelectedOfferUserCard] = useState<string>("");
-  const [selectedWantCard, setSelectedWantCard] = useState<string>("");
 
   // Auction form state - now uses specific user_card
   const [showAuctionDialog, setShowAuctionDialog] = useState(false);
@@ -104,10 +100,6 @@ export default function TradeBoard() {
     .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => a.title.localeCompare(b.title) || (a.copyNumber || 0) - (b.copyNumber || 0));
 
-  const allCards = (cardsData as { id: number; title: string }[]).sort((a, b) => 
-    a.title.localeCompare(b.title)
-  );
-
   // Trade handlers
   const handleCreateTrade = async () => {
     // Extract card_ids from user_card selection for the offer
@@ -116,36 +108,19 @@ export default function TradeBoard() {
       return uc?.card_id || 0;
     }).filter(id => id > 0);
     
-    const success = await createTrade(offerCardIds, offerCoins, wantCardIds, wantCoins, offerUserCardIds);
+    // Pass empty arrays for want (trades are now just offers)
+    const success = await createTrade(offerCardIds, offerCoins, [], 0, offerUserCardIds);
     if (success) {
       setShowCreateDialog(false);
       setOfferUserCardIds([]);
       setOfferCoins(0);
-      setWantCardIds([]);
-      setWantCoins(0);
-      toast.success("Trade created!");
+      toast.success("Trade offer created!");
     }
   };
 
-  const addOfferCard = () => {
-    if (selectedOfferUserCard && !offerUserCardIds.includes(selectedOfferUserCard)) {
-      if (offerUserCardIds.length >= 12) {
-        toast.error("Maximum 12 cards allowed");
-        return;
-      }
-      setOfferUserCardIds([...offerUserCardIds, selectedOfferUserCard]);
-      setSelectedOfferUserCard("");
-    }
-  };
-
-  const addWantCard = () => {
-    if (selectedWantCard && !wantCardIds.includes(parseInt(selectedWantCard))) {
-      if (wantCardIds.length >= 12) {
-        toast.error("Maximum 12 cards allowed");
-        return;
-      }
-      setWantCardIds([...wantCardIds, parseInt(selectedWantCard)]);
-      setSelectedWantCard("");
+  const handleAddOfferCard = (userCardId: string) => {
+    if (!offerUserCardIds.includes(userCardId) && offerUserCardIds.length < 12) {
+      setOfferUserCardIds([...offerUserCardIds, userCardId]);
     }
   };
 
@@ -268,132 +243,91 @@ export default function TradeBoard() {
                     Create Trade
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Create Trade</DialogTitle>
+                    <DialogTitle>Create Trade Offer</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-6 py-4">
-                    {/* Offering */}
+                  <div className="space-y-4 py-4">
+                    <p className="text-sm text-muted-foreground">
+                      List cards and/or coins you want to trade. Other players can browse and accept your offer.
+                    </p>
+
+                    {/* Card Picker */}
                     <div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-lg font-semibold">You Offer</Label>
-                        <span className="text-xs text-muted-foreground">{offerUserCardIds.length}/12 cards</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="font-semibold">Cards to Offer</Label>
+                        <span className="text-xs text-muted-foreground">{offerUserCardIds.length}/12</span>
                       </div>
-                      <div className="mt-2 space-y-2">
-                        <div className="flex gap-2">
-                          <Select value={selectedOfferUserCard} onValueChange={setSelectedOfferUserCard}>
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Select a card copy you own" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ownedCardsWithCopies.map((card) => (
-                                <SelectItem key={card.userCardId} value={card.userCardId}>
-                                  <span className="flex items-center gap-2">
-                                    {card.title}
-                                    {card.copyNumber && (
-                                      <span className={`text-xs ${
-                                        card.copyNumber <= 10 ? "text-yellow-500 font-bold" :
-                                        card.copyNumber <= 50 ? "text-gray-400" : "text-muted-foreground"
-                                      }`}>
-                                        #{card.copyNumber}
-                                      </span>
-                                    )}
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button onClick={addOfferCard} size="icon">
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
+                      
+                      <CardPickerModal
+                        cards={ownedCardsWithCopies}
+                        selectedIds={offerUserCardIds}
+                        onSelect={handleAddOfferCard}
+                        maxCards={12}
+                      />
+
+                      {/* Selected cards display */}
+                      {offerUserCardIds.length > 0 && (
+                        <div className="mt-3 grid grid-cols-4 gap-2">
                           {offerUserCardIds.map((userCardId) => {
                             const cardCopy = ownedCardsWithCopies.find(c => c.userCardId === userCardId);
-                            return cardCopy ? (
-                              <CardChip 
-                                key={userCardId} 
-                                card={cardCopy}
-                                copyNumber={cardCopy.copyNumber}
-                                onRemove={() => setOfferUserCardIds(offerUserCardIds.filter(id => id !== userCardId))}
-                                customImageUrl={getOverride(cardCopy.id)?.custom_image_url}
-                              />
-                            ) : null;
+                            if (!cardCopy) return null;
+                            const imageUrl = getOverride(cardCopy.id)?.custom_image_url || 
+                              `https://dlgjmqnjzepntvfeqfcx.supabase.co/storage/v1/object/public/card-images/${cardCopy.id}.jpg`;
+                            return (
+                              <div key={userCardId} className="relative group">
+                                <div className="aspect-square rounded-lg overflow-hidden border-2 border-border">
+                                  <img 
+                                    src={imageUrl}
+                                    alt={cardCopy.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {cardCopy.copyNumber && (
+                                    <div className={`absolute top-0.5 right-0.5 px-1 rounded text-[8px] font-bold ${
+                                      cardCopy.copyNumber <= 10 ? "bg-yellow-500 text-yellow-950" :
+                                      cardCopy.copyNumber <= 50 ? "bg-gray-400 text-gray-900" : "bg-black/60 text-white"
+                                    }`}>
+                                      #{cardCopy.copyNumber}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => setOfferUserCardIds(offerUserCardIds.filter(id => id !== userCardId))}
+                                  className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  ×
+                                </button>
+                                <p className="text-[9px] text-center truncate mt-0.5">{cardCopy.title}</p>
+                              </div>
+                            );
                           })}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Label>Coins:</Label>
-                          <Input
-                            type="number"
-                            value={offerCoins}
-                            onChange={(e) => setOfferCoins(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="w-24"
-                            min={0}
-                            max={profile?.coins || 0}
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Wanting */}
+                    {/* Coins */}
                     <div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-lg font-semibold">You Want</Label>
-                        <span className="text-xs text-muted-foreground">{wantCardIds.length}/12 cards</span>
-                      </div>
-                      <div className="mt-2 space-y-2">
-                        <div className="flex gap-2">
-                          <Select value={selectedWantCard} onValueChange={setSelectedWantCard}>
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Select a card you want" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allCards.map((card) => (
-                                <SelectItem key={card.id} value={card.id.toString()}>
-                                  {card.title}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button onClick={addWantCard} size="icon">
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {wantCardIds.map((cardId) => {
-                            const card = getCardById(cardId);
-                            return card ? (
-                              <CardChip 
-                                key={cardId} 
-                                card={card}
-                                onRemove={() => setWantCardIds(wantCardIds.filter(id => id !== cardId))}
-                                customImageUrl={getOverride(cardId)?.custom_image_url}
-                              />
-                            ) : null;
-                          })}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label>Coins:</Label>
-                          <Input
-                            type="number"
-                            value={wantCoins}
-                            onChange={(e) => setWantCoins(Math.max(0, parseInt(e.target.value) || 0))}
-                            className="w-24"
-                            min={0}
-                          />
-                        </div>
+                      <Label className="font-semibold">Coins to Offer</Label>
+                      <div className="flex items-center gap-3 mt-2">
+                        <Coins className="h-5 w-5 text-yellow-500" />
+                        <Input
+                          type="number"
+                          value={offerCoins}
+                          onChange={(e) => setOfferCoins(Math.max(0, Math.min(profile?.coins || 0, parseInt(e.target.value) || 0)))}
+                          className="w-32"
+                          min={0}
+                          max={profile?.coins || 0}
+                        />
+                        <span className="text-xs text-muted-foreground">/ {profile?.coins || 0} available</span>
                       </div>
                     </div>
 
                     <Button
                       onClick={handleCreateTrade}
                       className="w-full"
-                      disabled={
-                        (offerUserCardIds.length === 0 && offerCoins === 0) ||
-                        (wantCardIds.length === 0 && wantCoins === 0)
-                      }
+                      disabled={offerUserCardIds.length === 0 && offerCoins === 0}
                     >
-                      Create Trade
+                      Create Trade Offer
                     </Button>
                   </div>
                 </DialogContent>
