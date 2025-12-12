@@ -25,6 +25,8 @@ import Tournaments from "./pages/Tournaments";
 import TournamentView from "./pages/TournamentView";
 import SpectatorView from "./components/tournament/SpectatorView";
 import PlayerProfile from "./pages/PlayerProfile";
+import CMart from "./pages/CMart";
+import CZone from "./pages/CZone";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +63,9 @@ const App = () => (
                 <Route path="/spectate/:matchId" element={<SpectatorView />} />
                 <Route path="/profile" element={<PlayerProfile />} />
                 <Route path="/profile/:userId" element={<PlayerProfile />} />
+                <Route path="/cmart" element={<CMart />} />
+                <Route path="/czone" element={<CZone />} />
+                <Route path="/czone/:userId" element={<CZone />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
