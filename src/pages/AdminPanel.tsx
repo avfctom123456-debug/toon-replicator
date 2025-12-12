@@ -206,6 +206,8 @@ export default function AdminPanel() {
   const [newBgName, setNewBgName] = useState("");
   const [newBgSlug, setNewBgSlug] = useState("");
   const [newBgImageUrl, setNewBgImageUrl] = useState("");
+  const [bgUploadFile, setBgUploadFile] = useState<File | null>(null);
+  const [uploadingBg, setUploadingBg] = useState(false);
 
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
 
@@ -520,11 +522,32 @@ export default function AdminPanel() {
       return;
     }
 
+    setUploadingBg(true);
+    let imageUrl = newBgImageUrl.trim() || null;
+
     try {
+      // Upload file if provided
+      if (bgUploadFile) {
+        const fileExt = bgUploadFile.name.split('.').pop();
+        const fileName = `${newBgSlug.trim().toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("czone-backgrounds")
+          .upload(fileName, bgUploadFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from("czone-backgrounds")
+          .getPublicUrl(fileName);
+        
+        imageUrl = urlData.publicUrl;
+      }
+
       const { error } = await supabase.from("czone_backgrounds").insert({
         name: newBgName.trim(),
         slug: newBgSlug.trim().toLowerCase().replace(/\s+/g, '-'),
-        image_url: newBgImageUrl.trim() || null,
+        image_url: imageUrl,
         unlock_requirement: "free",
       });
 
@@ -535,10 +558,13 @@ export default function AdminPanel() {
       setNewBgName("");
       setNewBgSlug("");
       setNewBgImageUrl("");
+      setBgUploadFile(null);
       fetchCzoneBackgrounds();
     } catch (error) {
       console.error("Error adding background:", error);
       toast.error("Failed to add background");
+    } finally {
+      setUploadingBg(false);
     }
   };
 
@@ -1986,18 +2012,32 @@ export default function AdminPanel() {
                         />
                       </div>
                       <div>
-                        <Label>Image URL (optional)</Label>
+                        <Label>Upload Image</Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setBgUploadFile(e.target.files?.[0] || null)}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Or enter a URL below
+                        </p>
+                      </div>
+                      <div>
+                        <Label>Image URL (alternative)</Label>
                         <Input
                           value={newBgImageUrl}
                           onChange={(e) => setNewBgImageUrl(e.target.value)}
                           placeholder="https://example.com/bg.jpg"
+                          disabled={!!bgUploadFile}
                         />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Leave empty to use a gradient style
-                        </p>
                       </div>
-                      <Button onClick={handleAddCzoneBackground} className="w-full">
-                        Add Background
+                      <Button 
+                        onClick={handleAddCzoneBackground} 
+                        className="w-full"
+                        disabled={uploadingBg}
+                      >
+                        {uploadingBg ? "Uploading..." : "Add Background"}
                       </Button>
                     </div>
                   </DialogContent>
