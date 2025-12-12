@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useOrbitMode } from "@/hooks/useOrbitMode";
@@ -118,9 +119,10 @@ const CZone = () => {
   const [browsePlacements, setBrowsePlacements] = useState<CZonePlacement[]>([]);
   const [browseUser, setBrowseUser] = useState<CZoneUser | null>(null);
   
-  // cZone name/description (display only since we're keeping it simple)
+  // cZone name/description
   const [czoneName, setCzoneName] = useState("");
   const [czoneDescription, setCzoneDescription] = useState("");
+  const [savingCzone, setSavingCzone] = useState(false);
   
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -136,9 +138,11 @@ const CZone = () => {
     }
   }, [orbitModeEnabled, orbitLoading, navigate]);
 
+  // Load czone name/description from profile
   useEffect(() => {
-    if (profile?.username) {
-      setCzoneName(`${profile.username}'s cZone`);
+    if (profile) {
+      setCzoneName(profile.czone_name || `${profile.username}'s cZone`);
+      setCzoneDescription(profile.czone_description || "");
     }
   }, [profile]);
 
@@ -295,9 +299,29 @@ const CZone = () => {
     }
   };
 
-  const handleSave = () => {
-    setBuildMode(false);
-    toast.success("cZone saved!");
+  const handleSave = async () => {
+    if (!user) return;
+    
+    setSavingCzone(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ 
+          czone_name: czoneName.trim() || null,
+          czone_description: czoneDescription.trim() || null
+        })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      
+      setBuildMode(false);
+      toast.success("cZone saved!");
+    } catch (error) {
+      console.error("Error saving cZone:", error);
+      toast.error("Failed to save cZone");
+    } finally {
+      setSavingCzone(false);
+    }
   };
 
   if (authLoading || orbitLoading || czoneLoading) {
@@ -612,9 +636,10 @@ const CZone = () => {
                   <Button
                     onClick={handleSave}
                     className="w-full bg-[hsl(220,60%,35%)] hover:bg-[hsl(220,60%,40%)] text-white"
+                    disabled={savingCzone}
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Save cZone
+                    {savingCzone ? "Saving..." : "Save cZone"}
                   </Button>
                 </div>
               </div>

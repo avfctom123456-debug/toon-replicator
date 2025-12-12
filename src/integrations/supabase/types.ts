@@ -738,6 +738,8 @@ export type Database = {
           coins: number
           created_at: string
           czone_background: string | null
+          czone_description: string | null
+          czone_name: string | null
           free_packs_remaining: number
           id: string
           orbit_mode_enabled: boolean
@@ -750,6 +752,8 @@ export type Database = {
           coins?: number
           created_at?: string
           czone_background?: string | null
+          czone_description?: string | null
+          czone_name?: string | null
           free_packs_remaining?: number
           id?: string
           orbit_mode_enabled?: boolean
@@ -762,6 +766,8 @@ export type Database = {
           coins?: number
           created_at?: string
           czone_background?: string | null
+          czone_description?: string | null
+          czone_name?: string | null
           free_packs_remaining?: number
           id?: string
           orbit_mode_enabled?: boolean
