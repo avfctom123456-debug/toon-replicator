@@ -11,6 +11,8 @@ export interface Profile {
   updated_at: string;
   starter_deck_claimed: string | null;
   free_packs_remaining: number;
+  czone_name: string | null;
+  czone_description: string | null;
 }
 
 export const useProfile = () => {
