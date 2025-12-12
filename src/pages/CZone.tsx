@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-// Background gradients for each world
+// Background gradients fallback for each world
 const backgroundStyles: Record<string, string> = {
   dexter: "from-[hsl(200,80%,25%)] via-[hsl(200,60%,35%)] to-[hsl(180,50%,20%)]",
   powerpuff: "from-[hsl(330,60%,30%)] via-[hsl(300,50%,25%)] to-[hsl(280,40%,20%)]",
@@ -42,6 +42,10 @@ const backgroundStyles: Record<string, string> = {
   titans: "from-[hsl(220,60%,25%)] via-[hsl(240,50%,30%)] to-[hsl(260,40%,20%)]",
   fosters: "from-[hsl(180,50%,30%)] via-[hsl(200,40%,35%)] to-[hsl(220,30%,25%)]",
 };
+
+// Canvas base dimensions for scaling
+const CANVAS_WIDTH = 1200;
+const CANVAS_HEIGHT = 675; // 16:9 aspect ratio
 
 // Card sound effects based on color/type
 const getCardSound = (card: any): string | null => {
@@ -316,6 +320,10 @@ const CZone = () => {
   
   const bgStyle = backgroundStyles[displayBackground] || backgroundStyles.dexter;
   const getCard = (id: number) => (cardsData as any[]).find(c => c.id === id);
+  
+  // Get background image URL if available
+  const currentBgData = backgrounds.find(b => b.slug === displayBackground);
+  const hasImageBg = !!currentBgData?.image_url;
 
   // Group user cards for collection picker
   const uniqueCards = userCards?.reduce((acc, uc) => {
@@ -453,8 +461,14 @@ const CZone = () => {
             
             <div 
               ref={canvasRef}
-              className={`relative bg-gradient-to-br ${bgStyle} rounded-lg border-4 border-[hsl(240,20%,25%)] overflow-hidden`}
-              style={{ height: "500px", minHeight: "400px" }}
+              className={`relative rounded-lg border-4 border-[hsl(240,20%,25%)] overflow-hidden ${!hasImageBg ? `bg-gradient-to-br ${bgStyle}` : ''}`}
+              style={{ 
+                aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+                maxHeight: "80vh",
+                backgroundImage: hasImageBg ? `url(${currentBgData?.image_url})` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}
             >
               {/* Placed Cards */}
               {displayPlacements.map((placement) => {

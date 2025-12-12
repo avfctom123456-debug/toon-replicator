@@ -343,6 +343,8 @@ export type Database = {
       }
       czone_backgrounds: {
         Row: {
+          canvas_height: number | null
+          canvas_width: number | null
           created_at: string
           id: string
           image_url: string | null
@@ -351,6 +353,8 @@ export type Database = {
           unlock_requirement: string | null
         }
         Insert: {
+          canvas_height?: number | null
+          canvas_width?: number | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -359,6 +363,8 @@ export type Database = {
           unlock_requirement?: string | null
         }
         Update: {
+          canvas_height?: number | null
+          canvas_width?: number | null
           created_at?: string
           id?: string
           image_url?: string | null
