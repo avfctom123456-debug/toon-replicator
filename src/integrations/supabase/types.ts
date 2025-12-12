@@ -308,6 +308,66 @@ export type Database = {
         }
         Relationships: []
       }
+      cmart_listings: {
+        Row: {
+          card_id: number
+          created_at: string
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          price: number
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          card_id: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          price?: number
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          card_id?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          price?: number
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      czone_backgrounds: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          slug: string
+          unlock_requirement: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          slug: string
+          unlock_requirement?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          slug?: string
+          unlock_requirement?: string | null
+        }
+        Relationships: []
+      }
       daily_login_rewards: {
         Row: {
           created_at: string
@@ -644,8 +704,10 @@ export type Database = {
         Row: {
           coins: number
           created_at: string
+          czone_background: string | null
           free_packs_remaining: number
           id: string
+          orbit_mode_enabled: boolean
           starter_deck_claimed: string | null
           updated_at: string
           user_id: string
@@ -654,8 +716,10 @@ export type Database = {
         Insert: {
           coins?: number
           created_at?: string
+          czone_background?: string | null
           free_packs_remaining?: number
           id?: string
+          orbit_mode_enabled?: boolean
           starter_deck_claimed?: string | null
           updated_at?: string
           user_id: string
@@ -664,8 +728,10 @@ export type Database = {
         Update: {
           coins?: number
           created_at?: string
+          czone_background?: string | null
           free_packs_remaining?: number
           id?: string
+          orbit_mode_enabled?: boolean
           starter_deck_claimed?: string | null
           updated_at?: string
           user_id?: string

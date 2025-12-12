@@ -2,22 +2,25 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import gtoonsLogo from "@/assets/gtoons-logo.svg";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useOrbitMode } from "@/hooks/useOrbitMode";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PromoCodeRedeemer } from "@/components/PromoCodeRedeemer";
 import { DailyRewardsModal } from "@/components/DailyRewardsModal";
 import { GlobalChat } from "@/components/GlobalChat";
 import { ChatModerationPanel } from "@/components/ChatModerationPanel";
 import { toast } from "sonner";
-import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers, Users, User } from "lucide-react";
+import { Coins, Package, ArrowRightLeft, Settings, Library, Trophy, Swords, Bot, Layers, Users, User, Orbit, ShoppingCart, Globe } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { isAdmin, isModerator } = useUserRole();
+  const { orbitModeEnabled, toggleOrbitMode, loading: orbitLoading } = useOrbitMode();
   const canModerate = isAdmin || isModerator;
 
   useEffect(() => {
@@ -32,13 +35,20 @@ const Home = () => {
     navigate("/auth");
   };
 
-  if (authLoading || profileLoading) {
+  if (authLoading || profileLoading || orbitLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground animate-pulse">Loading...</div>
       </div>
     );
   }
+
+  const handleOrbitToggle = async (enabled: boolean) => {
+    const success = await toggleOrbitMode(enabled);
+    if (success) {
+      toast.success(enabled ? "Cartoon Orbit mode enabled!" : "Cartoon Orbit mode disabled");
+    }
+  };
 
   if (!user) return null;
 
@@ -87,6 +97,51 @@ const Home = () => {
             <User className="w-3 h-3" /> Tap to view your stats
           </p>
         </div>
+
+        {/* Orbit Mode Toggle */}
+        <div className="w-full max-w-md mb-4">
+          <div className="flex items-center justify-between bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-3">
+              <Orbit className="w-5 h-5 text-purple-400" />
+              <div>
+                <p className="text-sm font-medium text-white">Cartoon Orbit Mode</p>
+                <p className="text-xs text-muted-foreground">Enable cZone, cMart & more</p>
+              </div>
+            </div>
+            <Switch
+              checked={orbitModeEnabled}
+              onCheckedChange={handleOrbitToggle}
+            />
+          </div>
+        </div>
+
+        {/* Orbit Features (only when enabled) */}
+        {orbitModeEnabled && (
+          <div className="w-full max-w-md space-y-3 mb-4">
+            <h2 className="text-sm font-semibold text-purple-400 uppercase tracking-wider px-1 flex items-center gap-2">
+              <Orbit className="w-4 h-4" />
+              Cartoon Orbit
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                variant="menu"
+                onClick={() => navigate("/czone")}
+                className="h-16 flex items-center justify-center gap-2 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20"
+              >
+                <Globe className="h-5 w-5 text-purple-400" />
+                <span>My cZone</span>
+              </Button>
+              <Button 
+                variant="menu"
+                onClick={() => navigate("/cmart")}
+                className="h-16 flex items-center justify-center gap-2 border-pink-500/30 bg-pink-500/10 hover:bg-pink-500/20"
+              >
+                <ShoppingCart className="h-5 w-5 text-pink-400" />
+                <span>cMart</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Play Section */}
         <div className="w-full max-w-md space-y-3 mb-4">
