@@ -11,7 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAdminAchievements, Achievement } from "@/hooks/useAchievements";
 import { supabase } from "@/integrations/supabase/client";
 import { getCardById } from "@/lib/gameEngine";
-import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp, Calendar, Trophy, Coins, Gamepad2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Package, Settings, Pencil, Sparkles, Users, Shield, ShieldOff, Search, Gift, Minus, Ticket, Eye, ChevronDown, ChevronUp, Calendar, Trophy, Coins, Gamepad2, Image } from "lucide-react";
 import { AdminGameManagement } from "@/components/admin/AdminGameManagement";
 import { toast } from "sonner";
 import {
@@ -110,6 +110,14 @@ interface DailyReward {
   reward_value: number;
 }
 
+interface CZoneBackground {
+  id: string;
+  name: string;
+  slug: string;
+  image_url: string | null;
+  unlock_requirement: string | null;
+}
+
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -192,6 +200,13 @@ export default function AdminPanel() {
   const [newAchievementReqValue, setNewAchievementReqValue] = useState(1);
   const [newAchievementReward, setNewAchievementReward] = useState(100);
 
+  // cZone Backgrounds
+  const [czoneBackgrounds, setCzoneBackgrounds] = useState<CZoneBackground[]>([]);
+  const [showAddBackground, setShowAddBackground] = useState(false);
+  const [newBgName, setNewBgName] = useState("");
+  const [newBgSlug, setNewBgSlug] = useState("");
+  const [newBgImageUrl, setNewBgImageUrl] = useState("");
+
   const allCards = cardsData as { id: number; title: string; rarity: string }[];
 
   const requirementTypes = [
@@ -253,6 +268,7 @@ export default function AdminPanel() {
         fetchUsers();
         fetchPromoCodes();
         fetchDailyRewards();
+        fetchCzoneBackgrounds();
       }
     }
   }, [user, isAdmin, authLoading, roleLoading, navigate]);
@@ -480,6 +496,65 @@ export default function AdminPanel() {
     } catch (error) {
       console.error("Error deleting daily reward:", error);
       toast.error("Failed to delete reward");
+    }
+  };
+
+  // cZone Backgrounds functions
+  const fetchCzoneBackgrounds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("czone_backgrounds")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setCzoneBackgrounds((data || []) as CZoneBackground[]);
+    } catch (error) {
+      console.error("Error fetching czone backgrounds:", error);
+    }
+  };
+
+  const handleAddCzoneBackground = async () => {
+    if (!newBgName.trim() || !newBgSlug.trim()) {
+      toast.error("Please enter name and slug");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("czone_backgrounds").insert({
+        name: newBgName.trim(),
+        slug: newBgSlug.trim().toLowerCase().replace(/\s+/g, '-'),
+        image_url: newBgImageUrl.trim() || null,
+        unlock_requirement: "free",
+      });
+
+      if (error) throw error;
+
+      toast.success("Background added!");
+      setShowAddBackground(false);
+      setNewBgName("");
+      setNewBgSlug("");
+      setNewBgImageUrl("");
+      fetchCzoneBackgrounds();
+    } catch (error) {
+      console.error("Error adding background:", error);
+      toast.error("Failed to add background");
+    }
+  };
+
+  const handleDeleteCzoneBackground = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("czone_backgrounds")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success("Background deleted");
+      fetchCzoneBackgrounds();
+    } catch (error) {
+      console.error("Error deleting background:", error);
+      toast.error("Failed to delete background");
     }
   };
 
@@ -926,6 +1001,10 @@ export default function AdminPanel() {
             <TabsTrigger value="games" className="flex items-center gap-2">
               <Gamepad2 className="h-4 w-4" />
               Games
+            </TabsTrigger>
+            <TabsTrigger value="backgrounds" className="flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              Backgrounds
             </TabsTrigger>
           </TabsList>
 
@@ -1869,6 +1948,97 @@ export default function AdminPanel() {
 
           <TabsContent value="games">
             <AdminGameManagement />
+          </TabsContent>
+
+          <TabsContent value="backgrounds">
+            <Card className="bg-card border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Image className="h-5 w-5" />
+                  cZone Backgrounds
+                </CardTitle>
+                <Dialog open={showAddBackground} onOpenChange={setShowAddBackground}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Background
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Background</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label>Name</Label>
+                        <Input
+                          value={newBgName}
+                          onChange={(e) => setNewBgName(e.target.value)}
+                          placeholder="Dragon Ball Arena"
+                        />
+                      </div>
+                      <div>
+                        <Label>Slug (URL-friendly identifier)</Label>
+                        <Input
+                          value={newBgSlug}
+                          onChange={(e) => setNewBgSlug(e.target.value)}
+                          placeholder="dragon-ball-arena"
+                        />
+                      </div>
+                      <div>
+                        <Label>Image URL (optional)</Label>
+                        <Input
+                          value={newBgImageUrl}
+                          onChange={(e) => setNewBgImageUrl(e.target.value)}
+                          placeholder="https://example.com/bg.jpg"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Leave empty to use a gradient style
+                        </p>
+                      </div>
+                      <Button onClick={handleAddCzoneBackground} className="w-full">
+                        Add Background
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {czoneBackgrounds.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    No backgrounds added yet
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {czoneBackgrounds.map((bg) => (
+                      <div
+                        key={bg.id}
+                        className="bg-muted rounded-lg p-4 relative group"
+                      >
+                        {bg.image_url ? (
+                          <div 
+                            className="w-full h-24 rounded bg-cover bg-center mb-2"
+                            style={{ backgroundImage: `url(${bg.image_url})` }}
+                          />
+                        ) : (
+                          <div className="w-full h-24 rounded bg-gradient-to-br from-purple-500 to-blue-500 mb-2" />
+                        )}
+                        <p className="font-medium">{bg.name}</p>
+                        <p className="text-xs text-muted-foreground">{bg.slug}</p>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDeleteCzoneBackground(bg.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ArrowLeft, X, Trash2, 
   ChevronLeft, ChevronRight, Shuffle, Coins, Save, Eye,
-  Plus, Search
+  Plus, Search, Volume2
 } from "lucide-react";
 import cardsData from "@/data/cards.json";
 import {
@@ -43,6 +43,46 @@ const backgroundStyles: Record<string, string> = {
   fosters: "from-[hsl(180,50%,30%)] via-[hsl(200,40%,35%)] to-[hsl(220,30%,25%)]",
 };
 
+// Card sound effects based on color/type
+const getCardSound = (card: any): string | null => {
+  if (!card) return null;
+  const color = card.color?.toLowerCase();
+  // Return a simple beep/boop sound based on color
+  // These could be replaced with actual sound URLs later
+  return color;
+};
+
+const playCardSound = (card: any) => {
+  if (!card) return;
+  
+  // Create a simple synthesized sound based on card properties
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  // Different frequencies based on card color
+  const frequencies: Record<string, number> = {
+    red: 440,
+    blue: 523,
+    green: 392,
+    yellow: 587,
+    purple: 349,
+  };
+  
+  const color = card.color?.toLowerCase() || 'blue';
+  oscillator.frequency.value = frequencies[color] || 440;
+  oscillator.type = 'sine';
+  
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.3);
+};
+
 const CZone = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -65,7 +105,6 @@ const CZone = () => {
   const [buildMode, setBuildMode] = useState(false);
   const [cardPickerOpen, setCardPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCard, setSelectedCard] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   
@@ -150,26 +189,30 @@ const CZone = () => {
     setBrowsePlacements([]);
   };
 
-  const handleCanvasClick = async (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!buildMode || !selectedCard || !canvasRef.current) return;
+  // Auto-place card in center when selected from picker
+  const handleCardSelect = async (cardId: number) => {
+    if (!canvasRef.current) return;
     
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
-    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+    // Place in a random position near center
+    const randomX = 40 + Math.random() * 20; // 40-60%
+    const randomY = 40 + Math.random() * 20; // 40-60%
     
     await savePlacement({
-      card_id: selectedCard,
-      x_position: Math.max(5, Math.min(95, x)),
-      y_position: Math.max(5, Math.min(95, y)),
+      card_id: cardId,
+      x_position: Math.round(randomX),
+      y_position: Math.round(randomY),
       z_index: placements.length + 1,
       scale: 1
     });
     
-    setSelectedCard(null);
+    setCardPickerOpen(false);
+    toast.success("Card placed! Drag to reposition.");
   };
 
+  // Mouse drag handlers
   const handleDragStart = (e: React.MouseEvent, placement: CZonePlacement) => {
     if (!buildMode) return;
+    e.preventDefault();
     e.stopPropagation();
     
     const target = e.currentTarget as HTMLElement;
@@ -199,14 +242,57 @@ const CZone = () => {
     setDraggingId(null);
   };
 
+  // Touch drag handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent, placement: CZonePlacement) => {
+    if (!buildMode) return;
+    e.stopPropagation();
+    
+    const touch = e.touches[0];
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    
+    setDraggingId(placement.id);
+    setDragOffset({
+      x: touch.clientX - rect.left - rect.width / 2,
+      y: touch.clientY - rect.top - rect.height / 2
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!draggingId || !canvasRef.current) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = Math.round(((touch.clientX - rect.left - dragOffset.x) / rect.width) * 100);
+    const y = Math.round(((touch.clientY - rect.top - dragOffset.y) / rect.height) * 100);
+    
+    updatePlacement(draggingId, {
+      x_position: Math.max(5, Math.min(95, x)),
+      y_position: Math.max(5, Math.min(95, y))
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setDraggingId(null);
+  };
+
   const handleDeletePlacement = async (id: string) => {
     await deletePlacement(id);
     toast.success("Card removed");
   };
 
+  const handleCardClick = (card: any, e: React.MouseEvent | React.TouchEvent) => {
+    // If not build mode, play sound on click
+    if (!buildMode) {
+      e.stopPropagation();
+      playCardSound(card);
+      toast.success(`${card.title} says hello!`, { duration: 1000 });
+    }
+  };
+
   const handleSave = () => {
     setBuildMode(false);
-    setSelectedCard(null);
     toast.success("cZone saved!");
   };
 
@@ -252,6 +338,8 @@ const CZone = () => {
       onMouseMove={draggingId ? handleDrag : undefined}
       onMouseUp={handleDragEnd}
       onMouseLeave={handleDragEnd}
+      onTouchMove={draggingId ? handleTouchMove : undefined}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Header */}
       <div className="bg-[hsl(240,20%,15%)] border-b border-white/10 px-4 py-3">
@@ -349,38 +437,24 @@ const CZone = () => {
         </div>
       )}
 
-      {/* Selected Card Indicator */}
-      {buildMode && selectedCard && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg z-50 flex items-center gap-2">
-          <span className="text-sm">Click on the canvas to place:</span>
-          <img 
-            src={getCard(selectedCard)?.image} 
-            alt="" 
-            className="w-8 h-8 rounded-full border-2 border-white"
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setSelectedCard(null)}
-            className="h-6 w-6 p-0 text-white hover:bg-white/20"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
-
       {/* Main Content - Canvas + Sidebar layout */}
       <div className="max-w-7xl mx-auto p-4">
         <div className={`flex gap-4 ${buildMode ? 'flex-col lg:flex-row' : ''}`}>
           {/* Canvas */}
           <div className={`${buildMode ? 'flex-1' : 'w-full'}`}>
+            {/* Background label */}
+            {browseMode && (
+              <div className="mb-2 text-center">
+                <span className="text-white/60 text-sm">
+                  Background: {backgrounds.find(b => b.slug === displayBackground)?.name || displayBackground}
+                </span>
+              </div>
+            )}
+            
             <div 
               ref={canvasRef}
-              onClick={handleCanvasClick}
-              className={`relative bg-gradient-to-br ${bgStyle} rounded-lg border-4 border-[hsl(240,20%,25%)] overflow-hidden ${
-                buildMode ? "cursor-crosshair" : ""
-              }`}
-              style={{ height: buildMode ? "500px" : "60vh", minHeight: "400px" }}
+              className={`relative bg-gradient-to-br ${bgStyle} rounded-lg border-4 border-[hsl(240,20%,25%)] overflow-hidden`}
+              style={{ height: "500px", minHeight: "400px" }}
             >
               {/* Placed Cards */}
               {displayPlacements.map((placement) => {
@@ -390,16 +464,17 @@ const CZone = () => {
                 return (
                   <div
                     key={placement.id}
-                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-shadow ${
-                      buildMode ? "cursor-move hover:ring-4 hover:ring-purple-400" : ""
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-shadow touch-none ${
+                      buildMode ? "cursor-move hover:ring-4 hover:ring-purple-400" : "cursor-pointer hover:scale-110 transition-transform"
                     } ${draggingId === placement.id ? "ring-4 ring-purple-400 z-50" : ""}`}
                     style={{
                       left: `${placement.x_position}%`,
                       top: `${placement.y_position}%`,
-                      zIndex: placement.z_index,
+                      zIndex: draggingId === placement.id ? 100 : placement.z_index,
                       transform: `translate(-50%, -50%) scale(${placement.scale})`
                     }}
-                    onMouseDown={(e) => handleDragStart(e, placement)}
+                    onMouseDown={(e) => buildMode ? handleDragStart(e, placement) : handleCardClick(card, e)}
+                    onTouchStart={(e) => buildMode ? handleTouchStart(e, placement) : handleCardClick(card, e)}
                   >
                     <div className="relative group">
                       <img 
@@ -408,6 +483,11 @@ const CZone = () => {
                         className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border-2 border-white/70 shadow-lg"
                         draggable={false}
                       />
+                      {!buildMode && (
+                        <div className="absolute -bottom-1 -right-1 bg-purple-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Volume2 className="w-3 h-3 text-white" />
+                        </div>
+                      )}
                       {buildMode && (
                         <button
                           onClick={(e) => {
@@ -432,7 +512,7 @@ const CZone = () => {
                   ) : buildMode ? (
                     <>
                       <p>Click "+ Add Card to cZone" to add cards</p>
-                      <p className="text-sm mt-1">Then click here to place them!</p>
+                      <p className="text-sm mt-1">Cards will be auto-placed for you to drag!</p>
                     </>
                   ) : (
                     <>
@@ -440,6 +520,13 @@ const CZone = () => {
                       <p className="text-sm mt-1">Click "Edit cZone" to design it!</p>
                     </>
                   )}
+                </div>
+              )}
+
+              {/* Click to play hint */}
+              {!buildMode && displayPlacements.length > 0 && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white/70 text-xs px-3 py-1 rounded-full">
+                  Click cards to hear them!
                 </div>
               )}
             </div>
@@ -532,7 +619,7 @@ const CZone = () => {
                 </Button>
                 
                 <p className="text-xs text-white/50 mt-2">
-                  Select cards from your collection to place in your cZone
+                  Cards are auto-placed - just drag to reposition!
                 </p>
 
                 {/* Clear All Button */}
@@ -583,10 +670,7 @@ const CZone = () => {
                 return (
                   <button
                     key={uc.id}
-                    onClick={() => {
-                      setSelectedCard(uc.card_id);
-                      setCardPickerOpen(false);
-                    }}
+                    onClick={() => handleCardSelect(uc.card_id)}
                     className="p-3 rounded-lg border-2 border-gray-200 hover:border-pink-400 hover:bg-pink-50 transition-all"
                   >
                     <img 
