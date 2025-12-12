@@ -5,12 +5,14 @@ import { useProfile } from "@/hooks/useProfile";
 import { useOrbitMode } from "@/hooks/useOrbitMode";
 import { useUserCards } from "@/hooks/useUserCards";
 import { useCZone, CZonePlacement, CZoneUser } from "@/hooks/useCZone";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
-  ArrowLeft, Settings, Palette, Hammer, X, Trash2, 
-  ChevronLeft, ChevronRight, Shuffle, Coins, Save, Eye
+  ArrowLeft, X, Trash2, 
+  ChevronLeft, ChevronRight, Shuffle, Coins, Save, Eye,
+  Plus, Search
 } from "lucide-react";
 import cardsData from "@/data/cards.json";
 import {
@@ -19,6 +21,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 // Background gradients for each world
@@ -54,8 +63,8 @@ const CZone = () => {
   } = useCZone();
   
   const [buildMode, setBuildMode] = useState(false);
-  const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false);
-  const [collectionOpen, setCollectionOpen] = useState(false);
+  const [cardPickerOpen, setCardPickerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -65,6 +74,10 @@ const CZone = () => {
   const [browseIndex, setBrowseIndex] = useState(0);
   const [browsePlacements, setBrowsePlacements] = useState<CZonePlacement[]>([]);
   const [browseUser, setBrowseUser] = useState<CZoneUser | null>(null);
+  
+  // cZone name/description (display only since we're keeping it simple)
+  const [czoneName, setCzoneName] = useState("");
+  const [czoneDescription, setCzoneDescription] = useState("");
   
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +92,12 @@ const CZone = () => {
       navigate("/home");
     }
   }, [orbitModeEnabled, orbitLoading, navigate]);
+
+  useEffect(() => {
+    if (profile?.username) {
+      setCzoneName(`${profile.username}'s cZone`);
+    }
+  }, [profile]);
 
   const loadBrowseUser = useCallback(async (index: number) => {
     if (allUsers.length === 0) return;
@@ -185,6 +204,12 @@ const CZone = () => {
     toast.success("Card removed");
   };
 
+  const handleSave = () => {
+    setBuildMode(false);
+    setSelectedCard(null);
+    toast.success("cZone saved!");
+  };
+
   if (authLoading || orbitLoading || czoneLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -214,16 +239,23 @@ const CZone = () => {
     return acc;
   }, [] as typeof userCards) || [];
 
+  // Filter cards by search
+  const filteredCards = uniqueCards.filter(uc => {
+    const card = getCard(uc.card_id);
+    if (!card) return false;
+    return card.title.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div 
-      className={`min-h-screen bg-gradient-to-br ${bgStyle}`}
+      className="min-h-screen bg-[hsl(240,20%,10%)]"
       onMouseMove={draggingId ? handleDrag : undefined}
       onMouseUp={handleDragEnd}
       onMouseLeave={handleDragEnd}
     >
       {/* Header */}
-      <div className="bg-black/40 backdrop-blur-sm border-b border-white/10 px-4 py-2">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <div className="bg-[hsl(240,20%,15%)] border-b border-white/10 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -233,19 +265,14 @@ const CZone = () => {
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div>
-              <h1 className="text-lg font-bold text-white">
-                {browseMode ? `${displayUsername}'s cZone` : "My cZone"}
-              </h1>
-              <p className="text-[10px] text-white/60">
-                {backgrounds.find(b => b.slug === displayBackground)?.name || "Dexter's Lab"}
-              </p>
-            </div>
+            <h1 className="text-xl font-bold text-purple-400">
+              {buildMode ? "Edit cZone" : browseMode ? `${displayUsername}'s cZone` : "cZone"}
+            </h1>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* Points Display */}
-            <div className="bg-yellow-500/20 px-3 py-1 rounded-full flex items-center gap-1">
+            <div className="bg-yellow-500/20 px-3 py-1.5 rounded-full flex items-center gap-1.5">
               <Coins className="w-4 h-4 text-yellow-400" />
               <span className="text-sm font-bold text-yellow-400">{todayPoints}/200</span>
             </div>
@@ -255,10 +282,9 @@ const CZone = () => {
                 <Button
                   size="sm"
                   onClick={() => setBuildMode(true)}
-                  className="bg-green-500 hover:bg-green-600 text-white"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
                 >
-                  <Hammer className="w-4 h-4 mr-1" />
-                  Build
+                  Edit cZone
                 </Button>
                 <Button
                   size="sm"
@@ -267,50 +293,6 @@ const CZone = () => {
                 >
                   <Eye className="w-4 h-4 mr-1" />
                   Browse
-                </Button>
-              </>
-            )}
-            
-            {buildMode && (
-              <>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setBackgroundPickerOpen(true)}
-                >
-                  <Palette className="w-4 h-4 mr-1" />
-                  BG
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setCollectionOpen(true)}
-                >
-                  <Settings className="w-4 h-4 mr-1" />
-                  Cards
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirm("Clear all cards from your cZone?")) {
-                      clearAllPlacements();
-                    }
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setBuildMode(false);
-                    setSelectedCard(null);
-                    toast.success("cZone saved!");
-                  }}
-                  className="bg-green-500 hover:bg-green-600"
-                >
-                  <Save className="w-4 h-4 mr-1" />
-                  Done
                 </Button>
               </>
             )}
@@ -331,8 +313,8 @@ const CZone = () => {
 
       {/* Browse Navigation */}
       {browseMode && (
-        <div className="bg-black/30 backdrop-blur-sm border-b border-white/10 px-4 py-2">
-          <div className="max-w-6xl mx-auto flex items-center justify-center gap-4">
+        <div className="bg-[hsl(240,20%,12%)] border-b border-white/10 px-4 py-2">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
             <Button
               size="sm"
               variant="ghost"
@@ -369,7 +351,7 @@ const CZone = () => {
 
       {/* Selected Card Indicator */}
       {buildMode && selectedCard && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg z-50 flex items-center gap-2">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-purple-600 text-white px-4 py-2 rounded-full shadow-lg z-50 flex items-center gap-2">
           <span className="text-sm">Click on the canvas to place:</span>
           <img 
             src={getCard(selectedCard)?.image} 
@@ -387,147 +369,214 @@ const CZone = () => {
         </div>
       )}
 
-      {/* Canvas */}
-      <div className="max-w-6xl mx-auto p-4">
-        <div 
-          ref={canvasRef}
-          onClick={handleCanvasClick}
-          className={`relative bg-black/20 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden ${
-            buildMode ? "cursor-crosshair" : ""
-          }`}
-          style={{ height: "60vh", minHeight: "400px" }}
-        >
-          {/* Grid pattern for build mode */}
-          {buildMode && (
+      {/* Main Content - Canvas + Sidebar layout */}
+      <div className="max-w-7xl mx-auto p-4">
+        <div className={`flex gap-4 ${buildMode ? 'flex-col lg:flex-row' : ''}`}>
+          {/* Canvas */}
+          <div className={`${buildMode ? 'flex-1' : 'w-full'}`}>
             <div 
-              className="absolute inset-0 opacity-10 pointer-events-none"
-              style={{
-                backgroundImage: "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-                backgroundSize: "5% 5%"
-              }}
-            />
-          )}
+              ref={canvasRef}
+              onClick={handleCanvasClick}
+              className={`relative bg-gradient-to-br ${bgStyle} rounded-lg border-4 border-[hsl(240,20%,25%)] overflow-hidden ${
+                buildMode ? "cursor-crosshair" : ""
+              }`}
+              style={{ height: buildMode ? "500px" : "60vh", minHeight: "400px" }}
+            >
+              {/* Placed Cards */}
+              {displayPlacements.map((placement) => {
+                const card = getCard(placement.card_id);
+                if (!card) return null;
+                
+                return (
+                  <div
+                    key={placement.id}
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-shadow ${
+                      buildMode ? "cursor-move hover:ring-4 hover:ring-purple-400" : ""
+                    } ${draggingId === placement.id ? "ring-4 ring-purple-400 z-50" : ""}`}
+                    style={{
+                      left: `${placement.x_position}%`,
+                      top: `${placement.y_position}%`,
+                      zIndex: placement.z_index,
+                      transform: `translate(-50%, -50%) scale(${placement.scale})`
+                    }}
+                    onMouseDown={(e) => handleDragStart(e, placement)}
+                  >
+                    <div className="relative group">
+                      <img 
+                        src={card.image} 
+                        alt={card.title}
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover border-2 border-white/70 shadow-lg"
+                        draggable={false}
+                      />
+                      {buildMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePlacement(placement.id);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
 
-          {/* Placed Cards */}
-          {displayPlacements.map((placement) => {
-            const card = getCard(placement.card_id);
-            if (!card) return null;
-            
-            return (
-              <div
-                key={placement.id}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-shadow ${
-                  buildMode ? "cursor-move hover:ring-4 hover:ring-green-400" : ""
-                } ${draggingId === placement.id ? "ring-4 ring-green-400 z-50" : ""}`}
-                style={{
-                  left: `${placement.x_position}%`,
-                  top: `${placement.y_position}%`,
-                  zIndex: placement.z_index,
-                  transform: `translate(-50%, -50%) scale(${placement.scale})`
-                }}
-                onMouseDown={(e) => handleDragStart(e, placement)}
-              >
-                <div className="relative group">
-                  <img 
-                    src={card.image} 
-                    alt={card.title}
-                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-white/50 shadow-lg"
-                    draggable={false}
-                  />
-                  {buildMode && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePlacement(placement.id);
-                      }}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+              {/* Empty State */}
+              {displayPlacements.length === 0 && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
+                  {browseMode ? (
+                    <p>This cZone is empty</p>
+                  ) : buildMode ? (
+                    <>
+                      <p>Click "+ Add Card to cZone" to add cards</p>
+                      <p className="text-sm mt-1">Then click here to place them!</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>Your cZone is empty</p>
+                      <p className="text-sm mt-1">Click "Edit cZone" to design it!</p>
+                    </>
                   )}
                 </div>
-              </div>
-            );
-          })}
-
-          {/* Empty State */}
-          {displayPlacements.length === 0 && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40">
-              {browseMode ? (
-                <p>This cZone is empty</p>
-              ) : buildMode ? (
-                <>
-                  <p>Click "Cards" to load your collection</p>
-                  <p className="text-sm mt-1">Then click here to place them!</p>
-                </>
-              ) : (
-                <>
-                  <p>Your cZone is empty</p>
-                  <p className="text-sm mt-1">Click "Build" to design it!</p>
-                </>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Stats Bar */}
-        <div className="mt-4 flex justify-center gap-4">
-          <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
-            <div className="text-xl font-bold text-white">{displayPlacements.length}</div>
-            <div className="text-xs text-white/60">Cards Placed</div>
+            {/* Stats Bar - only in view mode */}
+            {!buildMode && (
+              <div className="mt-4 flex justify-center gap-4">
+                <div className="bg-[hsl(240,20%,15%)] rounded-lg px-4 py-2 text-center border border-white/10">
+                  <div className="text-xl font-bold text-white">{displayPlacements.length}</div>
+                  <div className="text-xs text-white/60">Cards Placed</div>
+                </div>
+                {!browseMode && (
+                  <div className="bg-[hsl(240,20%,15%)] rounded-lg px-4 py-2 text-center border border-white/10">
+                    <div className="text-xl font-bold text-white">{uniqueCards.length}</div>
+                    <div className="text-xs text-white/60">In Collection</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          {!browseMode && (
-            <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
-              <div className="text-xl font-bold text-white">{uniqueCards.length}</div>
-              <div className="text-xs text-white/60">In Collection</div>
+
+          {/* Sidebar - only in build mode */}
+          {buildMode && (
+            <div className="w-full lg:w-80 space-y-4">
+              {/* cZone Settings Card */}
+              <div className="bg-[hsl(240,20%,15%)] rounded-lg border border-white/10 p-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-white/80 block mb-1.5">cZone Name</label>
+                    <Input
+                      value={czoneName}
+                      onChange={(e) => setCzoneName(e.target.value)}
+                      className="bg-[hsl(240,20%,20%)] border-white/20 text-white"
+                      placeholder="My cZone"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-white/80 block mb-1.5">Description</label>
+                    <Textarea
+                      value={czoneDescription}
+                      onChange={(e) => setCzoneDescription(e.target.value)}
+                      className="bg-[hsl(240,20%,20%)] border-white/20 text-white resize-none"
+                      placeholder="Describe your cZone..."
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm text-white/80 block mb-1.5">Background Image</label>
+                    <Select value={czoneBackground} onValueChange={updateBackground}>
+                      <SelectTrigger className="bg-[hsl(240,20%,20%)] border-white/20 text-purple-400">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[hsl(240,20%,15%)] border-white/20">
+                        {backgrounds.map((bg) => (
+                          <SelectItem 
+                            key={bg.slug} 
+                            value={bg.slug}
+                            className="text-white hover:bg-purple-600 focus:bg-purple-600"
+                          >
+                            {bg.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Button
+                    onClick={handleSave}
+                    className="w-full bg-[hsl(220,60%,35%)] hover:bg-[hsl(220,60%,40%)] text-white"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save cZone
+                  </Button>
+                </div>
+              </div>
+
+              {/* Add Cards Card */}
+              <div className="bg-[hsl(240,20%,15%)] rounded-lg border border-white/10 p-4">
+                <h3 className="text-white font-semibold mb-3">Add Cards</h3>
+                
+                <Button
+                  onClick={() => setCardPickerOpen(true)}
+                  variant="outline"
+                  className="w-full border-dashed border-white/30 text-purple-400 hover:bg-white/5"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Card to cZone
+                </Button>
+                
+                <p className="text-xs text-white/50 mt-2">
+                  Select cards from your collection to place in your cZone
+                </p>
+
+                {/* Clear All Button */}
+                {placements.length > 0 && (
+                  <Button
+                    onClick={() => {
+                      if (confirm("Clear all cards from your cZone?")) {
+                        clearAllPlacements();
+                      }
+                    }}
+                    variant="ghost"
+                    className="w-full mt-3 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All Cards
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Background Picker Dialog */}
-      <Dialog open={backgroundPickerOpen} onOpenChange={setBackgroundPickerOpen}>
-        <DialogContent className="bg-[hsl(220,50%,15%)] border-[hsl(220,40%,30%)]">
+      {/* Card Picker Dialog */}
+      <Dialog open={cardPickerOpen} onOpenChange={setCardPickerOpen}>
+        <DialogContent className="bg-white border-0 max-w-2xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Palette className="w-5 h-5" />
-              Choose Your World
-            </DialogTitle>
+            <DialogTitle className="text-gray-900">Select a Card</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            {backgrounds.map((bg) => (
-              <button
-                key={bg.slug}
-                onClick={() => {
-                  updateBackground(bg.slug);
-                  setBackgroundPickerOpen(false);
-                }}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  czoneBackground === bg.slug
-                    ? "border-primary bg-primary/20"
-                    : "border-white/20 hover:border-white/40 bg-white/5"
-                }`}
-              >
-                <div className={`w-full h-8 rounded bg-gradient-to-br ${backgroundStyles[bg.slug] || backgroundStyles.dexter} mb-2`} />
-                <span className="text-xs text-white">{bg.name}</span>
-              </button>
-            ))}
+          
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-gray-50 border-gray-200"
+              placeholder="Search by name or character..."
+            />
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Collection Picker Dialog */}
-      <Dialog open={collectionOpen} onOpenChange={setCollectionOpen}>
-        <DialogContent className="bg-[hsl(220,50%,15%)] border-[hsl(220,40%,30%)] max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Select a Card to Place
-            </DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="h-[50vh] mt-4">
-            <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 p-1">
-              {uniqueCards.map((uc) => {
+          
+          <ScrollArea className="h-[50vh] mt-2">
+            <div className="grid grid-cols-3 gap-3 p-1">
+              {filteredCards.map((uc) => {
                 const card = getCard(uc.card_id);
                 if (!card) return null;
                 
@@ -536,25 +585,26 @@ const CZone = () => {
                     key={uc.id}
                     onClick={() => {
                       setSelectedCard(uc.card_id);
-                      setCollectionOpen(false);
+                      setCardPickerOpen(false);
                     }}
-                    className={`p-1 rounded-lg border-2 transition-all hover:scale-105 ${
-                      selectedCard === uc.card_id
-                        ? "border-green-400 bg-green-400/20"
-                        : "border-white/20 hover:border-white/40"
-                    }`}
+                    className="p-3 rounded-lg border-2 border-gray-200 hover:border-pink-400 hover:bg-pink-50 transition-all"
                   >
                     <img 
                       src={card.image} 
                       alt={card.title}
-                      className="w-full aspect-square rounded-full object-cover"
+                      className="w-full aspect-square rounded-lg object-cover"
                     />
-                    <p className="text-[9px] text-white/70 truncate mt-1 text-center">
-                      {card.title}
-                    </p>
                   </button>
                 );
               })}
+              
+              {filteredCards.length === 0 && (
+                <div className="col-span-3 py-8 text-center text-gray-500">
+                  {uniqueCards.length === 0 
+                    ? "No cards in your collection yet!" 
+                    : "No cards match your search"}
+                </div>
+              )}
             </div>
           </ScrollArea>
         </DialogContent>
