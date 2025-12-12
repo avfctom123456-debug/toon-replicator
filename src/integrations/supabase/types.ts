@@ -368,6 +368,33 @@ export type Database = {
         }
         Relationships: []
       }
+      czone_visits: {
+        Row: {
+          id: string
+          points_earned: number
+          visit_date: string
+          visited_at: string
+          visited_user_id: string
+          visitor_id: string
+        }
+        Insert: {
+          id?: string
+          points_earned?: number
+          visit_date?: string
+          visited_at?: string
+          visited_user_id: string
+          visitor_id: string
+        }
+        Update: {
+          id?: string
+          points_earned?: number
+          visit_date?: string
+          visited_at?: string
+          visited_user_id?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       daily_login_rewards: {
         Row: {
           created_at: string
@@ -1313,6 +1340,7 @@ export type Database = {
         Args: { p_is_draw?: boolean; p_loser_id: string; p_winner_id: string }
         Returns: undefined
       }
+      visit_czone: { Args: { p_visited_user_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user" | "moderator"
